@@ -1,7 +1,7 @@
 import numpy as np
 import galsim
 
-from ..wcs_gen import gen_affine_wcs
+from ..wcs import gen_affine_wcs
 
 
 def test_gen_affine_wcs():
