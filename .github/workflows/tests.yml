@@ -27,11 +27,7 @@ jobs:
           conda config --set always_yes yes
           conda install --quiet \
             --file=requirements.txt
-          conda install --quiet \
-            flake8 \
-            pytest
           pip install --no-deps git+https://github.com/esheldon/metadetect.git@master
-
           python -m pip install -e .
 
       - name: lint

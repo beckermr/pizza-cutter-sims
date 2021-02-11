@@ -13,3 +13,7 @@ joblib
 jinja2
 tqdm
 cfitsio
+pip
+setuptools
+flake8
+pytest
