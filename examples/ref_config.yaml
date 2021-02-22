@@ -1,0 +1,53 @@
+# this config file has all possible fields with an explanation
+
+shear:
+  g1: 0.02
+  g2: 0.00
+  scene: True
+
+msk:
+  cosmic_rays: False
+    # mean_cosmic_rays: 1
+    # min_length: 10
+    # max_length: 30
+
+  bad_columns: False
+    # mean_bad_cols: 1
+    # widths: [1, 2, 5, 10]
+    # p: [0.8, 0.1, 0.075, 0.025]
+    # min_length_frac: [1, 1, 0.25, 0.25]
+    # max_length_frac: [1, 1, 0.75, 0.75]
+    # gap_prob: [0.30, 0.30, 0, 0]
+    # min_gap_frac: [0.1, 0.1, 0, 0]
+    # max_gap_frac: [0.3, 0.3, 0, 0]
+
+coadd:
+  central_size: 225
+  buffer_size: 25
+  scale: 0.263
+
+se:
+  n_images: 2
+  wcs_config:
+    position_angle_range: [0, 0]
+    dither_scale: 0.263
+    scale: 0.263
+    scale_frac_std: 0
+    shear_std: 0
+
+psf:
+  type: galsim.Gaussian
+  fwhm: 0.8
+  fwhm_frac_std: 0.1
+  shear_std: 0
+  shear: 0
+
+layout:
+  type: grid
+  ngal_per_side: 7
+  ngal_per_arcmin2: 60
+  dither_scale: 0.263
+
+gal:
+  type: exp-bright
+  noise: 10

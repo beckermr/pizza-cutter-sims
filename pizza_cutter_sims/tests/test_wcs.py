@@ -9,7 +9,7 @@ def test_gen_affine_wcs():
     wcs = gen_affine_wcs(
         rng=np.random.RandomState(seed=seed),
         position_angle_range=(0, 360),
-        dither_range=(-0.5, 0.5),
+        dither_scale=1,
         scale=0.25,
         scale_frac_std=0.1,
         shear_std=0.1,
