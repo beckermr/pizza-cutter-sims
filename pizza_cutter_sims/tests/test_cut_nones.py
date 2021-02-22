@@ -1,4 +1,4 @@
-from ..run_utils import cut_nones
+from pizza_cutter_sims.run_utils import cut_nones
 
 
 def test_cut_nones():

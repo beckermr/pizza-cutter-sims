@@ -14,7 +14,7 @@ with open(pth, 'r') as fp:
     exec(fp.read())
 
 setup(
-    name='pizza_cutter_sims',
+    name='pizza-cutter-sims',
     version=__version__,
     description="sims for testing the pizza cutter",
     author="MRB",

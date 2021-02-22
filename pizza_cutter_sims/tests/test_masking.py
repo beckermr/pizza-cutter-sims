@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..masking import generate_bad_columns, generate_cosmic_rays
+from pizza_cutter_sims.masking import generate_bad_columns, generate_cosmic_rays
 
 
 def test_generate_cosmic_rays_seed():

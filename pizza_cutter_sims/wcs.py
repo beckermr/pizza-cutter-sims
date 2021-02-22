@@ -3,7 +3,7 @@ import galsim
 
 
 def gen_affine_wcs(
-        *, rng, position_angle_range, dither_range,
+        *, rng, position_angle_range, dither_scale,
         scale, scale_frac_std, shear_std,
         world_origin, origin):
     """Generate a random AffineTransform WCS.
@@ -15,8 +15,8 @@ def gen_affine_wcs(
     position_angle_range : 2-tuple of floats
         The range of position angles to select from for rotating the image
         WCS coordinares.
-    dither_range : 2-tuple of floats
-        The lowest and highest dither in world coordinates.
+    dither_scale : float
+        The scale for dither in world coordinates.
     scale : float
         The mean pixel scale of the image,
     scale_frac_std : float
@@ -48,6 +48,7 @@ def gen_affine_wcs(
     theta = rng.uniform(
         low=position_angle_range[0],
         high=position_angle_range[1]) / 180.0 * np.pi
+    dither_range = (-dither_scale/2, dither_scale/2)
     dither_u = rng.uniform(
         low=dither_range[0],
         high=dither_range[1]) * scale
