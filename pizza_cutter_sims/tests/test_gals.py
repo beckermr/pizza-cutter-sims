@@ -2,7 +2,7 @@ import numpy as np
 
 import pytest
 
-from ..gals import gen_gals
+from pizza_cutter_sims.gals import gen_gals
 
 
 def test_gals_gen_gals_grid():

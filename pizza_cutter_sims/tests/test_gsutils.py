@@ -1,6 +1,6 @@
 import galsim
 
-from ..gsutils import build_gsobject
+from pizza_cutter_sims.gsutils import build_gsobject
 
 
 def test_build_gsobject_const():

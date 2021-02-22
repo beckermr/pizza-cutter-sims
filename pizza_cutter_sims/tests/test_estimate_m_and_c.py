@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ..run_utils import estimate_m_and_c
+from pizza_cutter_sims.run_utils import estimate_m_and_c
 
 
 @pytest.mark.parametrize('swap12', [True, False])

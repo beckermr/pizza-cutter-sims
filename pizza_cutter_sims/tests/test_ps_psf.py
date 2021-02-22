@@ -3,8 +3,8 @@ import galsim
 
 import pytest
 
-from ..ps_psf import PowerSpectrumPSF
-from ..constants import PIXEL_SCALE
+from pizza_cutter_sims.ps_psf import PowerSpectrumPSF
+from pizza_cutter_sims.constants import PIXEL_SCALE
 
 
 def _get_fwhm_g1g2(psf_im):

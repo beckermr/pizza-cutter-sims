@@ -1,7 +1,7 @@
 import numpy as np
 import galsim
 
-from ..wcs import gen_affine_wcs
+from pizza_cutter_sims.wcs import gen_affine_wcs
 
 
 def test_gen_affine_wcs():

@@ -3,7 +3,7 @@ import numpy as np
 
 import pytest
 
-from ..psf import GalsimPSF, gen_psf
+from pizza_cutter_sims.psf import GalsimPSF, gen_psf
 
 
 def test_psf_galsimpsf():
