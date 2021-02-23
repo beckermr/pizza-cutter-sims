@@ -2,7 +2,7 @@ import numpy as np
 import galsim
 
 from .wcs import gen_affine_wcs
-from .constants import SIM_BMASK_BADCOLS, SIM_BMASK_COSMICS
+from .constants import SIM_BMASK_BADCOLS, SIM_BMASK_COSMICS, MAGZP_REF
 from .psf import gen_psf
 from .gals import gen_gals
 from .masking import generate_bad_columns, generate_cosmic_rays
@@ -53,7 +53,7 @@ def generate_sim(
             correct format for coadding.
         img : list of np.ndarray
             The images to coadd.
-        wwgt : list of np.ndarray
+        wgt : list of np.ndarray
             The weight maps of the imags to coadd.
         msk : list of np.ndarray
             The bit masks of the images to coadd.
@@ -83,6 +83,8 @@ def generate_sim(
         "y0": coadd_image_cen,
     }
     info["image_shape"] = [coadd_image_shape, coadd_image_shape]
+    info["magzp"] = MAGZP_REF
+    info["scale"] = 1.0
     info["position_offset"] = 0
 
     se_image_shape = int(np.sqrt(2) * coadd_image_shape)
@@ -91,6 +93,7 @@ def generate_sim(
     se_image_cen = (se_image_shape - 1) // 2
 
     for ii in src_info:
+        ii["magzp"] = MAGZP_REF
         ii["scale"] = 1.0
         ii["position_offset"] = 0
         _wcs = gen_affine_wcs(
@@ -194,6 +197,25 @@ def generate_sim(
         weights.append(weight)
         bmasks.append(msk)
         bkgs.append(bkg)
+
+    # tuck the images in the info structure for the coadding
+    for ind, ii in enumerate(info["src_info"]):
+        # the epoch keys are set to make sure the pizza cutter slices cache
+        # properly
+        ii["image_path"] = images[ind]
+        ii["image_ext"] = "epoch%d" % ind
+        ii["bkg_path"] = bkgs[ind]
+        ii["bkg_ext"] = "epoch%d" % ind
+        ii["weight_path"] = weights[ind]
+        ii["weight_ext"] = "epoch%d" % ind
+        ii["bmask_path"] = bmasks[ind]
+        ii["bmask_ext"] = "epoch%d" % ind
+        ii["path"] = "epoch%d" % ind
+        ii["filename"] = "epoch%d" % ind
+
+    # here to be comaptible with pizza cutter
+    info["path"] = "coadd"
+    info["filename"] = "coadd"
 
     return {
         "info": info,
