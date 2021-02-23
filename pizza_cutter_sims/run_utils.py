@@ -1,8 +1,44 @@
-import logging
+import multiprocessing
+import contextlib
+
 import numpy as np
 import tqdm
+import schwimmbad
 
-logger = logging.getLogger(__name__)
+
+@contextlib.contextmanager
+def backend_pool(backend, n_workers=None):
+    """Context manager to build a schwimmbad `pool` object with the `map` method.
+
+    Parameters
+    ----------
+    backend : str
+        One of 'sequential', `loky`, or 'mpi'.
+    n_workers : int, optional
+        The number of workers to use. Defaults to 1 for the 'sequential' backend,
+        the cpu count for the 'loky' backend, and the size of the default global
+        communicator for the 'mpi' backend.
+    """
+    try:
+        if backend == "sequential":
+            pool = schwimmbad.JoblibPool(1, backend=backend, verbose=0)
+        else:
+            if backend == "mpi":
+                from mpi4py import MPI
+                pool = schwimmbad.choose_pool(
+                    mpi=True,
+                    processes=n_workers or MPI.COMM_WORLD.Get_size(),
+                )
+            else:
+                pool = schwimmbad.JoblibPool(
+                    n_workers or multiprocessing.cpu_count(),
+                    backend=backend,
+                    verbose=100,
+                )
+        yield pool
+    finally:
+        if "pool" in locals():
+            pool.close()
 
 
 def cut_nones(presults, mresults):
