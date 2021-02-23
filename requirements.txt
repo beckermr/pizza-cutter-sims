@@ -22,3 +22,5 @@ mpi4py
 piff
 pixmappy
 psfex
+des-desmeds
+des-easyaccess
