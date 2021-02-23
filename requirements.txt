@@ -17,3 +17,5 @@ pip
 setuptools
 flake8
 pytest
+schwimmbad
+mpi4py
