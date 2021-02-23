@@ -1,5 +1,21 @@
+import numpy as np
 import pytest
 import yaml
+
+
+def recursive_equal(sdata1, sdata2):
+    eq = True
+    if isinstance(sdata1, np.ndarray):
+        eq = eq and np.array_equal(sdata1, sdata2)
+    elif isinstance(sdata1, dict):
+        for k in sdata1:
+            eq = eq and recursive_equal(sdata1[k], sdata2[k])
+    elif isinstance(sdata1, list):
+        for item1, item2 in zip(sdata1, sdata2):
+            eq = eq and recursive_equal(item1, item2)
+    else:
+        eq = eq and (sdata1 == sdata2)
+    return eq
 
 
 @pytest.fixture()

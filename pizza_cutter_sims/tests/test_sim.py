@@ -2,22 +2,8 @@ import copy
 
 import numpy as np
 
+from pizza_cutter_sims.tests.conftest import recursive_equal
 from pizza_cutter_sims.sim import generate_sim
-
-
-def _recursive_equal(sdata1, sdata2):
-    eq = True
-    if isinstance(sdata1, np.ndarray):
-        eq = eq and np.array_equal(sdata1, sdata2)
-    elif isinstance(sdata1, dict):
-        for k in sdata1:
-            eq = eq and _recursive_equal(sdata1[k], sdata2[k])
-    elif isinstance(sdata1, list):
-        for item1, item2 in zip(sdata1, sdata2):
-            eq = eq and _recursive_equal(item1, item2)
-    else:
-        eq = eq and (sdata1 == sdata2)
-    return eq
 
 
 def test_generate_sim_seeding(sim_config):
@@ -72,5 +58,5 @@ def test_generate_sim_seeding(sim_config):
         shear_config=cfg["shear"],
     )
 
-    assert _recursive_equal(sdata1, sdata2)
-    assert not _recursive_equal(sdata1, sdata3)
+    assert recursive_equal(sdata1, sdata2)
+    assert not recursive_equal(sdata1, sdata3)
