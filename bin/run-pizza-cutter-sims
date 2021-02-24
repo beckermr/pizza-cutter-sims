@@ -1,0 +1,181 @@
+#!/usr/bin/env python
+import sys
+import time
+import copy
+import logging
+
+import click
+import yaml
+import numpy as np
+
+import fitsio
+from esutil.numpy_util import combine_arrlist
+
+from pizza_cutter_sims.main import run_end2end_pair_with_shear
+from pizza_cutter_sims.run_utils import (
+    measure_shear_metadetect,
+    estimate_m_and_c,
+    backend_pool,
+)
+
+START = time.time()
+
+
+def _run_pair(args):
+    kwargs, num, backend = args
+    pres, mres = run_end2end_pair_with_shear(**kwargs)
+
+    keys = ["g1p", "g1m", "g1", "g2p", "g2m", "g2", "s2n_cut"]
+    dtype = []
+    for key in keys:
+        dtype.append((key, "f8"))
+    dtype += [("cut_interp", "?")]
+
+    datap = []
+    datam = []
+    for cut_interp in [True, False]:
+        for s2n_cut in [10, 15, 20]:
+            pgm = measure_shear_metadetect(
+                pres, s2n_cut=s2n_cut, t_ratio_cut=1.2, cut_interp=cut_interp
+            )
+            mgm = measure_shear_metadetect(
+                mres, s2n_cut=s2n_cut, t_ratio_cut=1.2, cut_interp=cut_interp
+            )
+            if pgm is None or mgm is None:
+                continue
+
+            datap.append(tuple(list(pgm) + [s2n_cut, cut_interp]))
+            datam.append(tuple(list(mgm) + [s2n_cut, cut_interp]))
+
+    if backend == "mpi":
+        print(
+            "[% 10ds] did %04d" % (time.time() - START, num+1),
+            flush=True,
+        )
+
+    return np.array(datap, dtype=dtype), np.array(datam, dtype=dtype)
+
+
+@click.command()
+@click.option('--config', type=str, default=None, help='config file', required=True)
+@click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
+@click.option('--output', type=str, default=None, help='output file')
+@click.option('--n-sims', type=int, default=1, help='number of sims to run')
+@click.option(
+    '--log-level', default='warning', type=str,
+    help=(
+        'python logging level [one of critical error, '
+        'warning, info, or debug]')
+)
+@click.option(
+    '--backend', default='sequential', type=str,
+    help=(
+        "parallel backend to use (one of 'sequential', "
+        "'loky', 'multiprocessing', or 'mpi')"
+    )
+)
+@click.option(
+    '--n-workers', default=None, type=int,
+    help="number of parallel workers to use",
+)
+def main(config, seed, output, n_sims, log_level, backend, n_workers):
+    """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
+
+    if backend == "sequential":
+        logging.basicConfig(stream=sys.stdout)
+        for code in ["ngmix", "metadetect", "pizza_cutter", "pizza_cutter_sims"]:
+            logging.getLogger(code).setLevel(
+                getattr(logging, log_level.upper()))
+
+    if backend == "mpi":
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+    else:
+        rank = 0
+
+    if rank == 0:
+        with open(config, "r") as fp:
+            cfg = yaml.safe_load(fp.read())
+
+        rng = np.random.RandomState(seed=seed)
+        sim_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
+        gal_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
+        coadd_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
+        mdet_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
+
+        args = []
+        for i, (rng_seed, gal_rng_seed, coadd_rng_seed, mdet_rng_seed) in enumerate(zip(
+            sim_rng_seeds, gal_rng_seeds, coadd_rng_seeds, mdet_rng_seeds,
+        )):
+            args.append((
+                dict(
+                    rng_seed=rng_seed,
+                    gal_rng_seed=gal_rng_seed,
+                    coadd_rng_seed=coadd_rng_seed,
+                    mdet_rng_seed=mdet_rng_seed,
+                    cfg=copy.deepcopy(cfg),
+                    g1=cfg["shear"]["g"],
+                    g2=0,
+                    swap12=cfg["shear"]["swap12"],
+                ),
+                i,
+                backend,
+            ))
+    else:
+        args = []
+
+    with backend_pool(backend, n_workers=n_workers) as pool:
+        outputs = pool.map(_run_pair, args)
+
+    if rank == 0:
+        pdata, mdata = zip(*outputs)
+        pdata = combine_arrlist(list(pdata))
+        mdata = combine_arrlist(list(mdata))
+
+        if output:
+            with fitsio.FITS(output, 'rw', clobber=True) as fits:
+                fits.write(pdata, extname='plus')
+                fits.write(mdata, extname='minus')
+
+        pmsk = (pdata["s2n_cut"] == 10) & (~pdata["cut_interp"])
+
+        pres = [
+            (
+                pdata["g1p"][i], pdata["g1m"][i], pdata["g1"][i],
+                pdata["g2p"][i], pdata["g2m"][i], pdata["g2"][i],
+            )
+            for i in range(pdata[pmsk].shape[0])
+        ]
+
+        mres = [
+            (
+                mdata["g1p"][i], mdata["g1m"][i], mdata["g1"][i],
+                mdata["g2p"][i], mdata["g2m"][i], mdata["g2"][i],
+            )
+            for i in range(pdata[pmsk].shape[0])
+        ]
+
+        m, msd, c, csd = estimate_m_and_c(
+            pres,
+            mres,
+            cfg["shear"]["g"],
+            swap12=cfg["shear"]["swap12"],
+        )
+
+        print("""\
+# of sims: {n_sims}
+noise cancel m   : {m: f} +/- {msd: f} [1e-3, 1-sigma]
+noise cancel c   : {c: f} +/- {csd: f} [1e-5, 1-sigma]""".format(
+                n_sims=len(pres),
+                m=m/1e-3,
+                msd=msd/1e-3,
+                c=c/1e-5,
+                csd=csd/1e-5
+            ),
+            flush=True,
+        )
+
+
+if __name__ == '__main__':
+    main()

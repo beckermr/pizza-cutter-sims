@@ -1,4 +1,5 @@
-MAGZP_REF = 30.0
+from pizza_cutter.des_pizza_cutter._constants import MAGZP_REF  # noqa
+
 SIM_BMASK_BADCOLS = 2**0
 SIM_BMASK_COSMICS = 2**1
 PIXEL_SCALE = 0.263

@@ -1,0 +1,36 @@
+import copy
+
+import numpy as np
+
+from pizza_cutter_sims.tests.conftest import recursive_equal
+from pizza_cutter_sims.sim import generate_sim
+
+
+def _run_sim(cfg, rng_seed, gal_rng_seed):
+    cfg["shear"]["g1"] = 0.0
+    cfg["shear"]["g2"] = 0.0
+
+    rng = np.random.RandomState(seed=rng_seed)
+    gal_rng = np.random.RandomState(seed=gal_rng_seed)
+    return generate_sim(
+        rng=rng,
+        gal_rng=gal_rng,
+        coadd_config=cfg["coadd"],
+        se_config=cfg["se"],
+        psf_config=cfg["psf"],
+        gal_config=cfg["gal"],
+        layout_config=cfg["layout"],
+        msk_config=cfg["msk"],
+        shear_config=cfg["shear"],
+    )
+
+
+def test_generate_sim_seeding(sim_config):
+    sdata1 = _run_sim(copy.deepcopy(sim_config), 42, 43)
+    sdata2 = _run_sim(copy.deepcopy(sim_config), 42, 43)
+
+    assert recursive_equal(sdata1, sdata2)
+
+    for seed_set in [(52, 43), (42, 53)]:
+        sdata3 = _run_sim(copy.deepcopy(sim_config), *seed_set)
+        assert not recursive_equal(sdata1, sdata3)

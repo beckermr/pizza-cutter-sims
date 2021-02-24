@@ -17,3 +17,10 @@ pip
 setuptools
 flake8
 pytest
+schwimmbad
+mpi4py
+piff
+pixmappy
+psfex
+des-desmeds
+des-easyaccess

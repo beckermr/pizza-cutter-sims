@@ -1,5 +1,26 @@
-# this config file has all possible fields with an explanation
+import numpy as np
+import pytest
+import yaml
 
+
+def recursive_equal(sdata1, sdata2):
+    eq = True
+    if isinstance(sdata1, np.ndarray):
+        eq = eq and np.array_equal(sdata1, sdata2)
+    elif isinstance(sdata1, dict):
+        for k in sdata1:
+            eq = eq and recursive_equal(sdata1[k], sdata2[k])
+    elif isinstance(sdata1, list) or isinstance(sdata1, tuple):
+        for item1, item2 in zip(sdata1, sdata2):
+            eq = eq and recursive_equal(item1, item2)
+    else:
+        eq = eq and (sdata1 == sdata2)
+    return eq
+
+
+@pytest.fixture()
+def sim_config():
+    cfg = """\
 shear:
   scene: True
 
@@ -135,3 +156,5 @@ metadetect:
   spline_interp_flags: 0
   noise_interp_flags: 0
   imperfect_flags: 0
+"""
+    return yaml.safe_load(cfg)
