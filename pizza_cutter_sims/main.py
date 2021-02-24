@@ -12,7 +12,7 @@ def run_end2end_pair_with_shear(
 ):
     """Run a pair of simulations with opposite shears.
 
-    By default, the shear on the 1-axis is set to +g1 and -g2 for the pair of sims.
+    By default, the shear on the 1-axis is set to +g1 and -g1 for the pair of sims.
 
     Parameters
     ----------
