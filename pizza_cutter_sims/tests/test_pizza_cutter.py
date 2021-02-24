@@ -57,6 +57,7 @@ def test_run_des_pizza_cutter_coadding_on_sim(sim_config):
     psf_cen = (cdata["psf"].shape[0] - 1)/2
     assert np.array_equal(msk, [[psf_cen], [psf_cen]])
 
+    # coadd image should match se image since WCS is the same
     cdim = cdata["image"].shape[0]
     sdim = sdata["img"][0].shape[0]
     trim = (sdim - cdim) // 2
@@ -79,9 +80,9 @@ def test_run_des_pizza_cutter_coadding_on_sim(sim_config):
         cdata["image"]
         - sdata["img"][0][trim:-trim, trim:-trim]
     )
-    # TODO: why is this tolerance so big?
-    # MRB: I checked in pizza cutter directly and the interp is finding whole
-    # pixels to high precision. Maybe float vs double?
+    # the tolerance is really high here due to the approximate WCS inverse used
+    # by the coadding code. Making that wcs inverse more accurate by using more
+    # sample points (delta -> 2) would allow this test to pass at 1e-6.
     if not np.allclose(
         cdata["image"],
         sdata["img"][0][trim:-trim, trim:-trim],
