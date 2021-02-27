@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+import os
+import click
+
+LCRC_TEMPLATE = """\
+#!/bin/bash
+
+#SBATCH --job-name={job_name}
+#SBATCH --account=metashear
+#SBATCH --partition=bdwall
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --exclusive
+#SBATCH --output={job_name}-%j.oe
+#SBATCH --time={hours}:00:00
+
+source ~/.bashrc
+conda activate pizza-cutter-sims
+
+srun run-pizza-cutter-sims \
+    --config={config} \
+    --seed={seed} \
+    --n-sims={n_sims} \
+    --backend=loky
+"""
+
+
+@click.command()
+@click.option('--config', type=str, default=None, help='config file', required=True)
+@click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
+@click.option('--n-sims', type=int, default=1, help='number of sims to run')
+@click.option('--system', type=str, default="lcrc", help='system to run on')
+def main(config, seed, output, n_sims, system):
+    """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
+    job_name = os.path.basename(config).replace(".yaml", "")
+    job_name += "_seed%d_nsims%d" % (seed, n_sims)
+    hours = 12
+
+    if system == "lcrc":
+        cmd = LCRC_TEMPLATE.format(
+            job_name=job_name,
+            config=config,
+            seed=seed,
+            n_sims=n_sims,
+            hours=hours,
+        )
+    else:
+        raise RuntimeError("system '%s' not recognized" % system)
+
+    with open(job_name+".sh", "w") as fp:
+        fp.write(cmd)
+
+
+if __name__ == '__main__':
+    main()

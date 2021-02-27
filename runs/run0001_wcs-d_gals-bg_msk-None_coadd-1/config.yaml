@@ -1,0 +1,135 @@
+shear:
+  scene: True
+
+  # these keys are used to build paired sims w/ noise cancellation
+  g: 0.02
+  swap12: False
+
+  # set these to run a sim directly
+  g1: 0.02
+  g2: 0.00
+
+msk:
+  cosmic_rays: False
+    # mean_cosmic_rays: 1
+    # min_length: 10
+    # max_length: 30
+
+  bad_columns: False
+    # mean_bad_cols: 1
+    # widths: [1, 2, 5, 10]
+    # p: [0.8, 0.1, 0.075, 0.025]
+    # min_length_frac: [1, 1, 0.25, 0.25]
+    # max_length_frac: [1, 1, 0.75, 0.75]
+    # gap_prob: [0.30, 0.30, 0, 0]
+    # min_gap_frac: [0.1, 0.1, 0, 0]
+    # max_gap_frac: [0.3, 0.3, 0, 0]
+
+coadd:
+  central_size: 225
+  buffer_size: 25
+  scale: 0.263
+
+se:
+  n_images: 1
+  wcs_config:
+    position_angle_range: [0, 0]
+    dither_scale: 0.526
+    scale: 0.263
+    scale_frac_std: 0
+    shear_std: 0
+
+psf:
+  type: galsim.Gaussian
+  fwhm: 0.8
+  fwhm_frac_std: 0.1
+  shear_std: 0
+  shear: 0
+
+layout:
+  type: grid
+  ngal_per_side: 7
+  ngal_per_arcmin2: 60
+  dither_scale: 0.263
+
+gal:
+  type: exp-bright
+  noise: 10
+
+pizza_cutter:
+  single_epoch_config:
+    reject_outliers: False
+    symmetrize_masking: True
+    max_masked_fraction: 0.1
+    max_unmasked_trail_fraction: 0.02
+    edge_buffer: 8
+    mask_tape_bumps: False
+
+    # set the interp flags to 0 or 3 to interp stuff in the mask
+    spline_interp_flags:
+      - 0
+    noise_interp_flags:
+      - 0
+
+    # always zero
+    bad_image_flags:
+      - 0
+
+metadetect:
+  metacal:
+    psf: fitgauss
+    types: [noshear, 1p, 1m, 2p, 2m]
+    use_noise_image: True
+
+  psf:
+    lm_pars:
+      maxfev: 2000
+      ftol: 1.0e-05
+      xtol: 1.0e-05
+    model: gauss
+
+    # we try many times because if this fails we get no psf info
+    # for the entire patch
+    ntry: 10
+
+  sx:
+    # Minimum contrast parameter for deblending
+    deblend_cont: 1.0e-05
+
+    # in sky sigma
+    detect_thresh: 0.8
+
+    # minimum number of pixels above threshold
+    minarea: 4
+
+    filter_type: conv
+    # 7x7 convolution mask of a gaussian PSF with FWHM = 3.0 pixels.
+    filter_kernel:
+      - [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963]
+      - [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388]
+      - [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328]
+      - [0.068707, 0.296069, 0.710525, 0.951108, 0.710525, 0.296069, 0.068707]
+      - [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328]
+      - [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388]
+      - [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963]
+
+  weight:
+    fwhm: 1.2  # arcsec
+
+  meds:
+    box_padding: 2
+    box_type: iso_radius
+    max_box_size: 64
+    min_box_size: 32
+    rad_fac: 2
+    rad_min: 4
+
+  # check for an edge hit
+  bmask_flags: 536870912  # 2**29
+
+  # flags for mask fractions computed by mdet
+  star_flags: 0
+  tapebump_flags: 0
+  spline_interp_flags: 0
+  noise_interp_flags: 0
+  imperfect_flags: 0
