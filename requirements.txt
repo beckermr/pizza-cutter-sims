@@ -25,3 +25,4 @@ psfex
 des-desmeds
 des-easyaccess
 metadetect
+des-pizza-cutter
