@@ -48,7 +48,7 @@ def main(config, seed, n_sims, system):
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
-    with open(job_name+".sh", "w") as fp:
+    with open("./" + job_name + ".sh", "w") as fp:
         fp.write(cmd)
 
 
