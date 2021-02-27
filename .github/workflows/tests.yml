@@ -27,8 +27,6 @@ jobs:
           conda config --set always_yes yes
           conda install --quiet \
             --file=requirements.txt
-          pip install --no-deps git+https://github.com/esheldon/metadetect.git@master
-          pip install --no-deps git+https://github.com/beckermr/pizza-cutter.git
           python -m pip install -e .
 
       - name: lint
