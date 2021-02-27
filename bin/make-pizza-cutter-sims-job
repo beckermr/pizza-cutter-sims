@@ -17,11 +17,11 @@ LCRC_TEMPLATE = """\
 source ~/.bashrc
 conda activate pizza-cutter-sims
 
-srun run-pizza-cutter-sims \\\n
-    --config={config} \\\n
-    --seed={seed} \\\n
-    --n-sims={n_sims} \\\n
-    --backend=loky \\\n
+srun run-pizza-cutter-sims \\
+    --config={config} \\
+    --seed={seed} \\
+    --n-sims={n_sims} \\
+    --backend=loky \\
     --output={job_name}.fits
 """
 
