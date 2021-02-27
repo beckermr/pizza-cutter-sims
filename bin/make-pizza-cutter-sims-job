@@ -21,7 +21,8 @@ srun run-pizza-cutter-sims \
     --config={config} \
     --seed={seed} \
     --n-sims={n_sims} \
-    --backend=loky
+    --backend=loky \
+    --output={job_name}.fits
 """
 
 
@@ -30,7 +31,7 @@ srun run-pizza-cutter-sims \
 @click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
 @click.option('--n-sims', type=int, default=1, help='number of sims to run')
 @click.option('--system', type=str, default="lcrc", help='system to run on')
-def main(config, seed, output, n_sims, system):
+def main(config, seed, n_sims, system):
     """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
     job_name = os.path.basename(config).replace(".yaml", "")
     job_name += "_seed%d_nsims%d" % (seed, n_sims)
