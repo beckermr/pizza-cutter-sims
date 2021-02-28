@@ -34,7 +34,7 @@ se:
   n_images: 1
   wcs_config:
     position_angle_range: [0, 0]
-    dither_scale: 0.526
+    dither_scale: 3
     scale: 0.263
     scale_frac_std: 0.05
     shear_std: 0
