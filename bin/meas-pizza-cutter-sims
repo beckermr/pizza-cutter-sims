@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+import click
+import fitsio
+import esutil
+import yaml
+
+from pizza_cutter_sims.run_utils import estimate_m_and_c
+
+
+def _read_ext(files, ext):
+    data = []
+    for fname in files:
+        data.append(fitsio.read(fname, ext=ext))
+
+    data = esutil.numpy_util.combine_arrlist(data)
+    return data
+
+
+@click.command()
+@click.option('--config', type=str, default=None, help='config file', required=True)
+@click.argument('files', nargs=-1)
+@click.option('--bootstrap', is_flag=True, help='use boostrap errors')
+@click.option(
+    '--s2n-cuts', type=str, default='10',
+    help='signal-to-noise cuts to use, comma separated',
+)
+def main(config, files, bootstrap, s2n_cuts):
+    """Measure shear from a set of pizza cutter sim FILES."""
+    with open(config, "r") as fp:
+        cfg = yaml.safe_load(fp.read())
+
+    pdata = _read_ext(files, "plus")
+    mdata = _read_ext(files, "minus")
+
+    for s2n_cut in [int(s) for s in s2n_cuts.split(",")]:
+        pmsk = (pdata["s2n_cut"] == s2n_cut) & (~pdata["cut_interp"])
+
+        pres = [
+            (
+                pdata["g1p"][i], pdata["g1m"][i], pdata["g1"][i],
+                pdata["g2p"][i], pdata["g2m"][i], pdata["g2"][i],
+            )
+            for i in range(pdata[pmsk].shape[0])
+        ]
+
+        mres = [
+            (
+                mdata["g1p"][i], mdata["g1m"][i], mdata["g1"][i],
+                mdata["g2p"][i], mdata["g2m"][i], mdata["g2"][i],
+            )
+            for i in range(pdata[pmsk].shape[0])
+        ]
+
+        m, msd, c, csd = estimate_m_and_c(
+            pres,
+            mres,
+            cfg["shear"]["g"],
+            swap12=cfg["shear"]["swap12"],
+        )
+
+        print("""\
+# of sims: {n_sims}
+cuts: s2n>={s2n_cut} && !interp
+noise cancel m   : {m: f} +/- {msd: f} [1e-3, 1-sigma]
+noise cancel c   : {c: f} +/- {csd: f} [1e-5, 1-sigma]""".format(
+                n_sims=len(pres),
+                m=m/1e-3,
+                msd=msd/1e-3,
+                c=c/1e-5,
+                csd=csd/1e-5,
+                s2n_cut=s2n_cut,
+            ),
+            flush=True,
+        )
+
+
+if __name__ == '__main__':
+    main()
