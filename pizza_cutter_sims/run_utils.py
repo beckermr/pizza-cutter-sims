@@ -1,5 +1,6 @@
 import multiprocessing
 import contextlib
+import math
 
 import numpy as np
 import tqdm
@@ -88,6 +89,7 @@ def _run_boostrap(x1, y1, x2, y2, wgts):
 
 def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
     n_per = x1.shape[0] // jackknife
+    n = n_per * jackknife
     x1j = np.zeros(jackknife)
     y1j = np.zeros(jackknife)
     x2j = np.zeros(jackknife)
@@ -120,9 +122,9 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
 
     return (
         mbar,
-        np.sqrt((jackknife - n_per) / jackknife * np.sum((mvals-mbar)**2)),
+        np.sqrt((n - n_per) / jackknife * np.sum((mvals-mbar)**2)),
         cbar,
-        np.sqrt((jackknife - n_per) / jackknife * np.sum((cvals-cbar)**2)),
+        np.sqrt((n - n_per) / n_per / math.comb(n, n_per) * np.sum((cvals-cbar)**2)),
     )
 
 
