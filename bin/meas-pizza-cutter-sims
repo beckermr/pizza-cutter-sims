@@ -19,16 +19,15 @@ def _read_ext(files, ext):
 @click.command()
 @click.option('--config', type=str, default=None, help='config file', required=True)
 @click.argument('files', nargs=-1)
-@click.option('--bootstrap', is_flag=True, help='use boostrap errors')
 @click.option(
     '--s2n-cuts', type=str, default='10',
     help='signal-to-noise cuts to use, comma separated',
 )
 @click.option(
-    '--jackknife', type=int, default=100,
+    '--jackknife', type=int, default=None,
     help='number of jackknife subsets to use',
 )
-def main(config, files, bootstrap, s2n_cuts, jackknife):
+def main(config, files, s2n_cuts, jackknife):
     """Measure shear from a set of pizza cutter sim FILES."""
     with open(config, "r") as fp:
         cfg = yaml.safe_load(fp.read())
@@ -60,7 +59,7 @@ def main(config, files, bootstrap, s2n_cuts, jackknife):
             mres,
             cfg["shear"]["g"],
             swap12=cfg["shear"]["swap12"],
-            jackknife=None if bootstrap else jackknife,
+            jackknife=jackknife,
         )
 
         print("""\
