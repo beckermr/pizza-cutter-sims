@@ -56,6 +56,7 @@ def main(config, files, bootstrap, s2n_cuts):
             mres,
             cfg["shear"]["g"],
             swap12=cfg["shear"]["swap12"],
+            jackknife=None if bootstrap else 100,
         )
 
         print("""\
