@@ -120,9 +120,9 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
 
     return (
         mbar,
-        np.sqrt((jackknife - 1) / jackknife * np.sum((mvals-mbar)**2)),
+        np.sqrt((jackknife - n_per) / jackknife * np.sum((mvals-mbar)**2)),
         cbar,
-        np.sqrt((jackknife - 1) / jackknife * np.sum((cvals-cbar)**2)),
+        np.sqrt((jackknife - n_per) / jackknife * np.sum((cvals-cbar)**2)),
     )
 
 
