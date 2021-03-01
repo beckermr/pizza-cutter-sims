@@ -24,7 +24,11 @@ def _read_ext(files, ext):
     '--s2n-cuts', type=str, default='10',
     help='signal-to-noise cuts to use, comma separated',
 )
-def main(config, files, bootstrap, s2n_cuts):
+@click.option(
+    '--jackknife', type=int, default=100,
+    help='number of jackknife subsets to use',
+)
+def main(config, files, bootstrap, s2n_cuts, jackknife):
     """Measure shear from a set of pizza cutter sim FILES."""
     with open(config, "r") as fp:
         cfg = yaml.safe_load(fp.read())
@@ -56,7 +60,7 @@ def main(config, files, bootstrap, s2n_cuts):
             mres,
             cfg["shear"]["g"],
             swap12=cfg["shear"]["swap12"],
-            jackknife=None if bootstrap else 100,
+            jackknife=None if bootstrap else jackknife,
         )
 
         print("""\
