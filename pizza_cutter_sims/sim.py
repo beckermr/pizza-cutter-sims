@@ -87,7 +87,7 @@ def generate_sim(
     info["scale"] = 1.0
     info["position_offset"] = 0
 
-    se_image_shape = int(np.sqrt(2) * coadd_image_shape)
+    se_image_shape = int(1.5 * coadd_image_shape)
     if se_image_shape % 2 == 0:
         se_image_shape += 1
     se_image_cen = (se_image_shape - 1) // 2

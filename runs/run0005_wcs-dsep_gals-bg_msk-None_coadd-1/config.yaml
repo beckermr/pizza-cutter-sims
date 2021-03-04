@@ -58,6 +58,7 @@ gal:
 
 pizza_cutter:
   single_epoch_config:
+    frac_buffer: 1.42
     reject_outliers: False
     symmetrize_masking: True
     max_masked_fraction: 0.1

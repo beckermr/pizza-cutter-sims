@@ -95,6 +95,7 @@ def run_des_pizza_cutter_coadding_on_sim(
         ra_psf=ra_psf,
         dec_psf=dec_psf,
         box_size=object_config['box_size'],
+        frac_buffer=single_epoch_config['frac_buffer'],
         coadd_info=info,
         start_row=object_config['orig_start_row'],
         start_col=object_config['orig_start_col'],
