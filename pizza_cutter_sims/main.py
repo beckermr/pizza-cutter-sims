@@ -124,7 +124,10 @@ def run_end2end_with_shear(
             rng=coadd_rng,
             tmpdir=tmpdir,
             single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
-            **sdata,
+            img=sdata["img"],
+            wgt=sdata["wgt"],
+            msk=sdata["msk"],
+            bkg=sdata["bkg"],
         )
 
     mdet_rng = np.random.RandomState(seed=mdet_rng_seed)
@@ -132,5 +135,10 @@ def run_end2end_with_shear(
         rng=mdet_rng,
         config=cfg["metadetect"],
         wcs=sdata["info"]["affine_wcs"],
-        **cdata,
+        image=cdata["image"],
+        bmask=cdata["bmask"],
+        ormask=cdata["ormask"],
+        noise=cdata["noise"],
+        psf=cdata["psf"],
+        weight=cdata["weight"],
     )

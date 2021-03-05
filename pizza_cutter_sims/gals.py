@@ -1,6 +1,10 @@
+import logging
 import numpy as np
 import galsim
+
 from .constants import MAGZP_REF
+
+LOGGER = logging.getLogger(__name__)
 
 
 def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
@@ -36,6 +40,8 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
 
     # determine galaxy layout
     if layout_config["type"] == "grid":
+        LOGGER.debug("using 'grid' layout")
+
         width = pos_bounds[1] - pos_bounds[0]
         delta = width / layout_config["ngal_per_side"]
         vpos, upos = np.mgrid[
@@ -53,6 +59,8 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
         n_gals = layout_config["ngal_per_side"]**2
 
     elif layout_config["type"] == "random":
+        LOGGER.debug("using 'random' layout")
+
         if n_gals is None:
             area = ((pos_bounds[1] - pos_bounds[0]) / 60.0)**2
             n_gals_mn = area * layout_config["ngal_per_arcmin2"]
@@ -74,6 +82,8 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
         elif gal_config["type"] == "exp-dim":
             mag = 23.5
         flux = 10**(0.4 * (MAGZP_REF - mag))
+
+        LOGGER.debug("using '%s' gal type w/ mag %s", gal_config["type"], mag)
 
         gals = []
         for u, v in zip(upos, vpos):

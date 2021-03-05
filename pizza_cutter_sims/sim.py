@@ -146,7 +146,7 @@ def generate_sim(
         _psf = psfs[se_ind]
         _wcs = wcss[se_ind]
 
-        image = galsim.ImageD(bnds, dtype=np.float32, init_value=0, wcs=_wcs)
+        image = galsim.ImageD(bnds, dtype=np.float32, init_value=0)
 
         for gal, u, v in zip(gals, upos, vpos):
             if shear_config["scene"]:
@@ -159,6 +159,8 @@ def generate_sim(
             ).drawImage(
                 image=image,
                 add_to_image=True,
+                center=_wcs.origin,
+                wcs=_wcs,
             )
         image = image.array
 

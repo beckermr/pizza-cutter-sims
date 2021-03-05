@@ -11,6 +11,9 @@ import numpy as np
 import fitsio
 from esutil.numpy_util import combine_arrlist
 
+# used to get the DEBUG_PLOT logging level
+import pizza_cutter  # noqa
+
 from pizza_cutter_sims.main import run_end2end_pair_with_shear
 from pizza_cutter_sims.run_utils import (
     measure_shear_metadetect,

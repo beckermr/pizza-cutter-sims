@@ -58,6 +58,10 @@ gal:
 
 pizza_cutter:
   single_epoch_config:
+    # pixel spacing for building various WCS interpolants
+    se_wcs_interp_delta: 10
+    coadd_wcs_interp_delta: 25
+
     frac_buffer: 1.42
     reject_outliers: False
     symmetrize_masking: True
