@@ -128,6 +128,7 @@ def run_end2end_with_shear(
             wgt=sdata["wgt"],
             msk=sdata["msk"],
             bkg=sdata["bkg"],
+            info=sdata["info"],
         )
 
     mdet_rng = np.random.RandomState(seed=mdet_rng_seed)
