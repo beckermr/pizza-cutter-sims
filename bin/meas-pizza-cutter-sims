@@ -17,7 +17,7 @@ def _read_ext(files, ext):
 
 
 @click.command()
-@click.option('--config', type=str, default=None, help='config file', required=True)
+@click.option('--config', type=str, default="config.yaml", help='config file')
 @click.argument('files', nargs=-1)
 @click.option(
     '--s2n-cuts', type=str, default='10',

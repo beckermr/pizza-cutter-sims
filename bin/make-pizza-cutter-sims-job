@@ -40,7 +40,7 @@ run-pizza-cutter-sims \\
 
 
 @click.command()
-@click.option('--config', type=str, default=None, help='config file', required=True)
+@click.option('--config', type=str, default="config.yaml", help='config file')
 @click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
 @click.option('--n-sims', type=int, default=1, help='number of sims to run')
 @click.option('--system', type=str, default="lcrc", help='system to run on')

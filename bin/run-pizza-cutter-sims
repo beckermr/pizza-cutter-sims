@@ -57,7 +57,7 @@ def _run_pair(args):
 
 
 @click.command()
-@click.option('--config', type=str, default=None, help='config file', required=True)
+@click.option('--config', type=str, default="config.yaml", help='config file')
 @click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
 @click.option('--output', type=str, default=None, help='output file')
 @click.option('--n-sims', type=int, default=1, help='number of sims to run')
