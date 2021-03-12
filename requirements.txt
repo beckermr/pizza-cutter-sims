@@ -25,4 +25,4 @@ psfex
 des-desmeds
 des-easyaccess
 metadetect
-des-pizza-cutter
+des-pizza-cutter>=0.2.5
