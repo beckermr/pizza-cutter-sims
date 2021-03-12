@@ -81,6 +81,10 @@ gal:
 
 pizza_cutter:
   single_epoch_config:
+    se_wcs_interp_delta: 10
+    coadd_wcs_interp_delta: 25
+    frac_buffer: 1
+
     reject_outliers: False
     symmetrize_masking: True
     max_masked_fraction: 0.1
