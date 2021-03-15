@@ -1,3 +1,4 @@
+import logging
 import copy
 import tempfile
 import numpy as np
@@ -5,6 +6,8 @@ import numpy as np
 from pizza_cutter_sims.mdet import run_metadetect
 from pizza_cutter_sims.pizza_cutter import run_des_pizza_cutter_coadding_on_sim
 from pizza_cutter_sims.sim import generate_sim
+
+LOGGER = logging.getLogger(__name__)
 
 
 def run_end2end_pair_with_shear(
@@ -103,6 +106,14 @@ def run_end2end_with_shear(
     """
     cfg["shear"]["g1"] = g1
     cfg["shear"]["g2"] = g2
+
+    LOGGER.info(
+        "RNG seeds sim|gal|coadd|mdet: %d|%d|%d|%d",
+        rng_seed,
+        gal_rng_seed,
+        coadd_rng_seed,
+        mdet_rng_seed,
+    )
 
     rng = np.random.RandomState(seed=rng_seed)
     gal_rng = np.random.RandomState(seed=gal_rng_seed)
