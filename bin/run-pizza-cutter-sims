@@ -19,6 +19,7 @@ from pizza_cutter_sims.run_utils import (
     measure_shear_metadetect,
     estimate_m_and_c,
     backend_pool,
+    cut_nones,
 )
 
 START = time.time()
@@ -27,6 +28,9 @@ START = time.time()
 def _run_pair(args):
     kwargs, num, backend = args
     pres, mres = run_end2end_pair_with_shear(**kwargs)
+
+    if pres is None or mres is None:
+        return None, None
 
     keys = ["g1p", "g1m", "g1", "g2p", "g2m", "g2", "s2n_cut"]
     dtype = []
@@ -133,51 +137,53 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
 
     if rank == 0:
         pdata, mdata = zip(*outputs)
-        pdata = combine_arrlist(list(pdata))
-        mdata = combine_arrlist(list(mdata))
+        pdata, mdata = cut_nones(pdata, mdata)
+        if len(pdata) > 0 and len(mdata) > 0:
+            pdata = combine_arrlist(list(pdata))
+            mdata = combine_arrlist(list(mdata))
 
-        if output:
-            with fitsio.FITS(output, 'rw', clobber=True) as fits:
-                fits.write(pdata, extname='plus')
-                fits.write(mdata, extname='minus')
+            if output:
+                with fitsio.FITS(output, 'rw', clobber=True) as fits:
+                    fits.write(pdata, extname='plus')
+                    fits.write(mdata, extname='minus')
 
-        pmsk = (pdata["s2n_cut"] == 10) & (~pdata["cut_interp"])
+            pmsk = (pdata["s2n_cut"] == 10) & (~pdata["cut_interp"])
 
-        pres = [
-            (
-                pdata["g1p"][i], pdata["g1m"][i], pdata["g1"][i],
-                pdata["g2p"][i], pdata["g2m"][i], pdata["g2"][i],
+            pres = [
+                (
+                    pdata["g1p"][i], pdata["g1m"][i], pdata["g1"][i],
+                    pdata["g2p"][i], pdata["g2m"][i], pdata["g2"][i],
+                )
+                for i in range(pdata[pmsk].shape[0])
+            ]
+
+            mres = [
+                (
+                    mdata["g1p"][i], mdata["g1m"][i], mdata["g1"][i],
+                    mdata["g2p"][i], mdata["g2m"][i], mdata["g2"][i],
+                )
+                for i in range(pdata[pmsk].shape[0])
+            ]
+
+            m, msd, c, csd = estimate_m_and_c(
+                pres,
+                mres,
+                cfg["shear"]["g"],
+                swap12=cfg["shear"]["swap12"],
             )
-            for i in range(pdata[pmsk].shape[0])
-        ]
 
-        mres = [
-            (
-                mdata["g1p"][i], mdata["g1m"][i], mdata["g1"][i],
-                mdata["g2p"][i], mdata["g2m"][i], mdata["g2"][i],
+            print("""\
+    # of sims: {n_sims}
+    noise cancel m   : {m: f} +/- {msd: f} [1e-3, 1-sigma]
+    noise cancel c   : {c: f} +/- {csd: f} [1e-5, 1-sigma]""".format(
+                    n_sims=len(pres),
+                    m=m/1e-3,
+                    msd=msd/1e-3,
+                    c=c/1e-5,
+                    csd=csd/1e-5
+                ),
+                flush=True,
             )
-            for i in range(pdata[pmsk].shape[0])
-        ]
-
-        m, msd, c, csd = estimate_m_and_c(
-            pres,
-            mres,
-            cfg["shear"]["g"],
-            swap12=cfg["shear"]["swap12"],
-        )
-
-        print("""\
-# of sims: {n_sims}
-noise cancel m   : {m: f} +/- {msd: f} [1e-3, 1-sigma]
-noise cancel c   : {c: f} +/- {csd: f} [1e-5, 1-sigma]""".format(
-                n_sims=len(pres),
-                m=m/1e-3,
-                msd=msd/1e-3,
-                c=c/1e-5,
-                csd=csd/1e-5
-            ),
-            flush=True,
-        )
 
 
 if __name__ == '__main__':

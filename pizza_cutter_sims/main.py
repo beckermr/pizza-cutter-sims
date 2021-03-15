@@ -54,27 +54,30 @@ def run_end2end_pair_with_shear(
         g1m = -g1
         g2m = g2
 
-    pres = run_end2end_with_shear(
-        rng_seed=rng_seed,
-        gal_rng_seed=gal_rng_seed,
-        coadd_rng_seed=coadd_rng_seed,
-        mdet_rng_seed=mdet_rng_seed,
-        cfg=copy.deepcopy(cfg),
-        g1=g1p,
-        g2=g2p,
-    )
+    try:
+        pres = run_end2end_with_shear(
+            rng_seed=rng_seed,
+            gal_rng_seed=gal_rng_seed,
+            coadd_rng_seed=coadd_rng_seed,
+            mdet_rng_seed=mdet_rng_seed,
+            cfg=copy.deepcopy(cfg),
+            g1=g1p,
+            g2=g2p,
+        )
 
-    mres = run_end2end_with_shear(
-        rng_seed=rng_seed,
-        gal_rng_seed=gal_rng_seed,
-        coadd_rng_seed=coadd_rng_seed,
-        mdet_rng_seed=mdet_rng_seed,
-        cfg=copy.deepcopy(cfg),
-        g1=g1m,
-        g2=g2m,
-    )
+        mres = run_end2end_with_shear(
+            rng_seed=rng_seed,
+            gal_rng_seed=gal_rng_seed,
+            coadd_rng_seed=coadd_rng_seed,
+            mdet_rng_seed=mdet_rng_seed,
+            cfg=copy.deepcopy(cfg),
+            g1=g1m,
+            g2=g2m,
+        )
 
-    return pres, mres
+        return pres, mres
+    except Exception:
+        return None, None
 
 
 def run_end2end_with_shear(
