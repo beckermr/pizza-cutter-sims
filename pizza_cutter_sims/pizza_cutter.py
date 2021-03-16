@@ -102,6 +102,7 @@ def run_des_pizza_cutter_coadding_on_sim(
         se_src_info=info['src_info'],
         reject_outliers=single_epoch_config['reject_outliers'],
         symmetrize_masking=single_epoch_config['symmetrize_masking'],
+        copy_masked_edges=single_epoch_config['copy_masked_edges'],
         coadding_weight=object_config['coadding_weight'],
         noise_interp_flags=sum(single_epoch_config['noise_interp_flags']),
         spline_interp_flags=sum(

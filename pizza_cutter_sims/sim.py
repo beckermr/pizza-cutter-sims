@@ -87,16 +87,10 @@ def generate_sim(
     info["scale"] = 1.0
     info["position_offset"] = 0
 
-    se_image_shape = int(np.sqrt(2) * coadd_image_shape + 64)
+    se_image_shape = int(1.5 * coadd_image_shape)
     if se_image_shape % 2 == 0:
         se_image_shape += 1
     se_image_cen = (se_image_shape - 1) // 2
-
-    se_msk_image_shape = int(1.5 * coadd_config["central_size"] + 64)
-    if se_msk_image_shape % 2 == 0:
-        se_msk_image_shape += 1
-    se_msk_buff = (se_image_shape - se_msk_image_shape) // 2
-    assert (se_image_shape - se_msk_image_shape) % 2 == 0
 
     for ii in src_info:
         ii["magzp"] = MAGZP_REF
@@ -181,29 +175,26 @@ def generate_sim(
         if msk_config["bad_columns"] or msk_config["bad_columns"] == {}:
             if msk_config["bad_columns"] is True:
                 msk_config["bad_columns"] = {}
+
             _msk = generate_bad_columns(
-                shape=(se_msk_image_shape, se_msk_image_shape),
+                shape=(se_image_shape, se_image_shape),
                 rng=rng,
                 **msk_config["bad_columns"],
             )
-            _tot_msk = np.zeros(image.shape, dtype=bool)
-            _tot_msk[se_msk_buff:-se_msk_buff, se_msk_buff:-se_msk_buff] = _msk
-            msk[_tot_msk] |= SIM_BMASK_BADCOLS
-            image[_tot_msk] = np.nan
+            msk[_msk] |= SIM_BMASK_BADCOLS
+            image[_msk] = np.nan
 
         if msk_config["cosmic_rays"] or msk_config["cosmic_rays"] == {}:
             if msk_config["cosmic_rays"] is True:
                 msk_config["cosmic_rays"] = {}
 
             _msk = generate_cosmic_rays(
-                shape=(se_msk_image_shape, se_msk_image_shape),
+                shape=(se_image_shape, se_image_shape),
                 rng=rng,
                 **msk_config["cosmic_rays"],
             )
-            _tot_msk = np.zeros(image.shape, dtype=bool)
-            _tot_msk[se_msk_buff:-se_msk_buff, se_msk_buff:-se_msk_buff] = _msk
-            msk[_tot_msk] |= SIM_BMASK_COSMICS
-            image[_tot_msk] = np.nan
+            msk[_msk] |= SIM_BMASK_COSMICS
+            image[_msk] = np.nan
 
         images.append(image)
         weights.append(weight)
