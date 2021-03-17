@@ -147,7 +147,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
                     fits.write(pdata, extname='plus')
                     fits.write(mdata, extname='minus')
 
-            pmsk = (pdata["s2n_cut"] == 10) & (~pdata["cut_interp"])
+            pmsk = (pdata["s2n_cut"] == 10) & (pdata["cut_interp"])
 
             pres = [
                 (
