@@ -27,7 +27,11 @@ def _read_ext(files, ext):
     '--jackknife', type=int, default=None,
     help='number of jackknife subsets to use',
 )
-def main(config, files, s2n_cuts, jackknife):
+@click.option(
+    '--keep-interp', is_flag=True,
+    help='keep interpolated objects',
+)
+def main(config, files, s2n_cuts, jackknife, keep_interp):
     """Measure shear from a set of pizza cutter sim FILES."""
     with open(config, "r") as fp:
         cfg = yaml.safe_load(fp.read())
@@ -36,7 +40,10 @@ def main(config, files, s2n_cuts, jackknife):
     mdata = _read_ext(files, "minus")
 
     for s2n_cut in [int(s) for s in s2n_cuts.split(",")]:
-        pmsk = (pdata["s2n_cut"] == s2n_cut) & (pdata["cut_interp"])
+        if keep_interp:
+            pmsk = (pdata["s2n_cut"] == s2n_cut) & (~pdata["cut_interp"])
+        else:
+            pmsk = (pdata["s2n_cut"] == s2n_cut) & (pdata["cut_interp"])
 
         pres = [
             (
