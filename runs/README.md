@@ -40,3 +40,5 @@ msk key:
 
  - r = cosmic rays
  - c = bad columns
+ - t = interpolate bad regions
+ - o{N} = set ormask flag from region of size 2N about object center
