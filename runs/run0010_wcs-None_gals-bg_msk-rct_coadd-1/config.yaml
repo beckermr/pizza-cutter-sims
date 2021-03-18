@@ -139,3 +139,5 @@ metadetect:
   spline_interp_flags: 3
   noise_interp_flags: 0
   imperfect_flags: 0
+
+  ormask_region: 8
