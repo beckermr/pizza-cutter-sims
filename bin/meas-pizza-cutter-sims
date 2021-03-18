@@ -48,18 +48,21 @@ def main(config, files, s2n_cuts, jackknife, keep_interp):
             pmsk = (pdata["s2n_cut"] == s2n_cut) & (pdata["cut_interp"])
             assert np.all(pdata[pmsk]["cut_interp"])
 
+        _mdata = mdata[pmsk]
+        _pdata = pdata[pmsk]
+
         pres = [
             (
-                pdata["g1p"][i], pdata["g1m"][i], pdata["g1"][i],
-                pdata["g2p"][i], pdata["g2m"][i], pdata["g2"][i],
+                _pdata["g1p"][i], _pdata["g1m"][i], _pdata["g1"][i],
+                _pdata["g2p"][i], _pdata["g2m"][i], _pdata["g2"][i],
             )
             for i in range(pdata[pmsk].shape[0])
         ]
 
         mres = [
             (
-                mdata["g1p"][i], mdata["g1m"][i], mdata["g1"][i],
-                mdata["g2p"][i], mdata["g2m"][i], mdata["g2"][i],
+                _mdata["g1p"][i], _mdata["g1m"][i], _mdata["g1"][i],
+                _mdata["g2p"][i], _mdata["g2m"][i], _mdata["g2"][i],
             )
             for i in range(pdata[pmsk].shape[0])
         ]
