@@ -123,7 +123,7 @@ def run_des_pizza_cutter_coadding_on_sim(
 
     # did we get anything?
     if np.array(weights).size > 0:
-        image, bmask, ormask, noise, psf, weight, rsd = _coadd_slice_inputs(
+        res = _coadd_slice_inputs(
             wcs=wcs,
             wcs_position_offset=object_config['position_offset'],
             wcs_image_shape=info["image_shape"],
@@ -138,7 +138,15 @@ def run_des_pizza_cutter_coadding_on_sim(
             se_wcs_interp_delta=single_epoch_config["se_wcs_interp_delta"],
             coadd_wcs_interp_delta=single_epoch_config["coadd_wcs_interp_delta"],
         )
-
+        image, bmask, ormask, noise, psf, weight, rsd = (
+            res[0],
+            res[1],
+            res[2],
+            res[3],
+            res[4],
+            res[5],
+            res[-1]
+        )
         coadd_data = dict(
             image=image,
             bmask=bmask,
