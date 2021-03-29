@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import galsim
+from hexalattice.hexalattice import create_hex_grid
 
 from .constants import MAGZP_REF
 
@@ -58,6 +59,37 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
 
         n_gals = layout_config["ngal_per_side"]**2
 
+    elif layout_config["type"] == "hex":
+        width = pos_bounds[1] - pos_bounds[0]
+        delta = width / layout_config["ngal_per_side"]
+        nx = int(layout_config["ngal_per_side"] * np.sqrt(2))
+        # the factor of 0.866 makes sure the grid is square-ish
+        ny = int(layout_config["ngal_per_side"] * np.sqrt(2) / 0.8660254)
+
+        # here the spacing between grid centers is 1
+        hg, _ = create_hex_grid(nx=nx, ny=ny, rotate_deg=rng.uniform() * 360)
+
+        # convert the spacing to right number of pixels
+        # we also recenter the grid since it comes out centered at 0,0
+        hg *= delta
+        upos = hg[:, 0].ravel()
+        vpos = hg[:, 1].ravel()
+
+        # dither
+        dither_scale = layout_config["dither_scale"]
+        upos += rng.uniform(low=-dither_scale/2, high=dither_scale/2)
+        vpos += rng.uniform(low=-dither_scale/2, high=dither_scale/2)
+
+        msk = (
+            (upos >= pos_bounds[0])
+            & (upos <= pos_bounds[1])
+            & (vpos >= pos_bounds[0])
+            & (vpos <= pos_bounds[1])
+        )
+        upos = upos[msk]
+        vpos = vpos[msk]
+
+        n_gals = upos.shape[0]
     elif layout_config["type"] == "random":
         LOGGER.debug("using 'random' layout")
 
