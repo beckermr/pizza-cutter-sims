@@ -50,3 +50,7 @@ msk key:
  - t = interpolate bad regions
  - o{N} = set ormask flag from region of size 2N about object center
  - k{N} = only skinny bad columns (e.g. no bleed masks) of max width N
+
+shear key:
+
+ - w = swap role of shears 1 and 2
