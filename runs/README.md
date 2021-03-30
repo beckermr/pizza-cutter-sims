@@ -12,6 +12,12 @@ This directory stores runs of the sims to test the pizza cutter.
 | 0004 | de   | bg   | n/a | gf  | 1    |  0.396928 +/-  0.077780 |  0.209560 +/-  0.169468 |
 | 0005 | dsep | bg   | n/a | gf  | 1    |  0.444695 +/-  0.062156 | -0.853732 +/-  0.301320 |
 
+
+| sim  | wcs  | gals | msk | psf | n_se | m [1e-3, 3-sigma]       | c [1e-5, 3-sigma]       |
+| ---  | ---  | ---  | --- | --- | ---  | ---:                    | ---:                    |
+| 0017 | n/a  | bh   | n/a | gf  | 1    |  0.171208 +/-  0.578166 | -0.014212 +/-  1.198454 |
+
+
 n_se:
 
  - number of SE images coadded
@@ -35,6 +41,7 @@ gals key:
  - g = gals in grid
  - r = gals positioned randomly
  - d = DES-like objects
+ - h = gals im hexagonal grid w/ rotations
 
 msk key:
 
