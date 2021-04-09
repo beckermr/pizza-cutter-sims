@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import galsim
 from hexalattice.hexalattice import create_hex_grid
-
+from .glass import make_glass_layout
 from .constants import MAGZP_REF
 
 LOGGER = logging.getLogger(__name__)
@@ -89,6 +89,18 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
         upos = upos[msk]
         vpos = vpos[msk]
 
+        n_gals = upos.shape[0]
+
+    elif layout_config["type"] == "glass":
+        n_gals = layout_config["ngal_per_side"]**2
+
+        upos, vpos = make_glass_layout(
+            n_gals,
+            pos_bounds,
+            rng,
+        )
+
+        # this can return fewer tjhan we asked for
         n_gals = upos.shape[0]
     elif layout_config["type"] == "random":
         LOGGER.debug("using 'random' layout")
