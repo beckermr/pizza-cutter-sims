@@ -100,7 +100,7 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
             rng,
         )
 
-        # this can return fewer tjhan we asked for
+        # this can return fewer than we asked for
         n_gals = upos.shape[0]
     elif layout_config["type"] == "random":
         LOGGER.debug("using 'random' layout")
