@@ -24,3 +24,6 @@ pixmappy
 psfex
 des-desmeds
 des-easyaccess
+metadetect
+des-pizza-cutter>=0.2.5
+hexalattice

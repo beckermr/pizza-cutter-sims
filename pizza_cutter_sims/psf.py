@@ -1,6 +1,10 @@
+import logging
+
 import numpy as np
 
 from .gsutils import build_gsobject
+
+LOGGER = logging.getLogger(__name__)
 
 
 class GalsimPSF(object):
@@ -78,8 +82,11 @@ def gen_psf(*, rng, psf_config):
             "g2": g2,
         }
 
-        return gs_config, GalsimPSF(
+        res = gs_config, GalsimPSF(
             build_gsobject(config=gs_config, kind='psf')
         )
+        LOGGER.debug("psf config: %s", res[0])
+        LOGGER.debug("galsim psf: %s", res[1].gs_object)
+        return res
     else:
         raise ValueError("PSF type '%s' not supported!" % psf_config["type"])

@@ -70,8 +70,72 @@ def cut_nones(presults, mresults):
     return prr_keep, mrr_keep
 
 
+def _run_boostrap(x1, y1, x2, y2, wgts):
+    rng = np.random.RandomState(seed=100)
+    mvals = []
+    cvals = []
+    for _ in tqdm.trange(500, leave=False):
+        ind = rng.choice(len(y1), replace=True, size=len(y1))
+        _wgts = wgts[ind].copy()
+        _wgts /= np.sum(_wgts)
+        mvals.append(np.mean(y1[ind] * _wgts) / np.mean(x1[ind] * _wgts) - 1)
+        cvals.append(np.mean(y2[ind] * _wgts) / np.mean(x2[ind] * _wgts))
+
+    return (
+        np.mean(y1 * wgts) / np.mean(x1 * wgts) - 1, np.std(mvals),
+        np.mean(y2 * wgts) / np.mean(x2 * wgts), np.std(cvals))
+
+
+def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
+    n_per = x1.shape[0] // jackknife
+    n = n_per * jackknife
+    x1j = np.zeros(jackknife)
+    y1j = np.zeros(jackknife)
+    x2j = np.zeros(jackknife)
+    y2j = np.zeros(jackknife)
+    wgtsj = np.zeros(jackknife)
+
+    loc = 0
+    for i in range(jackknife):
+        wgtsj[i] = np.sum(wgts[loc:loc+n_per])
+        x1j[i] = np.sum(x1[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
+        y1j[i] = np.sum(y1[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
+        x2j[i] = np.sum(x2[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
+        y2j[i] = np.sum(y2[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
+
+        loc += n_per
+
+    mbar = np.mean(y1 * wgts) / np.mean(x1 * wgts) - 1
+    cbar = np.mean(y2 * wgts) / np.mean(x2 * wgts)
+    mvals = np.zeros(jackknife)
+    cvals = np.zeros(jackknife)
+    for i in range(jackknife):
+        _wgts = np.delete(wgtsj, i)
+        mvals[i] = (
+            np.sum(np.delete(y1j, i) * _wgts) / np.sum(np.delete(x1j, i) * _wgts)
+            - 1
+        )
+        cvals[i] = (
+            np.sum(np.delete(y2j, i) * _wgts) / np.sum(np.delete(x2j, i) * _wgts)
+        )
+
+    return (
+        mbar,
+        np.sqrt((n - n_per) / n * np.sum((mvals-mbar)**2)),
+        cbar,
+        np.sqrt((n - n_per) / n * np.sum((cvals-cbar)**2)),
+    )
+
+
 def estimate_m_and_c(
-        presults, mresults, g_true, swap12=False, step=0.01, weights=None):
+    presults,
+    mresults,
+    g_true,
+    swap12=False,
+    step=0.01,
+    weights=None,
+    jackknife=None,
+):
     """Estimate m and c from paired lensing simulations.
 
     Parameters
@@ -94,6 +158,9 @@ def estimate_m_and_c(
         0.01.
     weights : list of weights, optional
         Weights to apply to each sample. Will be normalized if not already.
+    jackknife : int, optional
+        The number of jackknife sections to use for error estimation. Default of
+        None will do no jackknife and default to bootstrap error bars.
 
     Returns
     -------
@@ -159,19 +226,10 @@ def estimate_m_and_c(
     x2 = (R22p + R22m) / 2
     y2 = (g2p + g2m) / 2
 
-    rng = np.random.RandomState(seed=100)
-    mvals = []
-    cvals = []
-    for _ in tqdm.trange(500, leave=False):
-        ind = rng.choice(len(y1), replace=True, size=len(y1))
-        _wgts = wgts[ind].copy()
-        _wgts /= np.sum(_wgts)
-        mvals.append(np.mean(y1[ind] * _wgts) / np.mean(x1[ind] * _wgts) - 1)
-        cvals.append(np.mean(y2[ind] * _wgts) / np.mean(x2[ind] * _wgts))
-
-    return (
-        np.mean(y1 * wgts) / np.mean(x1 * wgts) - 1, np.std(mvals),
-        np.mean(y2 * wgts) / np.mean(x2 * wgts), np.std(cvals))
+    if jackknife:
+        return _run_jackknife(x1, y1, x2, y2, wgts, jackknife)
+    else:
+        return _run_boostrap(x1, y1, x2, y2, wgts)
 
 
 def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, cut_interp):

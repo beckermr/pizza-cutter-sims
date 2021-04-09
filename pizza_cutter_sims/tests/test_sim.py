@@ -2,6 +2,8 @@ import copy
 
 import numpy as np
 
+import pytest
+
 from pizza_cutter_sims.tests.conftest import recursive_equal
 from pizza_cutter_sims.sim import generate_sim
 
@@ -34,3 +36,18 @@ def test_generate_sim_seeding(sim_config):
     for seed_set in [(52, 43), (42, 53)]:
         sdata3 = _run_sim(copy.deepcopy(sim_config), *seed_set)
         assert not recursive_equal(sdata1, sdata3)
+
+
+@pytest.mark.parametrize("key,val", [
+    ("position_angle_range", [0, 360]),
+    ("dither_scale", 3),
+    ("scale_frac_std", 0.1),
+    ("shear_std", 0.3),
+])
+def test_generate_sim_wcs_changes(sim_config, key, val):
+    sdata1 = _run_sim(copy.deepcopy(sim_config), 42, 43)
+    sconfig = copy.deepcopy(sim_config)
+    sconfig["se"]["wcs_config"][key] = val
+    sdata2 = _run_sim(sconfig, 42, 43)
+
+    assert not recursive_equal(sdata1, sdata2)

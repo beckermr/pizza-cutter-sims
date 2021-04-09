@@ -3,6 +3,8 @@ from setuptools import setup, find_packages
 
 scripts = [
     'bin/run-pizza-cutter-sims',
+    'bin/make-pizza-cutter-sims-job',
+    'bin/meas-pizza-cutter-sims',
 ]
 
 __version__ = None

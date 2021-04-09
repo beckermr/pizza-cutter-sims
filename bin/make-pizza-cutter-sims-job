@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+import os
+import click
+
+LCRC_TEMPLATE = """\
+#!/bin/bash
+
+#SBATCH --job-name={job_name}
+#SBATCH --account=metashear
+#SBATCH --partition=bdwall
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --exclusive
+#SBATCH --output=log_{job_name}_lcrc%j.oe
+#SBATCH --time={hours}:00:00
+
+source ~/.bashrc
+conda activate pizza-cutter-sims
+
+srun run-pizza-cutter-sims \\
+    --config={config} \\
+    --seed={seed} \\
+    --n-sims={n_sims} \\
+    --backend=loky \\
+    --output=data_{job_name}.fits
+"""
+
+
+BASH_TEMPLATE = """\
+#!/bin/bash
+
+run-pizza-cutter-sims \\
+    --config={config} \\
+    --seed={seed} \\
+    --n-sims={n_sims} \\
+    --backend=loky \\
+    --output=data_{job_name}.fits \\
+    &> log_{job_name}_bash.oe
+"""
+
+
+@click.command()
+@click.option('--config', type=str, default="config.yaml", help='config file')
+@click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
+@click.option('--n-sims', type=int, default=1, help='number of sims to run')
+@click.option('--system', type=str, default="lcrc", help='system to run on')
+@click.option('--hours', type=str, default="12", help='amount of time to run')
+def main(config, seed, n_sims, system, hours):
+    """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
+    if os.path.basename(config) == "config.yaml":
+        job_name = os.path.abspath(config).split("/")[-2]
+    else:
+        job_name = os.path.basename(config).replace(".yaml", "")
+    job_name += "_seed%d_nsims%d" % (seed, n_sims)
+
+    if system == "lcrc":
+        cmd = LCRC_TEMPLATE.format(
+            job_name=job_name,
+            config=config,
+            seed=seed,
+            n_sims=n_sims,
+            hours=hours,
+        )
+        ext = ".sh"
+    elif system == "bash":
+        cmd = BASH_TEMPLATE.format(
+            job_name=job_name,
+            config=config,
+            seed=seed,
+            n_sims=n_sims,
+        )
+        ext = ".sh"
+    else:
+        raise RuntimeError("system '%s' not recognized" % system)
+
+    with open("./run_" + job_name + "_" + system + ext, "w") as fp:
+        fp.write(cmd)
+
+
+if __name__ == '__main__':
+    main()

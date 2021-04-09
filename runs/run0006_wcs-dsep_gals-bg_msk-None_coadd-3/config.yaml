@@ -1,26 +1,3 @@
-import numpy as np
-import pytest
-import yaml
-
-
-def recursive_equal(sdata1, sdata2):
-    eq = True
-    if isinstance(sdata1, np.ndarray):
-        eq = eq and np.array_equal(sdata1, sdata2)
-    elif isinstance(sdata1, dict):
-        for k in sdata1:
-            eq = eq and recursive_equal(sdata1[k], sdata2[k])
-    elif isinstance(sdata1, list) or isinstance(sdata1, tuple):
-        for item1, item2 in zip(sdata1, sdata2):
-            eq = eq and recursive_equal(item1, item2)
-    else:
-        eq = eq and (sdata1 == sdata2)
-    return eq
-
-
-@pytest.fixture()
-def sim_config():
-    cfg = """\
 shear:
   scene: True
 
@@ -54,13 +31,13 @@ coadd:
   scale: 0.263
 
 se:
-  n_images: 1
+  n_images: 3
   wcs_config:
-    position_angle_range: [0, 0]
-    dither_scale: 0  # set up to a pizel in arcsec
+    position_angle_range: [0, 360]
+    dither_scale: 3
     scale: 0.263
-    scale_frac_std: 0
-    shear_std: 0
+    scale_frac_std: 0.05
+    shear_std: 0.001
 
 psf:
   type: galsim.Gaussian
@@ -81,10 +58,11 @@ gal:
 
 pizza_cutter:
   single_epoch_config:
+    # pixel spacing for building various WCS interpolants
     se_wcs_interp_delta: 10
     coadd_wcs_interp_delta: 25
-    frac_buffer: 1
 
+    frac_buffer: 1.42
     reject_outliers: False
     symmetrize_masking: True
     copy_masked_edges: True
@@ -161,5 +139,3 @@ metadetect:
   spline_interp_flags: 0
   noise_interp_flags: 0
   imperfect_flags: 0
-"""
-    return yaml.safe_load(cfg)

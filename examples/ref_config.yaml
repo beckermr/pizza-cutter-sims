@@ -1,7 +1,7 @@
 # this config file has all possible fields with an explanation
 # command: run-pizza-cutter-sims --config examples/ref_config.yaml --seed=42 --n-sims=10000 --backend=loky
 # results for 10k sims
-# # of sims: 10000                                                                                                                                                          
+# # of sims: 10000
 # noise cancel m   : -0.039924 +/-  0.167364 [1e-3, 1-sigma]
 # noise cancel c   : -1.008324 +/-  0.363796 [1e-5, 1-sigma]
 
@@ -41,14 +41,14 @@ se:
   n_images: 1
   wcs_config:
     position_angle_range: [0, 0]
-    dither_scale: 0  # set up to a pizel in arcsec
+    dither_scale: 0  # set to an odd number of pixels
     scale: 0.263
     scale_frac_std: 0
     shear_std: 0
 
 psf:
   type: galsim.Gaussian
-  fwhm: 0.8
+  fwhm: 0.9
   fwhm_frac_std: 0.1
   shear_std: 0
   shear: 0
@@ -65,8 +65,14 @@ gal:
 
 pizza_cutter:
   single_epoch_config:
+    # pixel spacing for building various WCS interpolants
+    se_wcs_interp_delta: 10
+    coadd_wcs_interp_delta: 25
+    frac_buffer: 1.42  # buffer around SE image to account for position angle rotations
+
     reject_outliers: False
     symmetrize_masking: True
+    copy_masked_edges: False
     max_masked_fraction: 0.1
     max_unmasked_trail_fraction: 0.02
     edge_buffer: 8

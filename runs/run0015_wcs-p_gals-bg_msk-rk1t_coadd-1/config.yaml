@@ -1,26 +1,3 @@
-import numpy as np
-import pytest
-import yaml
-
-
-def recursive_equal(sdata1, sdata2):
-    eq = True
-    if isinstance(sdata1, np.ndarray):
-        eq = eq and np.array_equal(sdata1, sdata2)
-    elif isinstance(sdata1, dict):
-        for k in sdata1:
-            eq = eq and recursive_equal(sdata1[k], sdata2[k])
-    elif isinstance(sdata1, list) or isinstance(sdata1, tuple):
-        for item1, item2 in zip(sdata1, sdata2):
-            eq = eq and recursive_equal(item1, item2)
-    else:
-        eq = eq and (sdata1 == sdata2)
-    return eq
-
-
-@pytest.fixture()
-def sim_config():
-    cfg = """\
 shear:
   scene: True
 
@@ -33,15 +10,15 @@ shear:
   g2: 0.00
 
 msk:
-  cosmic_rays: False
-    # mean_cosmic_rays: 1
+  cosmic_rays: True
+    # mean_cosmic_rays: 10
     # min_length: 10
     # max_length: 30
 
-  bad_columns: False
-    # mean_bad_cols: 1
-    # widths: [1, 2, 5, 10]
-    # p: [0.8, 0.1, 0.075, 0.025]
+  bad_columns:
+    # mean_bad_cols: 10
+    widths: [1, 2, 5, 10]
+    p: [1.0, 0.0, 0.0, 0.0]
     # min_length_frac: [1, 1, 0.25, 0.25]
     # max_length_frac: [1, 1, 0.75, 0.75]
     # gap_prob: [0.30, 0.30, 0, 0]
@@ -56,8 +33,8 @@ coadd:
 se:
   n_images: 1
   wcs_config:
-    position_angle_range: [0, 0]
-    dither_scale: 0  # set up to a pizel in arcsec
+    position_angle_range: [0, 360]
+    dither_scale: 0
     scale: 0.263
     scale_frac_std: 0
     shear_std: 0
@@ -81,21 +58,22 @@ gal:
 
 pizza_cutter:
   single_epoch_config:
+    # pixel spacing for building various WCS interpolants
     se_wcs_interp_delta: 10
     coadd_wcs_interp_delta: 25
-    frac_buffer: 1
 
+    frac_buffer: 1.42
     reject_outliers: False
     symmetrize_masking: True
     copy_masked_edges: True
-    max_masked_fraction: 0.1
+    max_masked_fraction: 1
     max_unmasked_trail_fraction: 0.02
     edge_buffer: 8
     mask_tape_bumps: False
 
     # set the interp flags to 0 or 3 to interp stuff in the mask
     spline_interp_flags:
-      - 0
+      - 3
     noise_interp_flags:
       - 0
 
@@ -158,8 +136,6 @@ metadetect:
   # flags for mask fractions computed by mdet
   star_flags: 0
   tapebump_flags: 0
-  spline_interp_flags: 0
+  spline_interp_flags: 3
   noise_interp_flags: 0
   imperfect_flags: 0
-"""
-    return yaml.safe_load(cfg)

@@ -87,7 +87,7 @@ def generate_sim(
     info["scale"] = 1.0
     info["position_offset"] = 0
 
-    se_image_shape = int(np.sqrt(2) * coadd_image_shape)
+    se_image_shape = int(1.5 * coadd_image_shape)
     if se_image_shape % 2 == 0:
         se_image_shape += 1
     se_image_cen = (se_image_shape - 1) // 2
@@ -146,7 +146,7 @@ def generate_sim(
         _psf = psfs[se_ind]
         _wcs = wcss[se_ind]
 
-        image = galsim.ImageD(bnds, dtype=np.float32, init_value=0, wcs=_wcs)
+        image = galsim.ImageD(bnds, dtype=np.float32, init_value=0)
 
         for gal, u, v in zip(gals, upos, vpos):
             if shear_config["scene"]:
@@ -159,6 +159,8 @@ def generate_sim(
             ).drawImage(
                 image=image,
                 add_to_image=True,
+                center=_wcs.origin,
+                wcs=_wcs,
             )
         image = image.array
 
@@ -169,13 +171,18 @@ def generate_sim(
         image += bkg
 
         msk = np.zeros(image.shape, dtype=np.int32)
+        # do not mover these calls, keeps the options doing the same thing
+        # when one or the other is turned off
+        bad_col_rng = np.random.RandomState(rng.randint(1, 2**29))
+        cray_rng = np.random.RandomState(rng.randint(1, 2**29))
 
         if msk_config["bad_columns"] or msk_config["bad_columns"] == {}:
             if msk_config["bad_columns"] is True:
                 msk_config["bad_columns"] = {}
+
             _msk = generate_bad_columns(
                 shape=(se_image_shape, se_image_shape),
-                rng=rng,
+                rng=bad_col_rng,
                 **msk_config["bad_columns"],
             )
             msk[_msk] |= SIM_BMASK_BADCOLS
@@ -187,7 +194,7 @@ def generate_sim(
 
             _msk = generate_cosmic_rays(
                 shape=(se_image_shape, se_image_shape),
-                rng=rng,
+                rng=cray_rng,
                 **msk_config["cosmic_rays"],
             )
             msk[_msk] |= SIM_BMASK_COSMICS

@@ -1,3 +1,4 @@
+import logging
 import copy
 import tempfile
 import numpy as np
@@ -5,6 +6,8 @@ import numpy as np
 from pizza_cutter_sims.mdet import run_metadetect
 from pizza_cutter_sims.pizza_cutter import run_des_pizza_cutter_coadding_on_sim
 from pizza_cutter_sims.sim import generate_sim
+
+LOGGER = logging.getLogger(__name__)
 
 
 def run_end2end_pair_with_shear(
@@ -51,27 +54,30 @@ def run_end2end_pair_with_shear(
         g1m = -g1
         g2m = g2
 
-    pres = run_end2end_with_shear(
-        rng_seed=rng_seed,
-        gal_rng_seed=gal_rng_seed,
-        coadd_rng_seed=coadd_rng_seed,
-        mdet_rng_seed=mdet_rng_seed,
-        cfg=copy.deepcopy(cfg),
-        g1=g1p,
-        g2=g2p,
-    )
+    try:
+        pres = run_end2end_with_shear(
+            rng_seed=rng_seed,
+            gal_rng_seed=gal_rng_seed,
+            coadd_rng_seed=coadd_rng_seed,
+            mdet_rng_seed=mdet_rng_seed,
+            cfg=copy.deepcopy(cfg),
+            g1=g1p,
+            g2=g2p,
+        )
 
-    mres = run_end2end_with_shear(
-        rng_seed=rng_seed,
-        gal_rng_seed=gal_rng_seed,
-        coadd_rng_seed=coadd_rng_seed,
-        mdet_rng_seed=mdet_rng_seed,
-        cfg=copy.deepcopy(cfg),
-        g1=g1m,
-        g2=g2m,
-    )
+        mres = run_end2end_with_shear(
+            rng_seed=rng_seed,
+            gal_rng_seed=gal_rng_seed,
+            coadd_rng_seed=coadd_rng_seed,
+            mdet_rng_seed=mdet_rng_seed,
+            cfg=copy.deepcopy(cfg),
+            g1=g1m,
+            g2=g2m,
+        )
 
-    return pres, mres
+        return pres, mres
+    except Exception:
+        return None, None
 
 
 def run_end2end_with_shear(
@@ -104,6 +110,14 @@ def run_end2end_with_shear(
     cfg["shear"]["g1"] = g1
     cfg["shear"]["g2"] = g2
 
+    LOGGER.info(
+        "RNG seeds sim|gal|coadd|mdet: %d|%d|%d|%d",
+        rng_seed,
+        gal_rng_seed,
+        coadd_rng_seed,
+        mdet_rng_seed,
+    )
+
     rng = np.random.RandomState(seed=rng_seed)
     gal_rng = np.random.RandomState(seed=gal_rng_seed)
     sdata = generate_sim(
@@ -124,7 +138,11 @@ def run_end2end_with_shear(
             rng=coadd_rng,
             tmpdir=tmpdir,
             single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
-            **sdata,
+            img=sdata["img"],
+            wgt=sdata["wgt"],
+            msk=sdata["msk"],
+            bkg=sdata["bkg"],
+            info=sdata["info"],
         )
 
     mdet_rng = np.random.RandomState(seed=mdet_rng_seed)
@@ -132,5 +150,10 @@ def run_end2end_with_shear(
         rng=mdet_rng,
         config=cfg["metadetect"],
         wcs=sdata["info"]["affine_wcs"],
-        **cdata,
+        image=cdata["image"],
+        bmask=cdata["bmask"],
+        ormask=cdata["ormask"],
+        noise=cdata["noise"],
+        psf=cdata["psf"],
+        weight=cdata["weight"],
     )
