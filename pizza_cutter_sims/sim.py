@@ -171,6 +171,10 @@ def generate_sim(
         image += bkg
 
         msk = np.zeros(image.shape, dtype=np.int32)
+        # do not mover these calls, keeps the options doing the same thing
+        # when one or the other is turned off
+        bad_col_rng = np.random.RandomState(rng.randint(1, 2**29))
+        cray_rng = np.random.RandomState(rng.randint(1, 2**29))
 
         if msk_config["bad_columns"] or msk_config["bad_columns"] == {}:
             if msk_config["bad_columns"] is True:
@@ -178,7 +182,7 @@ def generate_sim(
 
             _msk = generate_bad_columns(
                 shape=(se_image_shape, se_image_shape),
-                rng=rng,
+                rng=bad_col_rng,
                 **msk_config["bad_columns"],
             )
             msk[_msk] |= SIM_BMASK_BADCOLS
@@ -190,7 +194,7 @@ def generate_sim(
 
             _msk = generate_cosmic_rays(
                 shape=(se_image_shape, se_image_shape),
-                rng=rng,
+                rng=cray_rng,
                 **msk_config["cosmic_rays"],
             )
             msk[_msk] |= SIM_BMASK_COSMICS
