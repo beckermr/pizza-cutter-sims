@@ -4,7 +4,10 @@ import ngmix
 from metadetect.metadetect import do_metadetect
 
 
-def run_metadetect(*, rng, config, wcs, image, bmask, ormask, noise, psf, weight):
+def run_metadetect(
+    *, rng, config, wcs, image, bmask, ormask,
+    noise, psf, weight, mfrac
+):
     """Run metadetect on an input sim.
 
     Parameters
@@ -27,6 +30,8 @@ def run_metadetect(*, rng, config, wcs, image, bmask, ormask, noise, psf, weight
         The coadd PSF image.
     weight : np.ndarray
         The weight map for the coadd.
+    mfrac : np.ndarray
+        The fraction of SE images in each pixel that is masked.
 
     Returns
     -------
@@ -70,6 +75,7 @@ def run_metadetect(*, rng, config, wcs, image, bmask, ormask, noise, psf, weight
         psf=psf_obs,
         noise=noise,
     )
+    obs.mfrac = np.clip(mfrac, 0, 1)
 
     mbobs = ngmix.MultiBandObsList()
     obslist = ngmix.ObsList()
