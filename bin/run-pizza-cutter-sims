@@ -62,11 +62,11 @@ def _run_pair(args):
         for s2n_cut in [10, 15, 20]:
             pgm = measure_shear_metadetect(
                 pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                ormask_cut=None, mfrac_cut=mfrac_cut/100,
+                ormask_cut=False, mfrac_cut=mfrac_cut/100,
             )
             mgm = measure_shear_metadetect(
                 mres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                ormask_cut=None, mfrac_cut=mfrac_cut/100,
+                ormask_cut=False, mfrac_cut=mfrac_cut/100,
             )
             if pgm is None or mgm is None:
                 continue
