@@ -45,10 +45,12 @@ def _run_pair(args):
     for ormask_cut in [True, False]:
         for s2n_cut in [10, 15, 20]:
             pgm = measure_shear_metadetect(
-                pres, s2n_cut=s2n_cut, t_ratio_cut=1.2, ormask_cut=ormask_cut,
+                pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
+                ormask_cut=ormask_cut, mfrac_cut=None,
             )
             mgm = measure_shear_metadetect(
-                mres, s2n_cut=s2n_cut, t_ratio_cut=1.2, ormask_cut=ormask_cut,
+                mres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
+                ormask_cut=ormask_cut, mfrac_cut=None,
             )
             if pgm is None or mgm is None:
                 continue
@@ -59,10 +61,12 @@ def _run_pair(args):
     for mfrac_cut in [0, 1, 2, 5, 8, 10, 20, 50, 80, 100]:
         for s2n_cut in [10, 15, 20]:
             pgm = measure_shear_metadetect(
-                pres, s2n_cut=s2n_cut, t_ratio_cut=1.2, mfrac_cut=mfrac_cut/100,
+                pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
+                ormask_cut=None, mfrac_cut=mfrac_cut/100,
             )
             mgm = measure_shear_metadetect(
-                mres, s2n_cut=s2n_cut, t_ratio_cut=1.2, mfrac_cut=mfrac_cut/100,
+                mres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
+                ormask_cut=None, mfrac_cut=mfrac_cut/100,
             )
             if pgm is None or mgm is None:
                 continue
