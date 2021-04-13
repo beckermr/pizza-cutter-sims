@@ -156,4 +156,5 @@ def run_end2end_with_shear(
         noise=cdata["noise"],
         psf=cdata["psf"],
         weight=cdata["weight"],
+        mfrac=cdata["mfrac"],
     )
