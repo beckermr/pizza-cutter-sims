@@ -77,7 +77,7 @@ def run_end2end_pair_with_shear(
 
         return pres, mres
     except Exception as e:
-        print(repr(e))
+        LOGGER.debug("Error running the sim: %s", repr(e))
         return None, None
 
 
