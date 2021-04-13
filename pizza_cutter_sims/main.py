@@ -76,7 +76,8 @@ def run_end2end_pair_with_shear(
         )
 
         return pres, mres
-    except Exception:
+    except Exception as e:
+        print(repr(e))
         return None, None
 
 
