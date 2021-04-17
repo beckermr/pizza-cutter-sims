@@ -3,7 +3,6 @@ import click
 import fitsio
 import esutil
 import yaml
-import numpy as np
 
 from pizza_cutter_sims.run_utils import estimate_m_and_c
 
@@ -29,10 +28,17 @@ def _read_ext(files, ext):
     help='number of jackknife subsets to use',
 )
 @click.option(
-    '--keep-interp', is_flag=True,
-    help='keep interpolated objects',
+    '--ormask-cut', type=int, default=None,
+    help='Cut to make on ormask. 0 indicates make a cut, 1 indicates no cut',
 )
-def main(config, files, s2n_cuts, jackknife, keep_interp):
+@click.option(
+    '--mfrac-cut', type=int, default=None,
+    help=(
+        'Cut to make on mfrac. Given in percentages.'
+        ' Cut keeps all objects less than the given value.'
+    ),
+)
+def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cut):
     """Measure shear from a set of pizza cutter sim FILES."""
     with open(config, "r") as fp:
         cfg = yaml.safe_load(fp.read())
@@ -41,12 +47,11 @@ def main(config, files, s2n_cuts, jackknife, keep_interp):
     mdata = _read_ext(files, "minus")
 
     for s2n_cut in [int(s) for s in s2n_cuts.split(",")]:
-        if keep_interp:
-            pmsk = (pdata["s2n_cut"] == s2n_cut) & (~pdata["cut_interp"])
-            assert not np.any(pdata[pmsk]["cut_interp"])
-        else:
-            pmsk = (pdata["s2n_cut"] == s2n_cut) & (pdata["cut_interp"])
-            assert np.all(pdata[pmsk]["cut_interp"])
+        pmsk = (pdata["s2n_cut"] == s2n_cut)
+        if ormask_cut is not None:
+            pmsk = pmsk & (pdata["ormask_cut"] == ormask_cut)
+        if mfrac_cut is not None:
+            pmsk = pmsk & (pdata["mfrac_cut"] == mfrac_cut)
 
         _mdata = mdata[pmsk]
         _pdata = pdata[pmsk]
@@ -77,7 +82,7 @@ def main(config, files, s2n_cuts, jackknife, keep_interp):
 
         print("""\
 # of sims: {n_sims}
-cuts: s2n>={s2n_cut} && cut_interp
+cuts: s2n>={s2n_cut}, ormask: {ormask_cut}, mfrac: {mfrac_cut}
 noise cancel m   : {m: f} +/- {msd: f} [1e-3, 3-sigma]
 noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
                 n_sims=len(pres),
@@ -86,6 +91,8 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
                 c=c/1e-5,
                 csd=csd/1e-5 * 3,
                 s2n_cut=s2n_cut,
+                ormask_cut=ormask_cut,
+                mfrac_cut=mfrac_cut,
             ),
             flush=True,
         )

@@ -76,7 +76,8 @@ def run_end2end_pair_with_shear(
         )
 
         return pres, mres
-    except Exception:
+    except Exception as e:
+        LOGGER.debug("Error running the sim: %s", repr(e))
         return None, None
 
 
@@ -156,4 +157,5 @@ def run_end2end_with_shear(
         noise=cdata["noise"],
         psf=cdata["psf"],
         weight=cdata["weight"],
+        mfrac=cdata["mfrac"],
     )

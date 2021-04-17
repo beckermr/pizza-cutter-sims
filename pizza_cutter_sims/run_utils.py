@@ -232,7 +232,7 @@ def estimate_m_and_c(
         return _run_boostrap(x1, y1, x2, y2, wgts)
 
 
-def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, cut_interp):
+def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut):
     """Measure the shear parameters for metadetect.
 
     NOTE: Returns None if nothing can be measured.
@@ -245,8 +245,11 @@ def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, cut_interp):
         The cut on `wmom_s2n`. Typically 10.
     t_ratio_cut : float
         The cut on `t_ratio_cut`. Typically 1.2.
-    cut_interp : bool
+    ormask_cut : bool
         If True, cut on the `ormask` flags.
+    mfrac_cut : float or None
+        If not None, cut objects with a masked fraction higher than this
+        value.
 
     Returns
     -------
@@ -264,17 +267,16 @@ def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, cut_interp):
         The mean 2-component shape for the zero-shear metadetect measurement.
     """
     def _mask(data):
-        if cut_interp:
-            return (
-                (data['flags'] == 0) &
-                (data['ormask'] == 0) &
-                (data['wmom_s2n'] > s2n_cut) &
-                (data['wmom_T_ratio'] > t_ratio_cut))
-        else:
-            return (
-                (data['flags'] == 0) &
-                (data['wmom_s2n'] > s2n_cut) &
-                (data['wmom_T_ratio'] > t_ratio_cut))
+        _cut_msk = (
+            (data['flags'] == 0)
+            & (data['wmom_s2n'] > s2n_cut)
+            & (data['wmom_T_ratio'] > t_ratio_cut)
+        )
+        if ormask_cut:
+            _cut_msk = _cut_msk & (data['ormask'] == 0)
+        if mfrac_cut is not None:
+            _cut_msk = _cut_msk & (data["mfrac"] <= mfrac_cut)
+        return _cut_msk
 
     op = res['1p']
     q = _mask(op)

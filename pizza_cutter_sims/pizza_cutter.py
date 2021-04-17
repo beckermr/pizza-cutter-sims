@@ -48,6 +48,8 @@ def run_des_pizza_cutter_coadding_on_sim(
             The coadd PSF image.
         weight : np.ndarray
             The weight map for the coadd.
+        mfrac : np.ndarray
+            The fraction of SE images in each pixel that is masked.
     """
     # this creates the WCS objects
     load_objects_into_info(info=info, verbose=False)
@@ -136,13 +138,14 @@ def run_des_pizza_cutter_coadding_on_sim(
             se_wcs_interp_delta=single_epoch_config["se_wcs_interp_delta"],
             coadd_wcs_interp_delta=single_epoch_config["coadd_wcs_interp_delta"],
         )
-        image, bmask, ormask, noise, psf, weight, rsd = (
+        image, bmask, ormask, noise, psf, weight, mfrac, rsd = (
             res[0],
             res[1],
             res[2],
             res[3],
             res[4],
             res[5],
+            res[6],
             res[-1]
         )
         coadd_data = dict(
@@ -153,6 +156,7 @@ def run_des_pizza_cutter_coadding_on_sim(
             psf=psf,
             weight=weight,
             rsd=rsd,
+            mfrac=mfrac,
         )
         return coadd_data
     else:

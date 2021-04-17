@@ -42,6 +42,7 @@ gals key:
  - r = gals positioned randomly
  - d = DES-like objects
  - h = gals im hexagonal grid w/ rotations
+ - s = glass-like galaxy layout
 
 msk key:
 
@@ -50,6 +51,7 @@ msk key:
  - t = interpolate bad regions
  - o{N} = set ormask flag from region of size 2N about object center
  - k{N} = only skinny bad columns (e.g. no bleed masks) of max width N
+ - a{N} = use all rotation angles for masks (a8) or just all 90 degree rotations (a4)
 
 shear key:
 

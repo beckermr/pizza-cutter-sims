@@ -32,27 +32,47 @@ def _run_pair(args):
     if pres is None or mres is None:
         return None, None
 
-    keys = ["g1p", "g1m", "g1", "g2p", "g2m", "g2", "s2n_cut"]
+    fkeys = ["g1p", "g1m", "g1", "g2p", "g2m", "g2"]
+    ikeys = ["s2n_cut", "ormask_cut", "mfrac_cut"]
     dtype = []
-    for key in keys:
+    for key in fkeys:
         dtype.append((key, "f8"))
-    dtype += [("cut_interp", "?")]
+    for key in ikeys:
+        dtype += [(key, "i4")]
 
     datap = []
     datam = []
-    for cut_interp in [True, False]:
+    for ormask_cut in [True, False]:
         for s2n_cut in [10, 15, 20]:
             pgm = measure_shear_metadetect(
-                pres, s2n_cut=s2n_cut, t_ratio_cut=1.2, cut_interp=cut_interp
+                pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
+                ormask_cut=ormask_cut, mfrac_cut=None,
             )
             mgm = measure_shear_metadetect(
-                mres, s2n_cut=s2n_cut, t_ratio_cut=1.2, cut_interp=cut_interp
+                mres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
+                ormask_cut=ormask_cut, mfrac_cut=None,
             )
             if pgm is None or mgm is None:
                 continue
 
-            datap.append(tuple(list(pgm) + [s2n_cut, cut_interp]))
-            datam.append(tuple(list(mgm) + [s2n_cut, cut_interp]))
+            datap.append(tuple(list(pgm) + [s2n_cut, 0 if ormask_cut else 1, -1]))
+            datam.append(tuple(list(mgm) + [s2n_cut, 0 if ormask_cut else 1, -1]))
+
+    for mfrac_cut in [0, 1, 2, 5, 8, 10, 20, 50, 80, 100]:
+        for s2n_cut in [10, 15, 20]:
+            pgm = measure_shear_metadetect(
+                pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
+                ormask_cut=False, mfrac_cut=mfrac_cut/100,
+            )
+            mgm = measure_shear_metadetect(
+                mres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
+                ormask_cut=False, mfrac_cut=mfrac_cut/100,
+            )
+            if pgm is None or mgm is None:
+                continue
+
+            datap.append(tuple(list(pgm) + [s2n_cut, -1, mfrac_cut]))
+            datam.append(tuple(list(mgm) + [s2n_cut, -1, mfrac_cut]))
 
     if backend == "mpi":
         print(
@@ -147,7 +167,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
                     fits.write(pdata, extname='plus')
                     fits.write(mdata, extname='minus')
 
-            pmsk = (pdata["s2n_cut"] == 10) & (pdata["cut_interp"])
+            pmsk = (pdata["s2n_cut"] == 10) & (pdata["ormask_cut"] == 0)
             _pdata = pdata[pmsk]
             _mdata = mdata[pmsk]
 
