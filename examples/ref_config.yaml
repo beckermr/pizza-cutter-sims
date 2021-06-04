@@ -1,9 +1,4 @@
-# this config file has all possible fields with an explanation
-# command: run-pizza-cutter-sims --config examples/ref_config.yaml --seed=42 --n-sims=10000 --backend=loky
-# results for 10k sims
-# # of sims: 10000
-# noise cancel m   : -0.039924 +/-  0.167364 [1e-3, 1-sigma]
-# noise cancel c   : -1.008324 +/-  0.363796 [1e-5, 1-sigma]
+# command: run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=10000 --backend=loky
 
 shear:
   scene: True
@@ -60,8 +55,7 @@ layout:
   dither_scale: 0.263
 
 gal:
-  type: exp-bright
-  noise: 10
+  type: exp-dim
 
 pizza_cutter:
   single_epoch_config:
@@ -74,7 +68,6 @@ pizza_cutter:
     symmetrize_masking: True
     copy_masked_edges: False
     max_masked_fraction: 0.1
-    max_unmasked_trail_fraction: 0.02
     edge_buffer: 8
     mask_tape_bumps: False
 
@@ -106,25 +99,6 @@ metadetect:
     ntry: 10
 
   sx:
-    # Minimum contrast parameter for deblending
-    deblend_cont: 1.0e-05
-
-    # in sky sigma
-    detect_thresh: 0.8
-
-    # minimum number of pixels above threshold
-    minarea: 4
-
-    filter_type: conv
-    # 7x7 convolution mask of a gaussian PSF with FWHM = 3.0 pixels.
-    filter_kernel:
-      - [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963]
-      - [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388]
-      - [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328]
-      - [0.068707, 0.296069, 0.710525, 0.951108, 0.710525, 0.296069, 0.068707]
-      - [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328]
-      - [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388]
-      - [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963]
 
   weight:
     fwhm: 1.2  # arcsec
@@ -138,11 +112,4 @@ metadetect:
     rad_min: 4
 
   # check for an edge hit
-  bmask_flags: 536870912  # 2**29
-
-  # flags for mask fractions computed by mdet
-  star_flags: 0
-  tapebump_flags: 0
-  spline_interp_flags: 0
-  noise_interp_flags: 0
-  imperfect_flags: 0
+  bmask_flags: 1610612736  # 2**29 || 2**30

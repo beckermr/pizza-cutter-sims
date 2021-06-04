@@ -114,6 +114,7 @@ def run_des_pizza_cutter_coadding_on_sim(
         mask_tape_bumps=single_epoch_config['mask_tape_bumps'],
         edge_buffer=single_epoch_config['edge_buffer'],
         wcs_type=single_epoch_config['wcs_type'],
+        wcs_color=0.0,  # we never deal with this kind of thing
         psf_type=single_epoch_config['psf_type'],
         rng=rng,
         tmpdir=tmpdir,

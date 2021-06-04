@@ -77,7 +77,7 @@ layout:
 
 gal:
   type: exp-bright
-  noise: 10
+
 
 pizza_cutter:
   single_epoch_config:
