@@ -34,7 +34,7 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
         The pixel noise to apply to the image.
     """
     # possibly get the number density
-    if gal_config["type"] in ["exp-bright", "exp-dim"]:
+    if gal_config["type"] in ["exp-bright", "exp-dim", "exp-super-bright"]:
         n_gals = None
     else:
         raise ValueError("galaxy type '%s' not supported!" % gal_config["type"])
@@ -118,13 +118,20 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
         )
 
     # now get the objects
-    if gal_config["type"] in ["exp-bright", "exp-dim"]:
-        noise = gal_config["noise"]
+    if gal_config["type"] in ["exp-bright", "exp-dim", "exp-super-bright"]:
+        noise = 10.0  # gal_config["noise"] <- this is ignored for these sims
+        if "noise" in gal_config:
+            LOGGER.critical(
+                "The key 'noise' is in the gal config but it is being "
+                "ignored and set to 10!"
+            )
 
-        if gal_config["type"] == "exp-bright":
-            mag = 18
+        if gal_config["type"] == "exp-super-bright":
+            mag = 14.0  # snr ~ 2e4
+        elif gal_config["type"] == "exp-bright":
+            mag = 18.0  # snr ~ 500
         elif gal_config["type"] == "exp-dim":
-            mag = 23.5
+            mag = 22.0  # snr ~ 10-12
         flux = 10**(0.4 * (MAGZP_REF - mag))
 
         LOGGER.debug("using '%s' gal type w/ mag %s", gal_config["type"], mag)
