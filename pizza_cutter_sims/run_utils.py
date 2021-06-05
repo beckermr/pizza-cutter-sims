@@ -1,7 +1,7 @@
 import multiprocessing
 import contextlib
 import dask
-import distributed
+from dask.distributed import Client
 import joblib
 
 import numpy as np
@@ -27,14 +27,9 @@ def backend_pool(backend, n_workers=None):
             _n_workers = n_workers or multiprocessing.cpu_count()
 
             with dask.config.set({"distributed.worker.daemon": True}):
-                with distributed.LocalCluster(
-                    n_workers=_n_workers,
-                    processes=True,
-                ) as cluster:
+                with Client(processes=True, n_workers=_n_workers) as client:
                     with joblib.parallel_backend('dask'):
-                        yield schwimmbad.JoblibPool(
-                            _n_workers, backend="dask", verbose=100
-                        )
+                        yield schwimmbad.JoblibPool(verbose=100)
         else:
             if backend == "sequential":
                 pool = schwimmbad.JoblibPool(1, backend=backend, verbose=100)
