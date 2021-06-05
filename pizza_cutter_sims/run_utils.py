@@ -25,11 +25,14 @@ def backend_pool(backend, n_workers=None):
     try:
         if "dask" in backend:
             _n_workers = n_workers or multiprocessing.cpu_count()
-
             with dask.config.set({"distributed.worker.daemon": True}):
-                with Client(processes=True, n_workers=_n_workers) as client:
-                    with joblib.parallel_backend('dask'):
-                        yield schwimmbad.JoblibPool(verbose=100)
+                with Client(
+                    processes=True,
+                    n_workers=_n_workers,
+                    threads_per_worker=1
+                ) as client:
+                    with joblib.parallel_backend('dask', n_jobs=_n_workers):
+                        yield schwimmbad.JoblibPool(n_jobs=_n_workers, verbose=100)
         else:
             if backend == "sequential":
                 pool = schwimmbad.JoblibPool(1, backend=backend, verbose=100)
