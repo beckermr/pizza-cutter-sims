@@ -22,6 +22,9 @@ def backend_pool(backend, n_workers=None):
         the cpu count for the 'loky' backend, and the size of the default global
         communicator for the 'mpi' backend.
     """
+    if backend == "mp":
+        backend = "multiprocessing"
+
     try:
         if "dask" in backend:
             _n_workers = n_workers or multiprocessing.cpu_count()
