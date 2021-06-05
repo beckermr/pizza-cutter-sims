@@ -37,7 +37,7 @@ def backend_pool(backend, n_workers=None):
             }
             env.update(os.environ)
             _n_workers = n_workers or multiprocessing.cpu_count()
-            with dask.config.set({"distributed.worker.daemon": False}):
+            with dask.config.set({"distributed.worker.daemon": True}):
                 with Client(
                     processes=True,
                     n_workers=_n_workers,
