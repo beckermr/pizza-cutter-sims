@@ -1,6 +1,7 @@
 import multiprocessing
 import contextlib
 import dask
+import os
 from dask.distributed import Client
 import joblib
 
@@ -27,12 +28,21 @@ def backend_pool(backend, n_workers=None):
 
     try:
         if "dask" in backend:
+            env = {
+                "OMP_NUM_THREADS": "1",
+                "OPENBLAS_NUM_THREADS": "1",
+                "MKL_NUM_THREADS": "1",
+                "VECLIB_MAXIMUM_THREADS": "1",
+                "NUMEXPR_NUM_THREADS": "1",
+            }
+            env.update(os.environ)
             _n_workers = n_workers or multiprocessing.cpu_count()
             with dask.config.set({"distributed.worker.daemon": False}):
                 with Client(
                     processes=True,
                     n_workers=_n_workers,
-                    threads_per_worker=1
+                    threads_per_worker=1,
+                    env=env,
                 ) as client:
                     with joblib.parallel_backend('dask', n_jobs=_n_workers):
                         yield schwimmbad.JoblibPool(n_jobs=_n_workers, verbose=100)
