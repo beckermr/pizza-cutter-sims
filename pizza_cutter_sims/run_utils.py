@@ -13,29 +13,44 @@ def backend_pool(backend, n_workers=None):
     Parameters
     ----------
     backend : str
-        One of 'sequential', `loky`, or 'mpi'.
+        One of 'sequential', `dask`, `multiprocessing`, `loky`, or 'mpi'.
     n_workers : int, optional
         The number of workers to use. Defaults to 1 for the 'sequential' backend,
         the cpu count for the 'loky' backend, and the size of the default global
         communicator for the 'mpi' backend.
     """
     try:
-        if backend == "sequential":
-            pool = schwimmbad.JoblibPool(1, backend=backend, verbose=100)
+        if "dask" in backend:
+            import dask
+            import distributed
+
+            _n_workers = n_workers or multiprocessing.cpu_count()
+
+            with dask.config.set({"distributed.worker.daemon": True}):
+                with distributed.LocalCluster(
+                    n_workers=_n_workers,
+                    processes=True,
+                ) as cluster:
+                    yield schwimmbad.JoblibPool(
+                        _n_workers, backend="dask", verbose=100
+                    )
         else:
-            if backend == "mpi":
-                from mpi4py import MPI
-                pool = schwimmbad.choose_pool(
-                    mpi=True,
-                    processes=n_workers or MPI.COMM_WORLD.Get_size(),
-                )
+            if backend == "sequential":
+                pool = schwimmbad.JoblibPool(1, backend=backend, verbose=100)
             else:
-                pool = schwimmbad.JoblibPool(
-                    n_workers or multiprocessing.cpu_count(),
-                    backend=backend,
-                    verbose=100,
-                )
-        yield pool
+                if backend == "mpi":
+                    from mpi4py import MPI
+                    pool = schwimmbad.choose_pool(
+                        mpi=True,
+                        processes=n_workers or MPI.COMM_WORLD.Get_size(),
+                    )
+                else:
+                    pool = schwimmbad.JoblibPool(
+                        n_workers or multiprocessing.cpu_count(),
+                        backend=backend,
+                        verbose=100,
+                    )
+            yield pool
     finally:
         if "pool" in locals():
             pool.close()
