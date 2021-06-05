@@ -21,7 +21,7 @@ def backend_pool(backend, n_workers=None):
     """
     try:
         if backend == "sequential":
-            pool = schwimmbad.JoblibPool(1, backend=backend, verbose=0)
+            pool = schwimmbad.JoblibPool(1, backend=backend, verbose=100)
         else:
             if backend == "mpi":
                 from mpi4py import MPI
