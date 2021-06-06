@@ -4,13 +4,13 @@ import time
 import copy
 import logging
 
-import tqdm
 import click
 import yaml
 import numpy as np
 
 import fitsio
 from esutil.numpy_util import combine_arrlist
+from esutil.pbar import PBar
 
 # used to get the DEBUG_PLOT logging level
 import pizza_cutter  # noqa
@@ -219,15 +219,14 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
     ) as pool:
         loc = 0
         outputs = []
-        with tqdm.trange(n_chunks, ncols=80) as itr:
-            for chunk in itr:
-                end = loc + n_sub
-                if end > n_sims:
-                    end = n_sims
-                _outputs = pool.map(_run_pair, args[loc:end])
-                outputs.extend(_outputs)
-                _measure_m_c(outputs, cfg, write=itr.write)
-                loc += n_sub
+        for chunk in PBar(range(n_chunks), n_bars=79):
+            end = loc + n_sub
+            if end > n_sims:
+                end = n_sims
+            _outputs = pool.map(_run_pair, args[loc:end])
+            outputs.extend(_outputs)
+            _measure_m_c(outputs, cfg)
+            loc += n_sub
 
     if rank == 0:
         res = _measure_m_c(outputs, cfg)
