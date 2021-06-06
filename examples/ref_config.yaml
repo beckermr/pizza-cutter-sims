@@ -35,11 +35,11 @@ coadd:
 se:
   n_images: 1
   wcs_config:
-    position_angle_range: [0, 0]
-    dither_scale: 0  # set to an odd number of pixels
+    position_angle_range: [0, 360]
+    dither_scale: 1  # set to an odd number of pixels
     scale: 0.263
-    scale_frac_std: 0
-    shear_std: 0
+    scale_frac_std: 0.1
+    shear_std: 0.01
 
 psf:
   type: galsim.Gaussian
@@ -50,7 +50,7 @@ psf:
 
 layout:
   type: grid
-  ngal_per_side: 7
+  ngal_per_side: 8
   ngal_per_arcmin2: 60
   dither_scale: 0.263
 

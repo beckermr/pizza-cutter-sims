@@ -11,7 +11,7 @@ import schwimmbad
 
 
 @contextlib.contextmanager
-def backend_pool(backend, n_workers=None):
+def backend_pool(backend, n_workers=None, verbose=100):
     """Context manager to build a schwimmbad `pool` object with the `map` method.
 
     Parameters
@@ -47,12 +47,12 @@ def backend_pool(backend, n_workers=None):
                     with joblib.parallel_backend('dask', n_jobs=_n_workers):
                         yield schwimmbad.JoblibPool(
                             n_jobs=_n_workers,
-                            verbose=100,
+                            verbose=verbose,
                             max_nbytes=0,
                         )
         else:
             if backend == "sequential":
-                pool = schwimmbad.JoblibPool(1, backend=backend, verbose=100)
+                pool = schwimmbad.JoblibPool(1, backend=backend, verbose=verbose)
             else:
                 if backend == "mpi":
                     from mpi4py import MPI
@@ -64,7 +64,7 @@ def backend_pool(backend, n_workers=None):
                     pool = schwimmbad.JoblibPool(
                         n_workers or multiprocessing.cpu_count(),
                         backend=backend,
-                        verbose=100,
+                        verbose=verbose,
                         max_nbytes=0,
                     )
             yield pool
