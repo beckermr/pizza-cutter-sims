@@ -45,7 +45,11 @@ def backend_pool(backend, n_workers=None):
                     env=env,
                 ) as client:
                     with joblib.parallel_backend('dask', n_jobs=_n_workers):
-                        yield schwimmbad.JoblibPool(n_jobs=_n_workers, verbose=100)
+                        yield schwimmbad.JoblibPool(
+                            n_jobs=_n_workers,
+                            verbose=100,
+                            max_nbytes=0,
+                        )
         else:
             if backend == "sequential":
                 pool = schwimmbad.JoblibPool(1, backend=backend, verbose=100)
@@ -61,6 +65,7 @@ def backend_pool(backend, n_workers=None):
                         n_workers or multiprocessing.cpu_count(),
                         backend=backend,
                         verbose=100,
+                        max_nbytes=0,
                     )
             yield pool
     finally:
