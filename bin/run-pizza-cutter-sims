@@ -219,7 +219,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
     ) as pool:
         loc = 0
         outputs = []
-        with tqdm.trange(n_chunks) as itr:
+        with tqdm.trange(n_chunks, ncols=80) as itr:
             for chunk in itr:
                 end = loc + n_sub
                 if end > n_sims:
