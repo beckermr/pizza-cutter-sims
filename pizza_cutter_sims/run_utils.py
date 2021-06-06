@@ -10,6 +10,34 @@ import tqdm
 import schwimmbad
 
 
+def get_n_workers(backend, n_workers=None):
+    """Get the number of workers.
+
+    Parameters
+    ----------
+    backend : str
+        One of 'sequential', `dask`, `multiprocessing`, `loky`, or 'mpi'.
+    n_workers : int, optional
+        The number of workers to use. Defaults to 1 for the 'sequential' backend,
+        the cpu count for the 'loky' backend, and the size of the default global
+        communicator for the 'mpi' backend.
+
+    Returns
+    -------
+    n_workers : int
+        The number of workers
+    """
+    if backend in ["mp", "multiprocessing", "loky", "dask"]:
+        return n_workers or multiprocessing.cpu_count()
+    elif backend == "mpi":
+        from mpi4py import MPI
+        return MPI.COMM_WORLD.Get_size()
+    elif backend == "sequential":
+        return 1
+    else:
+        raise RuntimeError("backend '%s' not recognized!" % backend)
+
+
 @contextlib.contextmanager
 def backend_pool(backend, n_workers=None, verbose=100):
     """Context manager to build a schwimmbad `pool` object with the `map` method.
@@ -26,6 +54,8 @@ def backend_pool(backend, n_workers=None, verbose=100):
     if backend == "mp":
         backend = "multiprocessing"
 
+    _n_workers = get_n_workers(backend, n_workers=n_workers)
+
     try:
         if "dask" in backend:
             env = {
@@ -36,7 +66,6 @@ def backend_pool(backend, n_workers=None, verbose=100):
                 "NUMEXPR_NUM_THREADS": "1",
             }
             env.update(os.environ)
-            _n_workers = n_workers or multiprocessing.cpu_count()
             with dask.config.set({"distributed.worker.daemon": False}):
                 with Client(
                     processes=True,
@@ -52,21 +81,20 @@ def backend_pool(backend, n_workers=None, verbose=100):
                         )
         else:
             if backend == "sequential":
-                pool = schwimmbad.JoblibPool(1, backend=backend, verbose=verbose)
+                pool = schwimmbad.JoblibPool(
+                    _n_workers,
+                    backend=backend,
+                    verbose=verbose,
+                )
             else:
                 if backend in ["mpi", "multiprocessing"]:
-                    if backend == "mpi":
-                        from mpi4py import MPI
-                        _n_workers = MPI.COMM_WORLD.Get_size()
-                    else:
-                        _n_workers = n_workers or multiprocessing.cpu_count()
                     pool = schwimmbad.choose_pool(
                         mpi=backend == "mpi",
                         processes=_n_workers,
                     )
                 else:
                     pool = schwimmbad.JoblibPool(
-                        n_workers or multiprocessing.cpu_count(),
+                        _n_workers,
                         backend=backend,
                         verbose=verbose,
                         max_nbytes=0,

@@ -21,6 +21,7 @@ from pizza_cutter_sims.run_utils import (
     estimate_m_and_c,
     backend_pool,
     cut_nones,
+    get_n_workers,
 )
 
 START = time.time()
@@ -207,7 +208,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
     else:
         args = []
 
-    n_sub = 2*n_workers
+    n_sub = 2*get_n_workers(backend, n_workers=n_workers)
     n_chunks = n_sims // n_sub
     if n_chunks * n_sub < n_sims:
         n_chunks += 1
