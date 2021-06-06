@@ -54,11 +54,15 @@ def backend_pool(backend, n_workers=None, verbose=100):
             if backend == "sequential":
                 pool = schwimmbad.JoblibPool(1, backend=backend, verbose=verbose)
             else:
-                if backend == "mpi":
-                    from mpi4py import MPI
+                if backend in ["mpi", "multiprocessing"]:
+                    if backend == "mpi":
+                        from mpi4py import MPI
+                        _n_workers = MPI.COMM_WORLD.Get_size()
+                    else:
+                        _n_workers = n_workers or multiprocessing.cpu_count()
                     pool = schwimmbad.choose_pool(
-                        mpi=True,
-                        processes=n_workers or MPI.COMM_WORLD.Get_size(),
+                        mpi=backend == "mpi",
+                        processes=_n_workers,
                     )
                 else:
                     pool = schwimmbad.JoblibPool(
