@@ -205,7 +205,10 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
         args = []
 
     with backend_pool(backend, n_workers=n_workers) as pool:
-        n_sub = min(20, n_sims//10)
+        if n_workers > 1:
+            n_sub = min(2*n_workers, n_sims//10)
+        else:
+            n_sub = n_sims
         n_chunks = n_sims // n_sub
         if n_chunks * n_sub < n_sims:
             n_chunks += 1
