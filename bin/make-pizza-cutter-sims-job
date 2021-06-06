@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import click
+import numpy as np
 
 LCRC_TEMPLATE = """\
 #!/bin/bash
@@ -21,7 +22,7 @@ srun run-pizza-cutter-sims \\
     --config={config} \\
     --seed={seed} \\
     --n-sims={n_sims} \\
-    --backend=loky \\
+    --backend=dask \\
     --output=data_{job_name}.fits
 """
 
@@ -33,7 +34,7 @@ run-pizza-cutter-sims \\
     --config={config} \\
     --seed={seed} \\
     --n-sims={n_sims} \\
-    --backend=loky \\
+    --backend=dask \\
     --output=data_{job_name}.fits \\
     &> log_{job_name}_bash.oe
 """
@@ -41,12 +42,15 @@ run-pizza-cutter-sims \\
 
 @click.command()
 @click.option('--config', type=str, default="config.yaml", help='config file')
-@click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
+@click.option('--seed', type=int, default=None, help='seed for the RNG')
 @click.option('--n-sims', type=int, default=1, help='number of sims to run')
 @click.option('--system', type=str, default="lcrc", help='system to run on')
 @click.option('--hours', type=str, default="12", help='amount of time to run')
 def main(config, seed, n_sims, system, hours):
     """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
+    if seed is None:
+        seed = np.random.randint(low=1, high=2**30)
+
     if os.path.basename(config) == "config.yaml":
         job_name = os.path.abspath(config).split("/")[-2]
     else:
