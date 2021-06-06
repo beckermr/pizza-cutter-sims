@@ -207,10 +207,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
     else:
         args = []
 
-    if n_workers > 1:
-        n_sub = 2*n_workers
-    else:
-        n_sub = n_sims
+    n_sub = 2*n_workers
     n_chunks = n_sims // n_sub
     if n_chunks * n_sub < n_sims:
         n_chunks += 1
