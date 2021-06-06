@@ -50,7 +50,7 @@ psf:
 
 layout:
   type: grid
-  ngal_per_side: 8
+  ngal_per_side: 10
   ngal_per_arcmin2: 60
   dither_scale: 0.263
 
