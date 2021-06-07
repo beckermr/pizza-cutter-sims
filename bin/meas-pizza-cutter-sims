@@ -56,32 +56,11 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cut):
             pmsk = pmsk & (pdata["ormask_cut"] == ormask_cut)
         if mfrac_cut is not None:
             pmsk = pmsk & (pdata["mfrac_cut"] == mfrac_cut)
-
-        _mdata = mdata[pmsk]
-        _pdata = pdata[pmsk]
         print("done cutting data", flush=True)
-
-        print("converting to list of tuples", flush=True)
-        pres = [
-            (
-                _pdata["g1p"][i], _pdata["g1m"][i], _pdata["g1"][i],
-                _pdata["g2p"][i], _pdata["g2m"][i], _pdata["g2"][i],
-            )
-            for i in range(pdata[pmsk].shape[0])
-        ]
-
-        mres = [
-            (
-                _mdata["g1p"][i], _mdata["g1m"][i], _mdata["g1"][i],
-                _mdata["g2p"][i], _mdata["g2m"][i], _mdata["g2"][i],
-            )
-            for i in range(pdata[pmsk].shape[0])
-        ]
-        print("done converting to list of tuples", flush=True)
-
+        print(pdata.dtype)
         m, msd, c, csd = estimate_m_and_c(
-            pres,
-            mres,
+            pdata[pmsk],
+            mdata[pmsk],
             cfg["shear"]["g"],
             swap12=cfg["shear"]["swap12"],
             jackknife=jackknife,
