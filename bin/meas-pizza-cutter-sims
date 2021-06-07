@@ -4,6 +4,7 @@ import fitsio
 import esutil
 import yaml
 import tqdm
+import numpy as np
 
 from pizza_cutter_sims.run_utils import estimate_m_and_c
 
@@ -50,7 +51,6 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cut):
     print("done reading data", flush=True)
 
     for s2n_cut in [int(s) for s in s2n_cuts.split(",")]:
-        print("cutting data", flush=True)
         pmsk = (pdata["s2n_cut"] == s2n_cut)
         if ormask_cut is not None:
             pmsk = pmsk & (pdata["ormask_cut"] == ormask_cut)
@@ -60,9 +60,11 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cut):
             pmsk = pmsk & (pdata["mfrac_cut"] == mfrac_cut)
         else:
             pmsk = pmsk & (pdata["mfrac_cut"] == -1)
-        print("done cutting data", flush=True)
-        import numpy as np
-        print(np.unique(pdata["ormask_cut"]), np.unique(pdata["mfrac_cut"]))
+
+        n_sims_msk = np.sum(pmsk)
+        if n_sims_msk <= 0:
+            raise RuntimeError("Cuts did not keep any sims!")
+
         m, msd, c, csd = estimate_m_and_c(
             pdata[pmsk],
             mdata[pmsk],
@@ -76,7 +78,7 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cut):
 cuts: s2n>={s2n_cut}, ormask: {ormask_cut}, mfrac: {mfrac_cut}
 noise cancel m   : {m: f} +/- {msd: f} [1e-3, 3-sigma]
 noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
-                n_sims=np.sum(pmsk),
+                n_sims=n_sims_msk,
                 m=m/1e-3,
                 msd=msd/1e-3 * 3,
                 c=c/1e-5,
