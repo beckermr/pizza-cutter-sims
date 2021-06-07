@@ -204,14 +204,16 @@ def estimate_m_and_c(
 
     Parameters
     ----------
-    presults : list of iterables
+    presults : list of iterables or np.ndarray
         A list of iterables, each with g1p, g1m, g1, g2p, g2m, g2
         from running metadetect with a `g1` shear in the 1-component and
-        0 true shear in the 2-component.
-    mresults : list of iterables
+        0 true shear in the 2-component. If an array, it should have the named
+        columns.
+    mresults : list of iterables or np.ndarray
         A list of iterables, each with g1p, g1m, g1, g2p, g2m, g2
         from running metadetect with a -`g1` shear in the 1-component and
-        0 true shear in the 2-component.
+        0 true shear in the 2-component. If an array, it should have the named
+        columns.
     g_true : float
         The true value of the shear on the 1-axis in the simulation. The other
         axis is assumd to havea true value of zero.
@@ -238,26 +240,48 @@ def estimate_m_and_c(
         Estimate of the 1-sigma standard error in `c`.
     """
 
-    prr_keep, mrr_keep = cut_nones(presults, mresults)
+    if isinstance(presults, list) or isinstance(mresults, list):
+        prr_keep, mrr_keep = cut_nones(presults, mresults)
 
-    def _get_stuff(rr):
-        _a = np.vstack(rr)
-        g1p = _a[:, 0]
-        g1m = _a[:, 1]
-        g1 = _a[:, 2]
-        g2p = _a[:, 3]
-        g2m = _a[:, 4]
-        g2 = _a[:, 5]
+        def _get_stuff(rr):
+            _a = np.vstack(rr)
+            g1p = _a[:, 0]
+            g1m = _a[:, 1]
+            g1 = _a[:, 2]
+            g2p = _a[:, 3]
+            g2m = _a[:, 4]
+            g2 = _a[:, 5]
 
+            if swap12:
+                g1p, g1m, g1, g2p, g2m, g2 = g2p, g2m, g2, g1p, g1m, g1
+
+            return (
+                g1, (g1p - g1m) / 2 / step * g_true,
+                g2, (g2p - g2m) / 2 / step)
+
+        g1p, R11p, g2p, R22p = _get_stuff(prr_keep)
+        g1m, R11m, g2m, R22m = _get_stuff(mrr_keep)
+    else:
         if swap12:
-            g1p, g1m, g1, g2p, g2m, g2 = g2p, g2m, g2, g1p, g1m, g1
+            g1p = presults["g2"]
+            R11p = (presults["g2p"] - presults["g2m"]) / 2 / step * g_true
+            g2p = presults["g1"]
+            R22p = (presults["g1p"] - presults["g1m"]) / 2 / step
 
-        return (
-            g1, (g1p - g1m) / 2 / step * g_true,
-            g2, (g2p - g2m) / 2 / step)
+            g1m = mresults["g2"]
+            R11m = (mresults["g2p"] - mresults["g2m"]) / 2 / step * g_true
+            g2m = mresults["g1"]
+            R22m = (mresults["g1p"] - mresults["g1m"]) / 2 / step
+        else:
+            g1p = presults["g1"]
+            R11p = (presults["g1p"] - presults["g1m"]) / 2 / step * g_true
+            g2p = presults["g2"]
+            R22p = (presults["g2p"] - presults["g2m"]) / 2 / step
 
-    g1p, R11p, g2p, R22p = _get_stuff(prr_keep)
-    g1m, R11m, g2m, R22m = _get_stuff(mrr_keep)
+            g1m = mresults["g1"]
+            R11m = (mresults["g1p"] - mresults["g1m"]) / 2 / step * g_true
+            g2m = mresults["g2"]
+            R22m = (mresults["g2p"] - mresults["g2m"]) / 2 / step
 
     if weights is not None:
         wgts = np.array(weights).astype(np.float64)
