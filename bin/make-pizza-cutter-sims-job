@@ -80,6 +80,8 @@ def main(config, seed, n_sims, system, hours):
     with open("./run_" + job_name + "_" + system + ext, "w") as fp:
         fp.write(cmd)
 
+    print("run_" + job_name + "_" + system + ext)
+
 
 if __name__ == '__main__':
     main()
