@@ -3,13 +3,14 @@ import click
 import fitsio
 import esutil
 import yaml
+import tqdm
 
 from pizza_cutter_sims.run_utils import estimate_m_and_c
 
 
 def _read_ext(files, ext):
     data = []
-    for fname in files:
+    for fname in tqdm.tqdm(files, desc='read ' + ext, leave=False):
         data.append(fitsio.read(fname, ext=ext))
 
     data = esutil.numpy_util.combine_arrlist(data)
