@@ -145,3 +145,60 @@ def generate_bad_columns(
             msk[gloc:gloc+glength, x:x+1] = 0
 
     return msk.astype(bool)
+
+
+def _point_line_dist(x1, y1, x2, y2, x0, y0):
+    return np.abs((x2-x1)*(y1-y0) - (x1-x0)*(y2-y1)) / np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+
+def generate_streaks(shape, mean_streaks=1, min_wdth=2, max_width=10, rng=None):
+    """Make image streaks representing airplanes and other flying things.
+
+    The streak width range is guess based on
+    https://iopscience.iop.org/article/10.3847/1538-3881/aaddff
+
+    Parameters
+    ----------
+    shape : tuple of ints
+        The shape of the mask to generate.
+    mean_steaks : float, optional
+        The mean of the Poisson distribution for the total number of
+        streaks to generate.
+    min_width : float
+        The minimum width of a streak. Default is 2 pixels.
+    max_width : float
+        The maximum width of a streak. Default is 10 pixels.
+    rng : np.random.RandomState or None, optional
+        An RNG to use. If none is provided, a new `np.random.RandomState`
+        state instance will be created.
+
+    Returns
+    -------
+    msk : np.ndarray, shape `shape`
+        A boolean mask marking the locations of the bad columns.
+    """
+    msk = np.zeros(shape, dtype=np.int32)
+    rng = rng or np.random.RandomState()
+
+    n_streaks = rng.poisson(mean_streaks)
+    if n_streaks > 0:
+        x1s = rng.uniform(size=n_streaks) * shape[1]
+        y1s = rng.uniform(size=n_streaks) * shape[0]
+        angs = rng.uniform(size=n_streaks) * np.pi * 2.0
+        x2s = x1s + np.cos(angs)
+        y2s = y1s + np.sin(angs)
+        half_widths = rng.uniform(
+            low=min_wdth,
+            high=max_width,
+            size=n_streaks,
+        ) / 2
+
+        for yind in range(shape[0]):
+            y0 = yind + 0.5
+            for xind in range(shape[1]):
+                x0 = xind + 0.5
+                for x1, y1, x2, y2, half_width in zip(x1s, y1s, x2s, y2s, half_widths):
+                    if _point_line_dist(x1, y1, x2, y2, x0, y0) < half_width:
+                        msk[yind, xind] = 1
+
+    return msk.astype(bool)
