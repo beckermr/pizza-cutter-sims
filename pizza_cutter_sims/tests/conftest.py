@@ -48,6 +48,8 @@ msk:
     # min_gap_frac: [0.1, 0.1, 0, 0]
     # max_gap_frac: [0.3, 0.3, 0, 0]
 
+  streaks: False
+
 coadd:
   central_size: 225
   buffer_size: 25
