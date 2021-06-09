@@ -2,10 +2,19 @@ import numpy as np
 import galsim
 
 from .wcs import gen_affine_wcs
-from .constants import SIM_BMASK_BADCOLS, SIM_BMASK_COSMICS, MAGZP_REF
+from .constants import (
+    SIM_BMASK_BADCOLS,
+    SIM_BMASK_COSMICS,
+    SIM_BMASK_STREAKS,
+    MAGZP_REF,
+)
 from .psf import gen_psf
 from .gals import gen_gals
-from .masking import generate_bad_columns, generate_cosmic_rays
+from .masking import (
+    generate_bad_columns,
+    generate_cosmic_rays,
+    generate_streaks,
+)
 
 
 def generate_sim(
@@ -171,10 +180,11 @@ def generate_sim(
         image += bkg
 
         msk = np.zeros(image.shape, dtype=np.int32)
-        # do not mover these calls, keeps the options doing the same thing
+        # do not move these calls, keeps the options doing the same thing
         # when one or the other is turned off
         bad_col_rng = np.random.RandomState(rng.randint(1, 2**29))
         cray_rng = np.random.RandomState(rng.randint(1, 2**29))
+        streak_rng = np.random.RandomState(rng.randint(1, 2**29))
 
         if msk_config["bad_columns"] or msk_config["bad_columns"] == {}:
             if msk_config["bad_columns"] is True:
@@ -198,6 +208,18 @@ def generate_sim(
                 **msk_config["cosmic_rays"],
             )
             msk[_msk] |= SIM_BMASK_COSMICS
+            image[_msk] = np.nan
+
+        if msk_config["streaks"] or msk_config["streaks"] == {}:
+            if msk_config["streaks"] is True:
+                msk_config["streaks"] = {}
+
+            _msk = generate_streaks(
+                shape=(se_image_shape, se_image_shape),
+                rng=streak_rng,
+                **msk_config["streaks"],
+            )
+            msk[_msk] |= SIM_BMASK_STREAKS
             image[_msk] = np.nan
 
         images.append(image)
