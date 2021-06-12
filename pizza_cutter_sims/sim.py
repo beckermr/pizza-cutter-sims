@@ -96,7 +96,12 @@ def generate_sim(
     info["scale"] = 1.0
     info["position_offset"] = 0
 
-    se_image_shape = int(1.7 * coadd_image_shape)
+    se_factor = 1.7 * (
+        1.0
+        + se_config["wcs_config"]["scale_frac_std"]
+        + np.sqrt(2) * se_config["wcs_config"]["shear_std"]
+    )
+    se_image_shape = int(se_factor * coadd_image_shape)
     if se_image_shape % 2 == 0:
         se_image_shape += 1
     se_image_cen = (se_image_shape - 1) // 2
