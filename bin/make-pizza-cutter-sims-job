@@ -39,6 +39,25 @@ run-pizza-cutter-sims \\
     &> log_{job_name}_bash.oe
 """
 
+PHOENIX_TEMPLATE = """\
+#!/bin/bash
+#SBATCH --job-name={job_name}
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -t {hours}:00:00
+#SBATCH --exclusive
+#SBATCH --output=log_{job_name}_phoenix%j.oe
+
+source activate pizza-cutter-sims
+
+srun run-pizza-cutter-sims \\
+    --config={config} \\
+    --seed={seed} \\
+    --n-sims={n_sims} \\
+    --backend=dask \\
+    --output=data_{job_name}.fits
+"""
+
 
 @click.command()
 @click.option('--config', type=str, default="config.yaml", help='config file')
@@ -74,6 +93,14 @@ def main(config, seed, n_sims, system, hours):
             n_sims=n_sims,
         )
         ext = ".sh"
+    elif system == "phoenix":
+        cmd = PHOENIX_TEMPLATE.format(
+            job_name=job_name,
+            config=config,
+            seed=seed,
+            n_sims=n_sims,
+            hours=hours,
+        )
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
