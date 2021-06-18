@@ -144,6 +144,7 @@ def run_end2end_with_shear(
             msk=sdata["msk"],
             bkg=sdata["bkg"],
             info=sdata["info"],
+            n_extra_noise_images=0,
         )
 
     mdet_rng = np.random.RandomState(seed=mdet_rng_seed)

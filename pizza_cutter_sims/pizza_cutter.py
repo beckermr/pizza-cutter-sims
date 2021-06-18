@@ -6,7 +6,8 @@ from pizza_cutter.des_pizza_cutter._coadd_slices import (
 
 
 def run_des_pizza_cutter_coadding_on_sim(
-    *, rng, tmpdir, info, img, wgt, msk, bkg, single_epoch_config
+    *, rng, tmpdir, info, img, wgt, msk, bkg, single_epoch_config,
+    n_extra_noise_images,
 ):
     """Run pizza cutter coadding on a sim.
 
@@ -30,6 +31,8 @@ def run_des_pizza_cutter_coadding_on_sim(
     single_epoch_config : dict
         A dictionary of config information for how the coadd treats the single
         epoch images.
+    n_extra_noise_images : int
+        The number of extra noise images to make.
 
     Returns
     -------
@@ -42,8 +45,8 @@ def run_des_pizza_cutter_coadding_on_sim(
             The bit mask for the coadded image.
         ormask : np.ndarray
             The logical "OR" mask for the coadded image.
-        noise : np.ndarray
-            A noise image for the coadd.
+        noises : list of np.ndarray
+            A list of noise images for the coadd.
         psf : np.ndarray
             The coadd PSF image.
         weight : np.ndarray
@@ -55,7 +58,7 @@ def run_des_pizza_cutter_coadding_on_sim(
     load_objects_into_info(info=info, verbose=False)
 
     for ii in info["src_info"]:
-        ii["noise_seed"] = rng.randint(low=1, high=2**29)
+        ii["noise_seeds"] = rng.randint(low=1, high=2**29, size=5)
 
     # set the object config info
     object_config = {
@@ -118,6 +121,7 @@ def run_des_pizza_cutter_coadding_on_sim(
         psf_type=single_epoch_config['psf_type'],
         rng=rng,
         tmpdir=tmpdir,
+        n_extra_noise_images=n_extra_noise_images,
     )
 
     se_image_slices, weights, slices_not_used, flags_not_used = bsres
@@ -138,8 +142,9 @@ def run_des_pizza_cutter_coadding_on_sim(
             weights=weights,
             se_wcs_interp_delta=single_epoch_config["se_wcs_interp_delta"],
             coadd_wcs_interp_delta=single_epoch_config["coadd_wcs_interp_delta"],
+            n_extra_noise_images=n_extra_noise_images,
         )
-        image, bmask, ormask, noise, psf, weight, mfrac, rsd = (
+        image, bmask, ormask, noises, psf, weight, mfrac, rsd = (
             res[0],
             res[1],
             res[2],
@@ -153,12 +158,14 @@ def run_des_pizza_cutter_coadding_on_sim(
             image=image,
             bmask=bmask,
             ormask=ormask,
-            noise=noise,
+            noise=noises[0],
             psf=psf,
             weight=weight,
             rsd=rsd,
             mfrac=mfrac,
         )
+        if n_extra_noise_images > 0:
+            coadd_data["extra_noises"] = noises[1:]
         return coadd_data
     else:
         raise RuntimeError("No images with positive weight were found!")
