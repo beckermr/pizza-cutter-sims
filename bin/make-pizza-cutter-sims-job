@@ -48,7 +48,8 @@ PHOENIX_TEMPLATE = """\
 #SBATCH --exclusive
 #SBATCH --output=log_{job_name}_phoenix%j.oe
 
-source activate pizza-cutter-sims
+source ~/.bashrc
+conda activate pizza-cutter-sims
 
 srun run-pizza-cutter-sims \\
     --config={config} \\
