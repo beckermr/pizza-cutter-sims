@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 import contextlib
 import dask
@@ -72,6 +73,7 @@ def backend_pool(backend, n_workers=None, verbose=100):
                     n_workers=_n_workers,
                     threads_per_worker=1,
                     env=env,
+                    silence_logs=logging.ERROR,
                 ) as client:
                     with joblib.parallel_backend('dask', n_jobs=_n_workers):
                         yield schwimmbad.JoblibPool(
