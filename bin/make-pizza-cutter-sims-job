@@ -71,6 +71,20 @@ def main(config, seed, n_sims, system, hours):
     if seed is None:
         seed = np.random.randint(low=1, high=2**30)
 
+    if system == "lcrc":
+        hours = hours or "12"
+        n_sims = n_sims or 100_000
+        ext = ".sh"
+    elif system == "bash":
+        n_sims = n_sims or 1
+        ext = ".sh"
+    elif system == "phoenix":
+        hours = hours or "24"
+        n_sims = n_sims or 10_000
+        ext = ".sh"
+    else:
+        raise RuntimeError("system '%s' not recognized" % system)
+
     if os.path.basename(config) == "config.yaml":
         job_name = os.path.abspath(config).split("/")[-2]
     else:
@@ -78,8 +92,6 @@ def main(config, seed, n_sims, system, hours):
     job_name += "_seed%d_nsims%d" % (seed, n_sims)
 
     if system == "lcrc":
-        hours = hours or "12"
-        n_sims = n_sims or 100_000
         cmd = LCRC_TEMPLATE.format(
             job_name=job_name,
             config=config,
@@ -87,19 +99,14 @@ def main(config, seed, n_sims, system, hours):
             n_sims=n_sims,
             hours=hours,
         )
-        ext = ".sh"
     elif system == "bash":
-        n_sims = n_sims or 1
         cmd = BASH_TEMPLATE.format(
             job_name=job_name,
             config=config,
             seed=seed,
             n_sims=n_sims,
         )
-        ext = ".sh"
     elif system == "phoenix":
-        hours = hours or "24"
-        n_sims = n_sims or 10_000
         cmd = PHOENIX_TEMPLATE.format(
             job_name=job_name,
             config=config,
@@ -107,7 +114,6 @@ def main(config, seed, n_sims, system, hours):
             n_sims=n_sims,
             hours=hours,
         )
-        ext = ".sh"
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
