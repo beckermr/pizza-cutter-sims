@@ -214,9 +214,11 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
     else:
         n_sub = 2*get_n_workers(backend, n_workers=n_workers)
         n_chunks = n_sims // n_sub
-        while n_chunks > 100:
+        fac = 1
+        while n_chunks > 100 and fac < 8:
             n_sub *= 2
             n_chunks = n_sims // n_sub
+            fac *= 2
         if n_chunks * n_sub < n_sims:
             n_chunks += 1
 
