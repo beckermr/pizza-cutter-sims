@@ -208,10 +208,14 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
     else:
         args = []
 
-    n_sub = 2*get_n_workers(backend, n_workers=n_workers)
-    n_chunks = n_sims // n_sub
-    if n_chunks * n_sub < n_sims:
-        n_chunks += 1
+    if backend == "sequential":
+        n_chunks = 1
+        n_sub = n_sims
+    else:
+        n_sub = 2*get_n_workers(backend, n_workers=n_workers)
+        n_chunks = n_sims // n_sub
+        if n_chunks * n_sub < n_sims:
+            n_chunks += 1
 
     with backend_pool(
         backend,
