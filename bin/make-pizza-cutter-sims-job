@@ -101,6 +101,7 @@ def main(config, seed, n_sims, system, hours):
             n_sims=n_sims,
             hours=hours,
         )
+        ext = ".sh"
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
