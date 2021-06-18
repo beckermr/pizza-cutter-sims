@@ -55,7 +55,7 @@ srun run-pizza-cutter-sims \\
     --config={config} \\
     --seed={seed} \\
     --n-sims={n_sims} \\
-    --backend=dask \\
+    --backend=loky \\
     --output=data_{job_name}.fits
 """
 
@@ -63,9 +63,9 @@ srun run-pizza-cutter-sims \\
 @click.command()
 @click.option('--config', type=str, default="config.yaml", help='config file')
 @click.option('--seed', type=int, default=None, help='seed for the RNG')
-@click.option('--n-sims', type=int, default=1, help='number of sims to run')
+@click.option('--n-sims', type=int, default=None, help='number of sims to run')
 @click.option('--system', type=str, default="lcrc", help='system to run on')
-@click.option('--hours', type=str, default="12", help='amount of time to run')
+@click.option('--hours', type=str, default=None, help='amount of time to run')
 def main(config, seed, n_sims, system, hours):
     """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
     if seed is None:
@@ -78,6 +78,8 @@ def main(config, seed, n_sims, system, hours):
     job_name += "_seed%d_nsims%d" % (seed, n_sims)
 
     if system == "lcrc":
+        hours = hours or "12"
+        n_sims = n_sims or 100_000
         cmd = LCRC_TEMPLATE.format(
             job_name=job_name,
             config=config,
@@ -87,6 +89,7 @@ def main(config, seed, n_sims, system, hours):
         )
         ext = ".sh"
     elif system == "bash":
+        n_sims = n_sims or 1
         cmd = BASH_TEMPLATE.format(
             job_name=job_name,
             config=config,
@@ -95,6 +98,8 @@ def main(config, seed, n_sims, system, hours):
         )
         ext = ".sh"
     elif system == "phoenix":
+        hours = hours or "24"
+        n_sims = n_sims or 10_000
         cmd = PHOENIX_TEMPLATE.format(
             job_name=job_name,
             config=config,
