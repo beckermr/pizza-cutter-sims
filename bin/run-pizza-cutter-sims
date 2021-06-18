@@ -216,7 +216,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
     with backend_pool(
         backend,
         n_workers=n_workers,
-        verbose=100 if n_chunks == 1 else 0,
+        verbose=100,
     ) as pool:
         loc = 0
         outputs = []
