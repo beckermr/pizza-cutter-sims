@@ -55,7 +55,7 @@ srun run-pizza-cutter-sims \\
     --config={config} \\
     --seed={seed} \\
     --n-sims={n_sims} \\
-    --backend=dask \\
+    --backend=loky \\
     --output=data_{job_name}.fits
 """
 
