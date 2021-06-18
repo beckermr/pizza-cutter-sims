@@ -41,13 +41,14 @@ gals key:
  - g = gals in grid
  - r = gals positioned randomly
  - d = DES-like objects
- - h = gals im hexagonal grid w/ rotations
+ - h = gals in hexagonal grid w/ rotations
  - s = glass-like galaxy layout
 
 msk key:
 
  - r = cosmic rays
  - c = bad columns
+ - s = streaks
  - t = interpolate bad regions
  - o{N} = set ormask flag from region of size 2N about object center
  - k{N} = only skinny bad columns (e.g. no bleed masks) of max width N
