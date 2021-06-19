@@ -140,7 +140,7 @@ def _run_boostrap(x1, y1, x2, y2, wgts):
     rng = np.random.RandomState(seed=100)
     mvals = []
     cvals = []
-    for _ in tqdm.trange(500, leave=False, desc='running bootstrap'):
+    for _ in tqdm.trange(500, leave=False, desc='running bootstrap', ncoks=79):
         ind = rng.choice(len(y1), replace=True, size=len(y1))
         _wgts = wgts[ind].copy()
         _wgts /= np.sum(_wgts)
@@ -162,7 +162,9 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
     wgtsj = np.zeros(jackknife)
 
     loc = 0
-    for i in tqdm.trange(jackknife, desc='running jackknife sums', leave=False):
+    for i in tqdm.trange(
+        jackknife, desc='running jackknife sums', leave=False, ncols=79
+    ):
         wgtsj[i] = np.sum(wgts[loc:loc+n_per])
         x1j[i] = np.sum(x1[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
         y1j[i] = np.sum(y1[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
@@ -175,7 +177,9 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
     cbar = np.mean(y2 * wgts) / np.mean(x2 * wgts)
     mvals = np.zeros(jackknife)
     cvals = np.zeros(jackknife)
-    for i in tqdm.trange(jackknife, desc='running jackknife estimates', leave=False):
+    for i in tqdm.trange(
+        jackknife, desc='running jackknife estimates', leave=False, ncols=79
+    ):
         _wgts = np.delete(wgtsj, i)
         mvals[i] = (
             np.sum(np.delete(y1j, i) * _wgts) / np.sum(np.delete(x1j, i) * _wgts)
