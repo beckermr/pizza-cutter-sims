@@ -34,13 +34,13 @@ def _read_ext(files, ext):
     help='Cut to make on ormask. 0 indicates make a cut, 1 indicates no cut.',
 )
 @click.option(
-    '--mfrac-cut', type=int, default=None,
+    '--mfrac-cuts', type=str, default=None,
     help=(
-        'Cut to make on mfrac. Given in percentages.'
+        'Cut to make on mfrac. Given in percentages and comma separated.'
         ' Cut keeps all objects less than the given value.'
     ),
 )
-def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cut):
+def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cuts):
     """Measure shear from a set of pizza cutter sim FILES."""
     with open(config, "r") as fp:
         cfg = yaml.safe_load(fp.read())
@@ -48,45 +48,51 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cut):
     pdata = _read_ext(files, "plus")
     mdata = _read_ext(files, "minus")
 
+    if mfrac_cuts is None:
+        mfrac_cuts = [None]
+    else:
+        mfrac_cuts = [int(s) for s in mfrac_cuts.split(",")]
+
     for s2n_cut in [int(s) for s in s2n_cuts.split(",")]:
-        pmsk = (pdata["s2n_cut"] == s2n_cut)
-        if ormask_cut is not None:
-            pmsk = pmsk & (pdata["ormask_cut"] == ormask_cut)
-        else:
-            pmsk = pmsk & (pdata["ormask_cut"] == -1)
-        if mfrac_cut is not None:
-            pmsk = pmsk & (pdata["mfrac_cut"] == mfrac_cut)
-        else:
-            pmsk = pmsk & (pdata["mfrac_cut"] == -1)
+        for mfrac_cut in mfrac_cuts:
+            pmsk = (pdata["s2n_cut"] == s2n_cut)
+            if ormask_cut is not None:
+                pmsk = pmsk & (pdata["ormask_cut"] == ormask_cut)
+            else:
+                pmsk = pmsk & (pdata["ormask_cut"] == -1)
+            if mfrac_cut is not None:
+                pmsk = pmsk & (pdata["mfrac_cut"] == mfrac_cut)
+            else:
+                pmsk = pmsk & (pdata["mfrac_cut"] == -1)
 
-        n_sims_msk = np.sum(pmsk)
-        if n_sims_msk <= 0:
-            raise RuntimeError("Cuts did not keep any sims!")
+            n_sims_msk = np.sum(pmsk)
+            if n_sims_msk <= 0:
+                raise RuntimeError("Cuts did not keep any sims!")
 
-        m, msd, c, csd = estimate_m_and_c(
-            pdata[pmsk],
-            mdata[pmsk],
-            cfg["shear"]["g"],
-            swap12=cfg["shear"]["swap12"],
-            jackknife=jackknife,
-        )
+            m, msd, c, csd = estimate_m_and_c(
+                pdata[pmsk],
+                mdata[pmsk],
+                cfg["shear"]["g"],
+                swap12=cfg["shear"]["swap12"],
+                jackknife=jackknife,
+            )
 
-        print("""\
-# of sims: {n_sims}
-cuts: s2n>={s2n_cut}, ormask: {ormask_cut}, mfrac: {mfrac_cut}
-noise cancel m   : {m: f} +/- {msd: f} [1e-3, 3-sigma]
-noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
-                n_sims=n_sims_msk,
-                m=m/1e-3,
-                msd=msd/1e-3 * 3,
-                c=c/1e-5,
-                csd=csd/1e-5 * 3,
-                s2n_cut=s2n_cut,
-                ormask_cut=ormask_cut,
-                mfrac_cut=mfrac_cut,
-            ),
-            flush=True,
-        )
+            print("""\
+    # of sims: {n_sims}
+    cuts: s2n>={s2n_cut}, ormask: {ormask_cut}, mfrac: {mfrac_cut}
+    noise cancel m   : {m: f} +/- {msd: f} [1e-3, 3-sigma]
+    noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
+                    n_sims=n_sims_msk,
+                    m=m/1e-3,
+                    msd=msd/1e-3 * 3,
+                    c=c/1e-5,
+                    csd=csd/1e-5 * 3,
+                    s2n_cut=s2n_cut,
+                    ormask_cut=ormask_cut,
+                    mfrac_cut=mfrac_cut,
+                ),
+                flush=True,
+            )
 
 
 if __name__ == '__main__':
