@@ -78,8 +78,8 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cuts):
             )
 
             print("""\
+cuts: s2n>={s2n_cut}, ormask: {ormask_cut}, mfrac: {mfrac_cut}
     # of sims: {n_sims}
-    cuts: s2n>={s2n_cut}, ormask: {ormask_cut}, mfrac: {mfrac_cut}
     noise cancel m   : {m: f} +/- {msd: f} [1e-3, 3-sigma]
     noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
                     n_sims=n_sims_msk,
