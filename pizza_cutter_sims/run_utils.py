@@ -140,7 +140,7 @@ def _run_boostrap(x1, y1, x2, y2, wgts):
     rng = np.random.RandomState(seed=100)
     mvals = []
     cvals = []
-    for _ in tqdm.trange(500, leave=False, desc='running bootstrap', ncoks=79):
+    for _ in tqdm.trange(500, leave=False, desc='running bootstrap', ncols=79):
         ind = rng.choice(len(y1), replace=True, size=len(y1))
         _wgts = wgts[ind].copy()
         _wgts /= np.sum(_wgts)
