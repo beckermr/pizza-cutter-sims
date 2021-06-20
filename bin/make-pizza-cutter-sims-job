@@ -62,12 +62,12 @@ srun run-pizza-cutter-sims \\
 
 PHOENIX_ARRAY_TEMPLATE = """\
 #!/bin/bash
-#SBATCH --job-name={job_name}_seed%a
+#SBATCH --job-name={job_name}}_array{seed}_seed%a
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -t {hours}:00:00
 #SBATCH --exclusive
-#SBATCH --output=log_{job_name}_seed%a_phoenix%j.oe
+#SBATCH --output=log_{job_name}_array{seed}_seed%a_phoenix%j.oe
 #SBATCH --array=1-{n_jobs}%45
 
 source ~/.bashrc
@@ -126,7 +126,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
         job_name = os.path.basename(config).replace(".yaml", "")
 
     if system == "phoenix-array":
-        job_name += "_nsims%d_array%d" % (n_sims, seed)
+        job_name += "_nsims%d" % n_sims
     else:
         job_name += "_nsims%d_seed%d" % (n_sims, seed)
 
