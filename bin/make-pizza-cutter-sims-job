@@ -60,13 +60,42 @@ srun run-pizza-cutter-sims \\
 """
 
 
+PHOENIX_ARRAY_TEMPLATE = """\
+#!/bin/bash
+#SBATCH --job-name={job_name}_seed%a
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -t {hours}:00:00
+#SBATCH --exclusive
+#SBATCH --output=log_{job_name}_seed%a_phoenix%j.oe
+#SBATCH --array={start_jobs}-{end_jobs}%45
+
+source ~/.bashrc
+conda activate pizza-cutter-sims
+
+srun run-pizza-cutter-sims \\
+    --config={config} \\
+    --seed=${SLURM_ARRAY_TASK_ID} \\
+    --n-sims={n_sims} \\
+    --backend=loky \\
+    --output=data_{job_name}_seed${SLURM_ARRAY_TASK_ID}.fits
+"""
+
+
 @click.command()
 @click.option('--config', type=str, default="config.yaml", help='config file')
 @click.option('--seed', type=int, default=None, help='seed for the RNG')
 @click.option('--n-sims', type=int, default=None, help='number of sims to run')
 @click.option('--system', type=str, default="lcrc", help='system to run on')
 @click.option('--hours', type=str, default=None, help='amount of time to run')
-def main(config, seed, n_sims, system, hours):
+@click.option(
+    '--n-jobs', type=int, default=None,
+    help=(
+        'number of jobs to run for job arrays - '
+        'this will run a total of n_sims * n_jobs sims'
+    )
+)
+def main(config, seed, n_sims, system, hours, n_jobs):
     """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
     if seed is None:
         seed = np.random.randint(low=1, high=2**30)
@@ -82,6 +111,11 @@ def main(config, seed, n_sims, system, hours):
         hours = hours or "24"
         n_sims = n_sims or 10_000
         ext = ".sh"
+    elif system == "phoenix-array":
+        hours = hours or "24"
+        n_sims = n_sims or 10_000
+        ext = ".sh"
+        n_jobs = 100
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
@@ -89,7 +123,11 @@ def main(config, seed, n_sims, system, hours):
         job_name = os.path.abspath(config).split("/")[-2]
     else:
         job_name = os.path.basename(config).replace(".yaml", "")
-    job_name += "_seed%d_nsims%d" % (seed, n_sims)
+
+    if system == "phoenix-array":
+        job_name += "_nsims%d_array%d" % (n_sims, seed)
+    else:
+        job_name += "_nsims%d_seed%d" % (n_sims, seed)
 
     if system == "lcrc":
         cmd = LCRC_TEMPLATE.format(
@@ -113,6 +151,16 @@ def main(config, seed, n_sims, system, hours):
             seed=seed,
             n_sims=n_sims,
             hours=hours,
+        )
+    elif system == "phoenix-array":
+        cmd = PHOENIX_ARRAY_TEMPLATE.format(
+            job_name=job_name,
+            config=config,
+            seed=seed,
+            n_sims=n_sims,
+            hours=hours,
+            start_jobs=seed,
+            end_jobs=seed + n_jobs,
         )
     else:
         raise RuntimeError("system '%s' not recognized" % system)
