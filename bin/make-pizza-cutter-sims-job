@@ -62,7 +62,7 @@ srun run-pizza-cutter-sims \\
 
 PHOENIX_ARRAY_TEMPLATE = """\
 #!/bin/bash
-#SBATCH --job-name={job_name}}_array{seed}_seed%a
+#SBATCH --job-name={job_name}_array{seed}_seed%a
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -t {hours}:00:00
