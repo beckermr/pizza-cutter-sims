@@ -68,17 +68,18 @@ PHOENIX_ARRAY_TEMPLATE = """\
 #SBATCH -t {hours}:00:00
 #SBATCH --exclusive
 #SBATCH --output=log_{job_name}_seed%a_phoenix%j.oe
-#SBATCH --array={start_jobs}-{end_jobs}%45
+#SBATCH --array=1-{n_jobs}%45
 
 source ~/.bashrc
 conda activate pizza-cutter-sims
+seed=$((SLURM_ARRAY_TASK_ID + {seed}))
 
 srun run-pizza-cutter-sims \\
     --config={config} \\
-    --seed=${{SLURM_ARRAY_TASK_ID}} \\
+    --seed=${{seed}} \\
     --n-sims={n_sims} \\
     --backend=loky \\
-    --output=data_{job_name}_seed${{SLURM_ARRAY_TASK_ID}}.fits
+    --output=data_{job_name}_seed${{seed}}.fits
 """
 
 
@@ -159,8 +160,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
             seed=seed,
             n_sims=n_sims,
             hours=hours,
-            start_jobs=seed,
-            end_jobs=seed + n_jobs-1,
+            n_jobs=n_jobs,
         )
     else:
         raise RuntimeError("system '%s' not recognized" % system)
