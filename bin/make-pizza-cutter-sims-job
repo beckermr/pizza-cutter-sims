@@ -160,7 +160,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
             n_sims=n_sims,
             hours=hours,
             start_jobs=seed,
-            end_jobs=seed + n_jobs,
+            end_jobs=seed + n_jobs-1,
         )
     else:
         raise RuntimeError("system '%s' not recognized" % system)
