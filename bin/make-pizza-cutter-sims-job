@@ -162,6 +162,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
             hours=hours,
             n_jobs=n_jobs,
         )
+        job_name += "_array%d" % seed
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
