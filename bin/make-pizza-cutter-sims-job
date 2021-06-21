@@ -116,7 +116,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
         hours = hours or "24"
         n_sims = n_sims or 10_000
         ext = ".sh"
-        n_jobs = 100
+        n_jobs = n_jobs or 100
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
