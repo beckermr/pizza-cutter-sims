@@ -74,7 +74,7 @@ source ~/.bashrc
 conda activate pizza-cutter-sims
 seed=$((SLURM_ARRAY_TASK_ID + {seed}))
 
-srun run-pizza-cutter-sims \\
+run-pizza-cutter-sims \\
     --config={config} \\
     --seed=${{seed}} \\
     --n-sims={n_sims} \\
