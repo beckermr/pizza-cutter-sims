@@ -51,7 +51,9 @@ PHOENIX_TEMPLATE = """\
 source ~/.bashrc
 conda activate pizza-cutter-sims
 
-srun run-pizza-cutter-sims \\
+cd {workdir}
+
+run-pizza-cutter-sims \\
     --config={config} \\
     --seed={seed} \\
     --n-sims={n_sims} \\
@@ -73,6 +75,8 @@ PHOENIX_ARRAY_TEMPLATE = """\
 source ~/.bashrc
 conda activate pizza-cutter-sims
 seed=$((SLURM_ARRAY_TASK_ID + {seed}))
+
+cd {workdir}
 
 run-pizza-cutter-sims \\
     --config={config} \\
@@ -152,6 +156,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
             seed=seed,
             n_sims=n_sims,
             hours=hours,
+            workdir=os.path.abspath(os.path.dirname(config)),
         )
     elif system == "phoenix-array":
         cmd = PHOENIX_ARRAY_TEMPLATE.format(
@@ -161,6 +166,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
             n_sims=n_sims,
             hours=hours,
             n_jobs=n_jobs,
+            workdir=os.path.abspath(os.path.dirname(config)),
         )
         job_name += "_array%d" % seed
     else:
