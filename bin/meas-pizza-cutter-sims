@@ -3,19 +3,23 @@ import click
 import fitsio
 import esutil
 import yaml
-import tqdm
 import numpy as np
+import joblib
 
 from pizza_cutter_sims.run_utils import estimate_m_and_c
 
 
-def _read_ext(files, ext):
-    data = []
-    for fname in tqdm.tqdm(files, desc='read ' + ext, leave=False, ncols=79):
-        data.append(fitsio.read(fname, ext=ext))
+def _read_ext_one(fname, ext):
+    return fitsio.read(fname, ext=ext)
 
-    data = esutil.numpy_util.combine_arrlist(data)
-    return data
+
+def _read_ext(files, ext):
+    with joblib.Parallel(n_jobs=-1, backend='loky', max_nbytes=0, verbose=10) as par:
+        data = par([
+            joblib.delayed(_read_ext_one)(fname, ext)
+            for fname in files
+        ])
+    return esutil.numpy_util.combine_arrlist(data)
 
 
 @click.command()
