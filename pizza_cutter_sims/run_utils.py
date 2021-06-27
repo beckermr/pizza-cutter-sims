@@ -172,7 +172,10 @@ def _run_boostrap(x1, y1, x2, y2, wgts, silent):
     if silent:
         itrl = range(500)
     else:
-        itrl = tqdm.trange(500, leave=False, desc='running bootstrap', ncols=79)
+        itrl = tqdm.trange(
+            500, leave=False, desc='running bootstrap', ncols=79,
+            file=sys.stderr,
+        )
     for _ in itrl:
         ind = rng.choice(len(y1), replace=True, size=len(y1))
         _wgts = wgts[ind].copy()
@@ -185,7 +188,7 @@ def _run_boostrap(x1, y1, x2, y2, wgts, silent):
         np.mean(y2 * wgts) / np.mean(x2 * wgts), np.std(cvals))
 
 
-def _run_jackknife(x1, y1, x2, y2, wgts, jackknife, silent):
+def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
     n_per = x1.shape[0] // jackknife
     n = n_per * jackknife
     x1j = np.zeros(jackknife)
@@ -194,15 +197,8 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife, silent):
     y2j = np.zeros(jackknife)
     wgtsj = np.zeros(jackknife)
 
-    if silent:
-        itrl = range(jackknife)
-    else:
-        itrl = tqdm.trange(
-            jackknife, desc='running jackknife sums', leave=False, ncols=79
-        )
-
     loc = 0
-    for i in itrl:
+    for i in range(jackknife):
         wgtsj[i] = np.sum(wgts[loc:loc+n_per])
         x1j[i] = np.sum(x1[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
         y1j[i] = np.sum(y1[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
@@ -211,18 +207,11 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife, silent):
 
         loc += n_per
 
-    if silent:
-        itrl = range(jackknife)
-    else:
-        itrl = tqdm.trange(
-            jackknife, desc='running jackknife estimates', leave=False, ncols=79
-        )
-
     mbar = np.mean(y1 * wgts) / np.mean(x1 * wgts) - 1
     cbar = np.mean(y2 * wgts) / np.mean(x2 * wgts)
     mvals = np.zeros(jackknife)
     cvals = np.zeros(jackknife)
-    for i in itrl:
+    for i in range(jackknife):
         _wgts = np.delete(wgtsj, i)
         mvals[i] = (
             np.sum(np.delete(y1j, i) * _wgts) / np.sum(np.delete(x1j, i) * _wgts)
@@ -369,7 +358,7 @@ def estimate_m_and_c(
 
     if jackknife:
         with timer("running jackknife", silent=silent):
-            return _run_jackknife(x1, y1, x2, y2, wgts, jackknife, silent)
+            return _run_jackknife(x1, y1, x2, y2, wgts, jackknife)
     else:
         with timer("running bootstrap", silent=silent):
             return _run_boostrap(x1, y1, x2, y2, wgts, silent)
