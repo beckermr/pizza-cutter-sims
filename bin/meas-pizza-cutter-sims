@@ -15,7 +15,7 @@ def _read_ext_one(fname, ext):
 
 
 def _read_ext(files, ext):
-    with joblib.Parallel(n_jobs=-1, backend='loky', max_nbytes=0, verbose=10) as par:
+    with joblib.Parallel(n_jobs=-1, backend='loky', max_nbytes=0, verbose=5) as par:
         data = par([
             joblib.delayed(_read_ext_one)(fname, ext)
             for fname in files
@@ -53,8 +53,10 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cuts):
     with open(config, "r") as fp:
         cfg = yaml.safe_load(fp.read())
 
-    pdata = _read_ext(files, "plus")
-    mdata = _read_ext(files, "minus")
+    with timer("read plus data"):
+        pdata = _read_ext(files, "plus")
+    with timer("read minus data"):
+        mdata = _read_ext(files, "minus")
 
     if mfrac_cuts is None:
         mfrac_cuts = [None]
@@ -64,8 +66,8 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cuts):
     for s2n_cut in [int(s) for s in s2n_cuts.split(",")]:
         for mfrac_cut in mfrac_cuts:
             with timer(
-                "making cuts s2n>={s2n_cut}, ormask: {ormask_cut}, "
-                "mfrac: {mfrac_cut}".format(
+                "making cuts (s2n>={s2n_cut}, ormask: {ormask_cut}, "
+                "mfrac: {mfrac_cut})".format(
                     s2n_cut=s2n_cut,
                     ormask_cut=ormask_cut,
                     mfrac_cut=mfrac_cut,

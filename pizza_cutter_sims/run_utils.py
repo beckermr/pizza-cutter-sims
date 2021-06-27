@@ -4,6 +4,7 @@ import contextlib
 import os
 import time
 from contextlib import contextmanager
+import sys
 
 import dask
 from dask.distributed import Client
@@ -19,16 +20,17 @@ GLOBAL_START_TIME = time.time()
 @contextmanager
 def timer(name):
     t0 = time.time()
-    print("[%08d] %s" % (t0 - GLOBAL_START_TIME, name), flush=True)
+    print("[% 8ds] %s" % (t0 - GLOBAL_START_TIME, name), flush=True, file=sys.stderr)
     yield
     t1 = time.time()
     print(
-        "[%08d] finished %s (%f seconds)" % (
+        "[% 8ds] %s done (%f seconds)" % (
             t1 - GLOBAL_START_TIME,
             name,
             t1 - t0
         ),
         flush=True,
+        file=sys.stderr,
     )
 
 
