@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import click
 import fitsio
 import esutil
@@ -6,7 +7,7 @@ import yaml
 import numpy as np
 import joblib
 
-from pizza_cutter_sims.run_utils import estimate_m_and_c
+from pizza_cutter_sims.run_utils import estimate_m_and_c, timer
 
 
 def _read_ext_one(fname, ext):
@@ -19,7 +20,10 @@ def _read_ext(files, ext):
             joblib.delayed(_read_ext_one)(fname, ext)
             for fname in files
         ])
-    return esutil.numpy_util.combine_arrlist(data)
+
+    with timer("combining arrays"):
+        data = esutil.numpy_util.combine_arrlist(data)
+    return data
 
 
 @click.command()
@@ -59,19 +63,27 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cuts):
 
     for s2n_cut in [int(s) for s in s2n_cuts.split(",")]:
         for mfrac_cut in mfrac_cuts:
-            pmsk = (pdata["s2n_cut"] == s2n_cut)
-            if ormask_cut is not None:
-                pmsk = pmsk & (pdata["ormask_cut"] == ormask_cut)
-            else:
-                pmsk = pmsk & (pdata["ormask_cut"] == -1)
-            if mfrac_cut is not None:
-                pmsk = pmsk & (pdata["mfrac_cut"] == mfrac_cut)
-            else:
-                pmsk = pmsk & (pdata["mfrac_cut"] == -1)
+            with timer(
+                "making cuts s2n>={s2n_cut}, ormask: {ormask_cut}, "
+                "mfrac: {mfrac_cut}".format(
+                    s2n_cut=s2n_cut,
+                    ormask_cut=ormask_cut,
+                    mfrac_cut=mfrac_cut,
+                )
+            ):
+                pmsk = (pdata["s2n_cut"] == s2n_cut)
+                if ormask_cut is not None:
+                    pmsk = pmsk & (pdata["ormask_cut"] == ormask_cut)
+                else:
+                    pmsk = pmsk & (pdata["ormask_cut"] == -1)
+                if mfrac_cut is not None:
+                    pmsk = pmsk & (pdata["mfrac_cut"] == mfrac_cut)
+                else:
+                    pmsk = pmsk & (pdata["mfrac_cut"] == -1)
 
-            n_sims_msk = np.sum(pmsk)
-            if n_sims_msk <= 0:
-                raise RuntimeError("Cuts did not keep any sims!")
+                n_sims_msk = np.sum(pmsk)
+                if n_sims_msk <= 0:
+                    raise RuntimeError("Cuts did not keep any sims!")
 
             m, msd, c, csd = estimate_m_and_c(
                 pdata[pmsk],
