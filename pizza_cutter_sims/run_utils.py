@@ -13,13 +13,23 @@ import numpy as np
 import tqdm
 import schwimmbad
 
+GLOBAL_START_TIME = time.time()
+
 
 @contextmanager
 def timer(name):
     t0 = time.time()
-    print("%s...", end="", flush=True)
+    print("[%08d] %s" % (t0 - GLOBAL_START_TIME, name), flush=True)
     yield
-    print("done (%f seconds)" % (time.time() - t0), flush=True)
+    t1 = time.time()
+    print(
+        "[%08d] finished %s (%f seconds)" % (
+            t1 - GLOBAL_START_TIME,
+            name,
+            t1 - t0
+        ),
+        flush=True,
+    )
 
 
 def get_n_workers(backend, n_workers=None):
