@@ -18,20 +18,26 @@ GLOBAL_START_TIME = time.time()
 
 
 @contextmanager
-def timer(name):
+def timer(name, silent=False):
     t0 = time.time()
-    print("[% 8ds] %s" % (t0 - GLOBAL_START_TIME, name), flush=True, file=sys.stderr)
+    if not silent:
+        print(
+            "[% 8ds] %s" % (t0 - GLOBAL_START_TIME, name),
+            flush=True,
+            file=sys.stderr,
+        )
     yield
     t1 = time.time()
-    print(
-        "[% 8ds] %s done (%f seconds)" % (
-            t1 - GLOBAL_START_TIME,
-            name,
-            t1 - t0
-        ),
-        flush=True,
-        file=sys.stderr,
-    )
+    if not silent:
+        print(
+            "[% 8ds] %s done (%f seconds)" % (
+                t1 - GLOBAL_START_TIME,
+                name,
+                t1 - t0
+            ),
+            flush=True,
+            file=sys.stderr,
+        )
 
 
 def get_n_workers(backend, n_workers=None):
@@ -159,11 +165,15 @@ def cut_nones(presults, mresults):
     return prr_keep, mrr_keep
 
 
-def _run_boostrap(x1, y1, x2, y2, wgts):
+def _run_boostrap(x1, y1, x2, y2, wgts, silent):
     rng = np.random.RandomState(seed=100)
     mvals = []
     cvals = []
-    for _ in tqdm.trange(500, leave=False, desc='running bootstrap', ncols=79):
+    if silent:
+        itrl = range(500)
+    else:
+        itrl = tqdm.trange(500, leave=False, desc='running bootstrap', ncols=79)
+    for _ in itrl:
         ind = rng.choice(len(y1), replace=True, size=len(y1))
         _wgts = wgts[ind].copy()
         _wgts /= np.sum(_wgts)
@@ -175,7 +185,7 @@ def _run_boostrap(x1, y1, x2, y2, wgts):
         np.mean(y2 * wgts) / np.mean(x2 * wgts), np.std(cvals))
 
 
-def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
+def _run_jackknife(x1, y1, x2, y2, wgts, jackknife, silent):
     n_per = x1.shape[0] // jackknife
     n = n_per * jackknife
     x1j = np.zeros(jackknife)
@@ -184,10 +194,15 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
     y2j = np.zeros(jackknife)
     wgtsj = np.zeros(jackknife)
 
+    if silent:
+        itrl = range(jackknife)
+    else:
+        itrl = tqdm.trange(
+            jackknife, desc='running jackknife sums', leave=False, ncols=79
+        )
+
     loc = 0
-    for i in tqdm.trange(
-        jackknife, desc='running jackknife sums', leave=False, ncols=79
-    ):
+    for i in itrl:
         wgtsj[i] = np.sum(wgts[loc:loc+n_per])
         x1j[i] = np.sum(x1[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
         y1j[i] = np.sum(y1[loc:loc+n_per] * wgts[loc:loc+n_per]) / wgtsj[i]
@@ -196,13 +211,18 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
 
         loc += n_per
 
+    if silent:
+        itrl = range(jackknife)
+    else:
+        itrl = tqdm.trange(
+            jackknife, desc='running jackknife estimates', leave=False, ncols=79
+        )
+
     mbar = np.mean(y1 * wgts) / np.mean(x1 * wgts) - 1
     cbar = np.mean(y2 * wgts) / np.mean(x2 * wgts)
     mvals = np.zeros(jackknife)
     cvals = np.zeros(jackknife)
-    for i in tqdm.trange(
-        jackknife, desc='running jackknife estimates', leave=False, ncols=79
-    ):
+    for i in itrl:
         _wgts = np.delete(wgtsj, i)
         mvals[i] = (
             np.sum(np.delete(y1j, i) * _wgts) / np.sum(np.delete(x1j, i) * _wgts)
@@ -228,6 +248,7 @@ def estimate_m_and_c(
     step=0.01,
     weights=None,
     jackknife=None,
+    silent=False,
 ):
     """Estimate m and c from paired lensing simulations.
 
@@ -256,6 +277,8 @@ def estimate_m_and_c(
     jackknife : int, optional
         The number of jackknife sections to use for error estimation. Default of
         None will do no jackknife and default to bootstrap error bars.
+    silent : bool, optional
+        If True, do not print to stderr/stdout.
 
     Returns
     -------
@@ -269,7 +292,7 @@ def estimate_m_and_c(
         Estimate of the 1-sigma standard error in `c`.
     """
 
-    with timer("prepping data for m,c measurement"):
+    with timer("prepping data for m,c measurement", silent=silent):
         if isinstance(presults, list) or isinstance(mresults, list):
             prr_keep, mrr_keep = cut_nones(presults, mresults)
 
@@ -345,11 +368,11 @@ def estimate_m_and_c(
         y2 = (g2p + g2m) / 2
 
     if jackknife:
-        with timer("running jackknife"):
-            return _run_jackknife(x1, y1, x2, y2, wgts, jackknife)
+        with timer("running jackknife", silent=silent):
+            return _run_jackknife(x1, y1, x2, y2, wgts, jackknife, silent)
     else:
-        with timer("running bootstrap"):
-            return _run_boostrap(x1, y1, x2, y2, wgts)
+        with timer("running bootstrap", silent=silent):
+            return _run_boostrap(x1, y1, x2, y2, wgts, silent)
 
 
 def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut):

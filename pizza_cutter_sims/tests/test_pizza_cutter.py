@@ -34,6 +34,7 @@ def _run_to_pizza_cutter(
             rng=coadd_rng,
             tmpdir=tmpdir,
             single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
+            n_extra_noise_images=0,
             **sdata,
         )
 

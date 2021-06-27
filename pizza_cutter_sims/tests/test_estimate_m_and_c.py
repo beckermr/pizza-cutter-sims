@@ -52,7 +52,8 @@ def test_estimate_m_and_c(g_true, step, swap12, jackknife):
             mres[-1] = None
 
     m, merr, c, cerr = estimate_m_and_c(
-        pres, mres, g_true, swap12=swap12, step=step, jackknife=jackknife
+        pres, mres, g_true, swap12=swap12, step=step, jackknife=jackknife,
+        silent=True
     )
 
     assert np.allclose(m, 0.01)
@@ -116,7 +117,7 @@ def test_estimate_m_and_c_err(jackknife, seed):
 
     m, merr, c, cerr = estimate_m_and_c(
         pres, mres, g_true, swap12=swap12, step=step,
-        jackknife=jackknife
+        jackknife=jackknife, silent=True
     )
 
     assert np.abs(m - 0.01) <= 3*merr, (m, merr)
