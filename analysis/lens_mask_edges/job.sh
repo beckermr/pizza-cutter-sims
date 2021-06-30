@@ -10,6 +10,6 @@
 #SBATCH --time=48:00:00
 
 source ~/.bashrc
-conda activate bebop
+conda activate pizza-cutter-sims
 
 python run.py 5000000
