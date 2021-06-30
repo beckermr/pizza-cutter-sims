@@ -8,6 +8,7 @@ import copy
 import sys
 from metadetect.detect import MEDSifier
 from ngmix.gaussmom import GaussMom
+from pizza_cutter.slice_utils.symmetrize import symmetrize_bmask
 
 
 CONFIG = yaml.safe_load("""\
@@ -406,14 +407,24 @@ def meas_mbmeds(mbobs, *, mask_width, sym, maskflags=1, meds_config=None):
 
             if sym:
                 bmask = obs.bmask.copy()
-                bmask_final = bmask.copy()
-                for _ in range(sym):
-                    bmask = np.rot90(bmask)
-                    bmask_final |= bmask
-                msk = (bmask_final & maskflags) != 0
+                if isinstance(sym, list):
+                    for angle in sym:
+                        bmask_rot = obs.bmask.copy()
+                        symmetrize_bmask(
+                            bmask=bmask_rot,
+                            angle=angle,
+                        )
+                        bmask |= bmask_rot
+                elif isinstance(sym, int):
+                    bmask_rot = obs.bmask.copy()
+                    for _ in range(sym):
+                        bmask_rot = np.rot90(bmask_rot)
+                        bmask |= bmask_rot
+
+                msk = (bmask & maskflags) != 0
                 wgt = obs.weight.copy()
                 wgt[msk] = 0
-                obs.bmask = bmask_final
+                obs.bmask = bmask
                 obs.weight = wgt
 
                 if False:
@@ -455,26 +466,26 @@ def _cut_cat(d):
     ]
 
 
-def _meas_m(*, mask_width, sym, **kwargs):
+def _run_one_shear(*, shear, mask_width, sym, **kwargs):
     step = 0.01
     _d, mbobs = meas_mbmeds(
-        make_obs(shear=(0.02, 0.0), mcal_shear=(0, 0), **kwargs),
+        make_obs(shear=shear, mcal_shear=(0, 0), **kwargs),
         mask_width=mask_width, sym=sym,
     )
     _d1p, mbobs1p = meas_mbmeds(
-        make_obs(shear=(0.02, 0.0), mcal_shear=(step, 0), **kwargs),
+        make_obs(shear=shear, mcal_shear=(step, 0), **kwargs),
         mask_width=mask_width, sym=sym,
     )
     _d1m, mbobs1m = meas_mbmeds(
-        make_obs(shear=(0.02, 0.0), mcal_shear=(-step, 0), **kwargs),
+        make_obs(shear=shear, mcal_shear=(-step, 0), **kwargs),
         mask_width=mask_width, sym=sym,
     )
     _d2p, mbobs1p = meas_mbmeds(
-        make_obs(shear=(0.02, 0.0), mcal_shear=(0, step), **kwargs),
+        make_obs(shear=shear, mcal_shear=(0, step), **kwargs),
         mask_width=mask_width, sym=sym,
     )
     _d2m, mbobs1m = meas_mbmeds(
-        make_obs(shear=(0.02, 0.0), mcal_shear=(0, -step), **kwargs),
+        make_obs(shear=shear, mcal_shear=(0, -step), **kwargs),
         mask_width=mask_width, sym=sym,
     )
     _d = _cut_cat(_d)
@@ -494,52 +505,49 @@ def _meas_m(*, mask_width, sym, **kwargs):
         g2 = np.mean(_d["g2"])
         g2p = np.mean(_d2p["g2"])
         g2m = np.mean(_d2m["g2"])
-        pres = (g1p, g1m, g1, g2p, g2m, g2)
+        return g1p, g1m, g1, g2p, g2m, g2
     else:
-        return None, None
+        return None
 
-    _d, mbobs = meas_mbmeds(
-        make_obs(shear=(-0.02, 0.0), mcal_shear=(0, 0), **kwargs),
-        mask_width=mask_width, sym=sym,
-    )
-    _d1p, mbobs1p = meas_mbmeds(
-        make_obs(shear=(-0.02, 0.0), mcal_shear=(step, 0), **kwargs),
-        mask_width=mask_width, sym=sym,
-    )
-    _d1m, mbobs1m = meas_mbmeds(
-        make_obs(shear=(-0.02, 0.0), mcal_shear=(-step, 0), **kwargs),
-        mask_width=mask_width, sym=sym,
-    )
-    _d2p, mbobs1p = meas_mbmeds(
-        make_obs(shear=(-0.02, 0.0), mcal_shear=(0, step), **kwargs),
-        mask_width=mask_width, sym=sym,
-    )
-    _d2m, mbobs1m = meas_mbmeds(
-        make_obs(shear=(-0.02, 0.0), mcal_shear=(0, -step), **kwargs),
-        mask_width=mask_width, sym=sym,
-    )
-    _d = _cut_cat(_d)
-    _d1p = _cut_cat(_d1p)
-    _d1m = _cut_cat(_d1m)
-    _d2p = _cut_cat(_d2p)
-    _d2m = _cut_cat(_d2m)
 
-    if (
-        len(_d) > 0
-        and len(_d1p) > 0 and len(_d1m) > 0
-        and len(_d2p) > 0 and len(_d2m) > 0
-    ):
-        g1 = np.mean(_d["g1"])
-        g1p = np.mean(_d1p["g1"])
-        g1m = np.mean(_d1m["g1"])
-        g2 = np.mean(_d["g2"])
-        g2p = np.mean(_d2p["g2"])
-        g2m = np.mean(_d2m["g2"])
-        mres = (g1p, g1m, g1, g2p, g2m, g2)
-    else:
-        return None, None
+def _meas_m(*, mask_width, sym, **kwargs):
+    pres = _run_one_shear(
+        shear=(0.02, 0),
+        mask_width=mask_width,
+        sym=sym,
+        **kwargs,
+    )
+    if pres is None:
+        return None, None, None, None
 
-    return pres, mres
+    mres = _run_one_shear(
+        shear=(-0.02, 0),
+        mask_width=mask_width,
+        sym=sym,
+        **kwargs,
+    )
+    if mres is None:
+        return None, None, None, None
+
+    spres = _run_one_shear(
+        shear=(0, 0.02),
+        mask_width=mask_width,
+        sym=sym,
+        **kwargs,
+    )
+    if spres is None:
+        return None, None, None, None
+
+    smres = _run_one_shear(
+        shear=(0, -0.02),
+        mask_width=mask_width,
+        sym=sym,
+        **kwargs,
+    )
+    if smres is None:
+        return None, None, None, None
+
+    return pres, mres, spres, smres
 
 
 def meas_m(*, mask_width, sym, n_stars, n_jobs, seed, n_print=500):
@@ -555,9 +563,12 @@ def meas_m(*, mask_width, sym, n_stars, n_jobs, seed, n_print=500):
         ]
         pres = []
         mres = []
+        spres = []
+        smres = []
         n_done = 0
         with tqdm.tqdm(
             futs, total=len(futs), ncols=79, file=sys.stdout,
+            desc="running sims",
         ) as itrl:
             for fut in itrl:
                 n_done += 1
@@ -565,6 +576,8 @@ def meas_m(*, mask_width, sym, n_stars, n_jobs, seed, n_print=500):
                     res = fut.result()
                     pres.append(res[0])
                     mres.append(res[1])
+                    spres.append(res[2])
+                    smres.append(res[3])
                 except Exception as e:
                     print(e)
 
@@ -575,20 +588,85 @@ def meas_m(*, mask_width, sym, n_stars, n_jobs, seed, n_print=500):
                         0.02,
                         jackknife=200 if n_done > 1000 else None,
                     )
-                    mstr = "m +/- merr: %0.6f +/- %0.6f [10^(-3), 3sigma]" % (
+                    mstr = "m1 +/- merr: %0.6f +/- %0.6f [10^(-3), 3sigma]" % (
                         m/1e-3, 3*merr/1e-3)
                     itrl.write(mstr, file=sys.stdout)
 
-                    cstr = "c +/- cerr: %0.6f +/- %0.6f [10^(-5), 3sigma]" % (
+                    cstr = "c2 +/- cerr: %0.6f +/- %0.6f [10^(-5), 3sigma]" % (
+                        c/1e-3, 3*cerr/1e-3)
+                    itrl.write(cstr, file=sys.stdout)
+
+                    m, merr, c, cerr = estimate_m_and_c(
+                        spres,
+                        smres,
+                        0.02,
+                        jackknife=200 if n_done > 1000 else None,
+                        swap12=True,
+                    )
+                    mstr = "m2 +/- merr: %0.6f +/- %0.6f [10^(-3), 3sigma]" % (
+                        m/1e-3, 3*merr/1e-3)
+                    itrl.write(mstr, file=sys.stdout)
+
+                    cstr = "c1 +/- cerr: %0.6f +/- %0.6f [10^(-5), 3sigma]" % (
                         c/1e-3, 3*cerr/1e-3)
                     itrl.write(cstr, file=sys.stdout)
                     sys.stdout.flush()
 
-        m, merr, c, cerr = estimate_m_and_c(
+        m1, m1err, c2, c2err = estimate_m_and_c(
             pres,
             mres,
             0.02,
             jackknife=200 if n_jobs > 1000 else None,
         )
 
-        return m, merr, c, cerr, pres, mres
+        m2, m2err, c1, c1err = estimate_m_and_c(
+            spres,
+            smres,
+            0.02,
+            jackknife=200 if n_jobs > 1000 else None,
+            swap12=True,
+        )
+
+        return dict(
+            m1=m1,
+            m1err=m1err,
+            c2=c2,
+            c2err=c2err,
+            pres=pres,
+            mres=mres,
+            m2=m2,
+            m2err=m2err,
+            c1=c1,
+            c1err=c1err,
+            spres=spres,
+            smres=smres,
+        )
+
+
+def format_mc_res(res, space=None):
+    fstrs = []
+    m, merr = res["m1"], res["m1err"]
+    fstrs.append("m1 +/- merr: %0.6f +/- %0.6f [10^(-3), 3sigma]" % (
+        m/1e-3, 3*merr/1e-3
+    ))
+    m, merr = res["m2"], res["m2err"]
+    fstrs.append("m2 +/- merr: %0.6f +/- %0.6f [10^(-3), 3sigma]" % (
+        m/1e-3, 3*merr/1e-3
+    ))
+
+    c, cerr = res["c1"], res["c1err"]
+    fstrs.append("c1 +/- cerr: %0.6f +/- %0.6f [10^(-5), 3sigma]" % (
+        c/1e-3, 3*cerr/1e-3
+    ))
+
+    c, cerr = res["c2"], res["c2err"]
+    fstrs.append("c2 +/- cerr: %0.6f +/- %0.6f [10^(-5), 3sigma]" % (
+        c/1e-3, 3*cerr/1e-3
+    ))
+
+    if space is not None and space > 0:
+        st = "\n" + (" " * space)
+    else:
+        st = "\n"
+
+    return st.join(fstrs)
