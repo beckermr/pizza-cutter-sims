@@ -469,17 +469,31 @@ def _meas_m(*, mask_width, sym, **kwargs):
         make_obs(shear=(0.02, 0.0), mcal_shear=(-step, 0), **kwargs),
         mask_width=mask_width, sym=sym,
     )
+    _d2p, mbobs1p = meas_mbmeds(
+        make_obs(shear=(0.02, 0.0), mcal_shear=(0, step), **kwargs),
+        mask_width=mask_width, sym=sym,
+    )
+    _d2m, mbobs1m = meas_mbmeds(
+        make_obs(shear=(0.02, 0.0), mcal_shear=(0, -step), **kwargs),
+        mask_width=mask_width, sym=sym,
+    )
     _d = _cut_cat(_d)
     _d1p = _cut_cat(_d1p)
     _d1m = _cut_cat(_d1m)
+    _d2p = _cut_cat(_d2p)
+    _d2m = _cut_cat(_d2m)
 
-    if len(_d) > 0 and len(_d1p) > 0 and len(_d1m) > 0:
+    if (
+        len(_d) > 0
+        and len(_d1p) > 0 and len(_d1m) > 0
+        and len(_d2p) > 0 and len(_d2m) > 0
+    ):
         g1 = np.mean(_d["g1"])
         g1p = np.mean(_d1p["g1"])
         g1m = np.mean(_d1m["g1"])
         g2 = np.mean(_d["g2"])
-        g2p = np.mean(_d1p["g2"])
-        g2m = np.mean(_d1m["g2"])
+        g2p = np.mean(_d2p["g2"])
+        g2m = np.mean(_d2m["g2"])
         pres = (g1p, g1m, g1, g2p, g2m, g2)
     else:
         return None, None
@@ -496,17 +510,31 @@ def _meas_m(*, mask_width, sym, **kwargs):
         make_obs(shear=(-0.02, 0.0), mcal_shear=(-step, 0), **kwargs),
         mask_width=mask_width, sym=sym,
     )
+    _d2p, mbobs1p = meas_mbmeds(
+        make_obs(shear=(-0.02, 0.0), mcal_shear=(0, step), **kwargs),
+        mask_width=mask_width, sym=sym,
+    )
+    _d2m, mbobs1m = meas_mbmeds(
+        make_obs(shear=(-0.02, 0.0), mcal_shear=(0, -step), **kwargs),
+        mask_width=mask_width, sym=sym,
+    )
     _d = _cut_cat(_d)
     _d1p = _cut_cat(_d1p)
     _d1m = _cut_cat(_d1m)
+    _d2p = _cut_cat(_d2p)
+    _d2m = _cut_cat(_d2m)
 
-    if len(_d) > 0 and len(_d1p) > 0 and len(_d1m) > 0:
+    if (
+        len(_d) > 0
+        and len(_d1p) > 0 and len(_d1m) > 0
+        and len(_d2p) > 0 and len(_d2m) > 0
+    ):
         g1 = np.mean(_d["g1"])
         g1p = np.mean(_d1p["g1"])
         g1m = np.mean(_d1m["g1"])
         g2 = np.mean(_d["g2"])
-        g2p = np.mean(_d1p["g2"])
-        g2m = np.mean(_d1m["g2"])
+        g2p = np.mean(_d2p["g2"])
+        g2m = np.mean(_d2m["g2"])
         mres = (g1p, g1m, g1, g2p, g2m, g2)
     else:
         return None, None
