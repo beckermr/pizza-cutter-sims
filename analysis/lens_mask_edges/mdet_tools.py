@@ -416,10 +416,20 @@ def meas_mbmeds(mbobs, *, mask_width, sym, maskflags=1, meds_config=None):
                         )
                         bmask |= bmask_rot
                 elif isinstance(sym, int):
-                    bmask_rot = obs.bmask.copy()
-                    for _ in range(sym):
-                        bmask_rot = np.rot90(bmask_rot)
-                        bmask |= bmask_rot
+                    if sym in [2, 4, 8]:
+                        angles = np.arange(sym)[1:] * 360/sym
+                        for angle in angles:
+                            bmask_rot = obs.bmask.copy()
+                            symmetrize_bmask(
+                                bmask=bmask_rot,
+                                angle=angle,
+                            )
+                            bmask |= bmask_rot
+                    else:
+                        bmask_rot = obs.bmask.copy()
+                        for _ in range(sym):
+                            bmask_rot = np.rot90(bmask_rot)
+                            bmask |= bmask_rot
 
                 msk = (bmask & maskflags) != 0
                 wgt = obs.weight.copy()

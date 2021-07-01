@@ -16,10 +16,16 @@ conda activate pizza-cutter-sims
 python run.py --seed={seed} --n-sims={n_sims} --mask-width={mask_width} --sym={sym}
 """
 
-seeds = [10, 213423, 67465, 12432, 343]
-mws = [8, 4, 2, 2, 2]
-syms = [0, 0, 0, 1, 3]
+# seeds = [10, 213423, 67465, 12432, 343]
+# mws = [8, 4, 2, 2, 2]
+# syms = [0, 0, 0, 1, 3]
+# n_sims = 5_000_000
+
+seeds = [665]
+mws = [2]
+syms = [8]
 n_sims = 5_000_000
+
 
 for seed, mw, sym in zip(seeds, mws, syms):
     job_name = "mw%d_sym%d_seed%d_nsims%d" % (
