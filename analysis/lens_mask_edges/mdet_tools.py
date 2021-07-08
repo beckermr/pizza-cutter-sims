@@ -9,6 +9,7 @@ import sys
 from metadetect.detect import MEDSifier
 from ngmix.gaussmom import GaussMom
 from pizza_cutter.slice_utils.symmetrize import symmetrize_bmask
+from pizza_cutter.slice_utils.interpolate import interpolate_image_and_noise
 
 
 CONFIG = yaml.safe_load("""\
@@ -45,6 +46,37 @@ CONFIG = yaml.safe_load("""\
   bmask_flags: 1610612736  # 2**29 || 2**30
 
 """)
+
+
+def symmetrize_bmask_nfold(*, bmask, nfolds):
+    """symmetrize a bit mask to have N-fold rotational symmetry.
+
+    Parameters
+    ----------
+    bmask : array-like
+        The bit mask.
+    nfolds : int
+        The desired number of folds in rotational symmetry.
+
+    Returns
+    -------
+    sym_bmask : array-like
+        The symmetrized bit mask
+    """
+    sym_bmask = bmask.copy()
+    if nfolds == 1:
+        sym_bmask |= np.rot90(sym_bmask)
+    else:
+        angles = np.arange(nfolds)[1:] * 360/nfolds
+        for angle in angles:
+            bmask_rot = bmask.copy()
+            symmetrize_bmask(
+                bmask=bmask_rot,
+                angle=angle,
+            )
+            sym_bmask |= bmask_rot
+
+    return sym_bmask
 
 
 def cut_nones(presults, mresults):
@@ -680,3 +712,159 @@ def format_mc_res(res, space=None):
         st = "\n"
 
     return st.join(fstrs)
+
+
+def meas_one_im(*, g1, g2, seed, n_stars=0, sym_nfold=None, interp=False):
+    rng = np.random.RandomState(seed=seed)
+
+    obj = galsim.Exponential(half_light_radius=0.5).shear(g1=g1, g2=g2)
+    psf = galsim.Gaussian(fwhm=0.9).withFlux(1e6)
+    obj = galsim.Convolve([obj, psf])
+    dim = 53
+    cen = (dim-1)//2
+    offset = rng.uniform(low=-0.5, high=0.5, size=2)
+    im = obj.drawImage(nx=dim, ny=dim, scale=0.2, offset=offset).array
+    jac = jac = ngmix.DiagonalJacobian(
+        scale=0.2,
+        row=cen+offset[1],
+        col=cen+offset[0],
+    )
+    psf_im = psf.drawImage(nx=dim, ny=dim, scale=0.2).array
+    psf_jac = ngmix.DiagonalJacobian(scale=0.2, row=cen, col=cen)
+    psf_obs = ngmix.Observation(
+        image=psf_im,
+        weight=np.ones_like(psf_im),
+        jacobian=psf_jac,
+    )
+    wgt = np.ones_like(im)
+
+    bmask = np.zeros_like(im, dtype=np.int32)
+
+    if True:
+        for _ in range(n_stars):
+            srad = np.power(10, rng.uniform(low=1, high=3))
+            ang = rng.uniform(low=0, high=2.0*np.pi)
+            lrad = rng.uniform(low=(srad - (dim/2-1)), high=srad-(dim/2-10)) + dim/2
+            xc = lrad * np.cos(ang) + dim/2
+            yc = lrad * np.sin(ang) + dim/2
+            srad2 = srad * srad
+            x, y = np.meshgrid(np.arange(dim), np.arange(dim))
+            msk = ((x-xc)**2 + (y-yc)**2) < srad2
+            bmask[msk] = 1
+    else:
+        import scipy.ndimage
+        msk = np.zeros_like(bmask)
+        angle = rng.uniform(low=0, high=360) * 0
+        col = int(rng.uniform(low=dim/2, high=dim-1))
+        msk[:, col:] = 1
+        msk = scipy.ndimage.rotate(
+            msk,
+            angle,
+            reshape=False,
+            order=1,
+            mode='constant',
+            cval=1.0,
+        )
+        bmask[msk == 1] = 1
+    if sym_nfold is not None:
+        bmask = symmetrize_bmask_nfold(bmask=bmask, nfolds=sym_nfold)
+
+    msk = bmask != 0
+    wgt[msk] = 0
+    im[msk] = np.nan
+
+    if interp:
+        nse = rng.normal(size=im.shape)
+        iim, inse = interpolate_image_and_noise(
+            image=im,
+            noises=[nse],
+            weight=wgt,
+            bmask=bmask,
+            bad_flags=1,
+            rng=rng,
+            fill_isolated_with_noise=True
+        )
+
+    obs = ngmix.Observation(
+        image=im,
+        weight=wgt,
+        jacobian=jac,
+        psf=psf_obs,
+        bmask=bmask,
+    )
+    mom = GaussMom(fwhm=1.2)
+    res = mom.go(obs=obs)
+
+    gauss_wgt = ngmix.GMixModel(
+        [0, 0, 0, 0, ngmix.moments.fwhm_to_T(1.2), 1],
+        'gauss',
+    )
+    cobs = obs.copy()
+    cobs.image = 1.0 - wgt
+    cobs.weight = np.ones_like(wgt)
+    stats = gauss_wgt.get_weighted_sums(
+        cobs,
+        1.2 * 2,
+    )
+    mfrac = stats["sums"][5] / stats["wsum"]
+    return res["e"][0], res["e"][1], obs, mfrac
+
+
+def meas_response_one_im(seed, n_stars=0, sym_nfold=None, interp=False, swap12=False):
+    e1 = []
+    e2 = []
+    shear = np.linspace(0, 0.06, 50)
+    for s in shear:
+        if swap12:
+            _g1 = 0
+            _g2 = s
+        else:
+            _g1 = s
+            _g2 = 0
+        _e1, _e2, _obs, _mfrac = meas_one_im(
+            g1=_g1, g2=_g2, seed=seed, sym_nfold=sym_nfold, interp=interp,
+            n_stars=n_stars,
+        )
+        e1.append(_e1)
+        e2.append(_e2)
+    e1 = np.array(e1)
+    e2 = np.array(e2)
+    if swap12:
+        R = (e2[1:] - e2[:-1])/(shear[1:] - shear[:-1])
+    else:
+        R = (e1[1:] - e1[:-1])/(shear[1:] - shear[:-1])
+    sp = (shear[1:] + shear[:-1])/2
+    ds = sp[1] - sp[0]
+    if swap12:
+        _g1 = 0
+        _g2 = ds
+        ind = 1
+    else:
+        _g1 = ds
+        _g2 = 0
+        ind = 0
+    R0 = (
+        meas_one_im(
+            g1=_g1, g2=_g2, seed=seed, sym_nfold=sym_nfold, interp=interp,
+            n_stars=n_stars,
+        )[ind]
+        - meas_one_im(
+            g1=-_g1, g2=-_g2, seed=seed, sym_nfold=sym_nfold, interp=interp,
+            n_stars=n_stars,
+        )[ind]
+    )/2/ds
+    sp = np.concatenate([np.array([0]), sp])
+    R = np.concatenate([np.array([R0]), R])
+    mfrac = meas_one_im(
+        g1=0, g2=0, seed=seed, sym_nfold=sym_nfold, interp=interp,
+        n_stars=n_stars,
+    )[-1]
+
+    return dict(
+        shear=sp,
+        R=R,
+        mfrac=mfrac,
+        e1=e1,
+        e2=e2,
+        obs=_obs,
+    )
