@@ -6,12 +6,14 @@ import numpy as np
 from pizza_cutter_sims.mdet import run_metadetect
 from pizza_cutter_sims.pizza_cutter import run_des_pizza_cutter_coadding_on_sim
 from pizza_cutter_sims.sim import generate_sim
+from pizza_cutter_sims.stars import mask_and_interp_stars
 
 LOGGER = logging.getLogger(__name__)
 
 
 def run_end2end_pair_with_shear(
-    *, rng_seed, gal_rng_seed, coadd_rng_seed, mdet_rng_seed, cfg, g1, g2, swap12,
+    *, rng_seed, gal_rng_seed, star_rng_seed,
+    coadd_rng_seed, mdet_rng_seed, cfg, g1, g2, swap12,
 ):
     """Run a pair of simulations with opposite shears.
 
@@ -23,6 +25,8 @@ def run_end2end_pair_with_shear(
         The seed for the sim RNG.
     gal_rng_seed : int
         The seed for the gal RNG.
+    star_rng_seed : int
+        The seed for the star RNG.
     coadd_rng_seed : int
         The seed for the coadding code RNG.
     mdet_rng_seed : int
@@ -58,6 +62,7 @@ def run_end2end_pair_with_shear(
         pres = run_end2end_with_shear(
             rng_seed=rng_seed,
             gal_rng_seed=gal_rng_seed,
+            star_rng_seed=star_rng_seed,
             coadd_rng_seed=coadd_rng_seed,
             mdet_rng_seed=mdet_rng_seed,
             cfg=copy.deepcopy(cfg),
@@ -68,6 +73,7 @@ def run_end2end_pair_with_shear(
         mres = run_end2end_with_shear(
             rng_seed=rng_seed,
             gal_rng_seed=gal_rng_seed,
+            star_rng_seed=star_rng_seed,
             coadd_rng_seed=coadd_rng_seed,
             mdet_rng_seed=mdet_rng_seed,
             cfg=copy.deepcopy(cfg),
@@ -82,7 +88,8 @@ def run_end2end_pair_with_shear(
 
 
 def run_end2end_with_shear(
-    *, rng_seed, gal_rng_seed, coadd_rng_seed, mdet_rng_seed, cfg, g1, g2
+    *, rng_seed, gal_rng_seed, star_rng_seed,
+    coadd_rng_seed, mdet_rng_seed, cfg, g1, g2
 ):
     """Run a full sim end-to-end w/ analysis.
 
@@ -92,6 +99,8 @@ def run_end2end_with_shear(
         The seed for the sim RNG.
     gal_rng_seed : int
         The seed for the gal RNG.
+    star_rng_seed : int
+        The seed for the star RNG.
     coadd_rng_seed : int
         The seed for the coadding code RNG.
     mdet_rng_seed : int
@@ -112,22 +121,26 @@ def run_end2end_with_shear(
     cfg["shear"]["g2"] = g2
 
     LOGGER.info(
-        "RNG seeds sim|gal|coadd|mdet: %d|%d|%d|%d",
+        "RNG seeds sim|gal|stars|coadd|mdet: %d|%d|%d|%d|%d",
         rng_seed,
         gal_rng_seed,
+        star_rng_seed,
         coadd_rng_seed,
         mdet_rng_seed,
     )
 
     rng = np.random.RandomState(seed=rng_seed)
     gal_rng = np.random.RandomState(seed=gal_rng_seed)
+    star_rng = np.random.RandomState(seed=star_rng_seed)
     sdata = generate_sim(
         rng=rng,
         gal_rng=gal_rng,
+        star_rng=star_rng,
         coadd_config=cfg["coadd"],
         se_config=cfg["se"],
         psf_config=cfg["psf"],
         gal_config=cfg["gal"],
+        star_config=cfg["star"],
         layout_config=cfg["layout"],
         msk_config=cfg["msk"],
         shear_config=cfg["shear"],
@@ -146,6 +159,13 @@ def run_end2end_with_shear(
             info=sdata["info"],
             n_extra_noise_images=0,
         )
+
+    mask_and_interp_stars(
+        rng=star_rng,
+        cdata=cdata,
+        stars=sdata["stars"],
+        interp_cfg=cfg["star"]["interp"],
+    )
 
     mdet_rng = np.random.RandomState(seed=mdet_rng_seed)
     return run_metadetect(

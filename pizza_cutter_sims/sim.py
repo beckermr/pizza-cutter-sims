@@ -1,6 +1,8 @@
 import numpy as np
 import galsim
 
+from pizza_cutter.des_pizza_cutter._affine_wcs import AffineWCS
+
 from .wcs import gen_affine_wcs
 from .constants import (
     SIM_BMASK_BADCOLS,
@@ -15,16 +17,19 @@ from .masking import (
     generate_cosmic_rays,
     generate_streaks,
 )
+from .stars import gen_stars
 
 
 def generate_sim(
     *,
     rng,
     gal_rng,
+    star_rng,
     coadd_config,
     se_config,
     psf_config,
     gal_config,
+    star_config,
     layout_config,
     msk_config,
     shear_config,
@@ -37,6 +42,8 @@ def generate_sim(
         An RNG instance to use to build info for this band.
     gal_rng : np.random.RandomState
         An RNG instance to use to build galaxies.
+    star_rng : np.random.RandomState
+        An RNG instance to use to build stars.
     coadd_config : dict
         A dictionary with info about the coadd image.
     se_config : dict
@@ -45,6 +52,8 @@ def generate_sim(
         A dictionary with info about the PSF.
     gal_config : dict
         A dictionary with info about the galaxies.
+    star_config : dict
+        A dictionatu witjh info about the stars.
     layout_config : dict
         A dictionary with info about the galaxy layout.
     msk_config : dict
@@ -91,6 +100,7 @@ def generate_sim(
         "x0": coadd_image_cen,
         "y0": coadd_image_cen,
     }
+    coadd_wcs = AffineWCS(**info["affine_wcs_config"])
     info["image_shape"] = [coadd_image_shape, coadd_image_shape]
     info["magzp"] = MAGZP_REF
     info["scale"] = 1.0
@@ -137,7 +147,7 @@ def generate_sim(
         ii['galsim_psf_config'] = _psf_config
         psfs.append(_psf_obj)
 
-    # generate galaxies
+    # generate galaxies and stars
     pos_bounds = (
         -0.5 * coadd_config["central_size"] * coadd_config["scale"],
         0.5 * coadd_config["central_size"] * coadd_config["scale"],
@@ -147,6 +157,13 @@ def generate_sim(
         layout_config=layout_config,
         gal_config=gal_config,
         pos_bounds=pos_bounds,
+    )
+
+    stars = gen_stars(
+        rng=star_rng,
+        pos_bounds=pos_bounds,
+        coadd_wcs=coadd_wcs,
+        **star_config
     )
 
     # now render and apply masks
@@ -257,4 +274,5 @@ def generate_sim(
         "wgt": weights,
         "msk": bmasks,
         "bkg": bkgs,
+        "stars": stars,
     }

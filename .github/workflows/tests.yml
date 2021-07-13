@@ -39,3 +39,9 @@ jobs:
         shell: bash -l {0}
         run: |
           pytest -vvs pizza_cutter_sims
+
+      - name: run it
+        shell: bash -l {0}
+        run: |
+          cd examples
+          run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=100 --backend=loky

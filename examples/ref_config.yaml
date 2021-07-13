@@ -62,6 +62,16 @@ layout:
 gal:
   type: exp-dim
 
+star:
+  dens_factor: 1
+  interp:
+    # these control how the interpolation is applied for star wholes
+    # if fill_isolated_with_noise is True, then any missing pixel with no non-missing
+    # pixels within iso_buff will be filled with noise and then used to interpolate
+    # the rest of the pixels.
+    iso_buff: 1
+    fill_isolated_with_noise: False
+
 pizza_cutter:
   single_epoch_config:
     # pixel spacing for building various WCS interpolants
@@ -115,6 +125,8 @@ metadetect:
     min_box_size: 32
     rad_fac: 2
     rad_min: 4
+
+  maskflags: 33554432
 
   # check for an edge hit
   bmask_flags: 1610612736  # 2**29 || 2**30

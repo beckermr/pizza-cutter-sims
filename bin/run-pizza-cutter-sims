@@ -186,15 +186,23 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
         gal_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
         coadd_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
         mdet_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
+        star_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
 
         args = []
-        for i, (rng_seed, gal_rng_seed, coadd_rng_seed, mdet_rng_seed) in enumerate(zip(
-            sim_rng_seeds, gal_rng_seeds, coadd_rng_seeds, mdet_rng_seeds,
-        )):
+        for i, (
+            rng_seed, gal_rng_seed, star_rng_seed,
+            coadd_rng_seed, mdet_rng_seed
+        ) in enumerate(
+            zip(
+                sim_rng_seeds, gal_rng_seeds, star_rng_seeds,
+                coadd_rng_seeds, mdet_rng_seeds,
+            )
+        ):
             args.append((
                 dict(
                     rng_seed=rng_seed,
                     gal_rng_seed=gal_rng_seed,
+                    star_rng_seed=star_rng_seed,
                     coadd_rng_seed=coadd_rng_seed,
                     mdet_rng_seed=mdet_rng_seed,
                     cfg=copy.deepcopy(cfg),
