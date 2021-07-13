@@ -744,7 +744,7 @@ def meas_one_im(*, g1, g2, seed, n_stars=0, sym_nfold=None, interp=False):
         for _ in range(n_stars):
             srad = np.power(10, rng.uniform(low=1, high=3))
             ang = rng.uniform(low=0, high=2.0*np.pi)
-            lrad = rng.uniform(low=(srad - (dim/2-1)), high=srad-(dim/2-10)) + dim/2
+            lrad = rng.uniform(low=(srad - (dim/2-3)), high=srad-(dim/2-10)) + dim/2
             xc = lrad * np.cos(ang) + dim/2
             yc = lrad * np.sin(ang) + dim/2
             srad2 = srad * srad
