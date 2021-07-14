@@ -13,6 +13,7 @@ def test_run_end2end_with_shear_seeding(sim_config):
         gal_rng_seed=43,
         coadd_rng_seed=44,
         mdet_rng_seed=45,
+        star_rng_seed=46,
     )
     res1 = run_end2end_with_shear(
         cfg=copy.deepcopy(sim_config),
@@ -48,6 +49,7 @@ def test_run_end2end_pair_with_shear_seeding(sim_config):
         gal_rng_seed=43,
         coadd_rng_seed=44,
         mdet_rng_seed=45,
+        star_rng_seed=46,
     )
     res1 = run_end2end_pair_with_shear(
         cfg=copy.deepcopy(sim_config),

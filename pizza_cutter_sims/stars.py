@@ -50,7 +50,7 @@ def gen_gaia_mag_rad(*, rng, num):
     return mag_g, rad
 
 
-def gen_stars(*, rng, pos_bounds, coadd_wcs, dens_factor):
+def gen_stars(*, rng, pos_bounds, coadd_wcs, dens_factor, interp=None):
     """Generate GAIA stars for a simulation.
 
     Parameters
@@ -64,6 +64,9 @@ def gen_stars(*, rng, pos_bounds, coadd_wcs, dens_factor):
     dens_factor : float
         The factor by which to adjust the star density. A value of 1.0 results in a
         density of roughly 1 star per arcmin^2.
+    interp : dict, optional
+        Ignored by this function. Here to allow embedding of interp in star cfg
+        section.
 
     Returns
     -------

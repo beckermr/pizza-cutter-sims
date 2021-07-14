@@ -80,6 +80,15 @@ layout:
 gal:
   type: exp-bright
 
+star:
+  dens_factor: 1
+  interp:
+    # these control how the interpolation is applied for star wholes
+    # if fill_isolated_with_noise is True, then any missing pixel with no non-missing
+    # pixels within iso_buff will be filled with noise and then used to interpolate
+    # the rest of the pixels.
+    iso_buff: 1
+    fill_isolated_with_noise: False
 
 pizza_cutter:
   single_epoch_config:
