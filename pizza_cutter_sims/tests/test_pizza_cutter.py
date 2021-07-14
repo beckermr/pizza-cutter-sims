@@ -28,11 +28,12 @@ def _run_to_pizza_cutter(
         msk_config=cfg["msk"],
         shear_config=cfg["shear"],
         star_rng=star_rng,
-        star_cfg=cfg["star"],
+        star_config=cfg["star"],
     )
 
     coadd_rng = np.random.RandomState(seed=coadd_rng_seed)
     with tempfile.TemporaryDirectory() as tmpdir:
+        stars = sdata.pop("stars")
         cdata = run_des_pizza_cutter_coadding_on_sim(
             rng=coadd_rng,
             tmpdir=tmpdir,
@@ -40,6 +41,7 @@ def _run_to_pizza_cutter(
             n_extra_noise_images=0,
             **sdata,
         )
+        sdata["stars"] = stars
 
     if return_sim:
         return cdata, sdata
