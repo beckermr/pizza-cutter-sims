@@ -9,13 +9,14 @@ from pizza_cutter_sims.sim import generate_sim
 
 
 def _run_to_pizza_cutter(
-    cfg, rng_seed, gal_rng_seed, coadd_rng_seed, return_sim=False
+    cfg, rng_seed, gal_rng_seed, coadd_rng_seed, star_rng_seed, return_sim=False
 ):
     cfg["shear"]["g1"] = 0.0
     cfg["shear"]["g2"] = 0.0
 
     rng = np.random.RandomState(seed=rng_seed)
     gal_rng = np.random.RandomState(seed=gal_rng_seed)
+    star_rng = np.random.RandomState(seed=star_rng_seed)
     sdata = generate_sim(
         rng=rng,
         gal_rng=gal_rng,
@@ -26,6 +27,8 @@ def _run_to_pizza_cutter(
         layout_config=cfg["layout"],
         msk_config=cfg["msk"],
         shear_config=cfg["shear"],
+        star_rng=star_rng,
+        star_cfg=cfg["star"],
     )
 
     coadd_rng = np.random.RandomState(seed=coadd_rng_seed)
@@ -50,6 +53,7 @@ def test_run_des_pizza_cutter_coadding_on_sim(sim_config):
         42,
         43,
         44,
+        45,
         return_sim=True,
     )
 
@@ -101,6 +105,7 @@ def test_run_des_pizza_cutter_coadding_on_sim_seeding(sim_config):
         42,
         43,
         44,
+        45,
     )
 
     cdata2 = _run_to_pizza_cutter(
@@ -108,10 +113,11 @@ def test_run_des_pizza_cutter_coadding_on_sim_seeding(sim_config):
         42,
         43,
         44,
+        45,
     )
     assert recursive_equal(cdata1, cdata2)
 
-    for seed_set in [(52, 43, 44), (42, 53, 44), (42, 43, 54)]:
+    for seed_set in [(52, 43, 44, 45), (42, 53, 44, 47), (42, 43, 54, 67)]:
         cdata3 = _run_to_pizza_cutter(
             copy.deepcopy(sim_config),
             *seed_set,
