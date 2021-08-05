@@ -91,6 +91,7 @@ star:
     fill_isolated_with_noise: False
 
 pizza_cutter:
+  skip: False
   single_epoch_config:
     se_wcs_interp_delta: 10
     coadd_wcs_interp_delta: 25

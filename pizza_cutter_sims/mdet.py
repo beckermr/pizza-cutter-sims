@@ -6,7 +6,7 @@ from metadetect.metadetect import do_metadetect
 
 def run_metadetect(
     *, rng, config, wcs, image, bmask, ormask,
-    noise, psf, weight, mfrac
+    noise, psf, weight, mfrac, mask_catalog, mask_expand_rad,
 ):
     """Run metadetect on an input sim.
 
@@ -32,6 +32,13 @@ def run_metadetect(
         The weight map for the coadd.
     mfrac : np.ndarray
         The fraction of SE images in each pixel that is masked.
+    mask_catalog : np.ndarray, optional
+        If not None, this array should have columns 'x', 'y' and 'radius_pixels'
+        that gives the location and radius of any masked objects in the image.
+        Default of None indicates no catalog. This mask will be applied to each
+        of the metacalibration images after they are sheared.
+    mask_expand_rad : float
+        The number of pixels to expand the mask radius.
 
     Returns
     -------
@@ -53,7 +60,7 @@ def run_metadetect(
     target_s2n = 500.0
     target_noise = np.sqrt(np.sum(psf ** 2)) / target_s2n
     psf_obs = ngmix.Observation(
-        psf,
+        psf.copy(),
         weight=np.ones_like(psf)/target_noise**2,
         jacobian=psf_jac,
     )
@@ -67,19 +74,25 @@ def run_metadetect(
         dvdy=wcs.dvdy,
     )
     obs = ngmix.Observation(
-        image,
-        weight=weight,
-        bmask=bmask,
-        ormask=ormask,
+        image.copy(),
+        weight=weight.copy(),
+        bmask=bmask.copy(),
+        ormask=ormask.copy(),
         jacobian=im_jac,
         psf=psf_obs,
-        noise=noise,
+        noise=noise.copy(),
+        mfrac=np.clip(mfrac.copy(), 0, 1),
     )
-    obs.mfrac = np.clip(mfrac, 0, 1)
 
     mbobs = ngmix.MultiBandObsList()
     obslist = ngmix.ObsList()
     obslist.append(obs)
     mbobs.append(obslist)
 
-    return do_metadetect(config, mbobs, rng)
+    if mask_expand_rad > 0:
+        _mask_catalog = mask_catalog.copy()
+        _mask_catalog['radius_pixels'] += mask_expand_rad
+    else:
+        _mask_catalog = None
+
+    return do_metadetect(config, mbobs, rng, mask_catalog=_mask_catalog)

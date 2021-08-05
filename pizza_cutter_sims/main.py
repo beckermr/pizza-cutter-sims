@@ -144,21 +144,26 @@ def run_end2end_with_shear(
         layout_config=cfg["layout"],
         msk_config=cfg["msk"],
         shear_config=cfg["shear"],
+        skip_coadding=cfg["pizza_cutter"]["skip"],
     )
 
     coadd_rng = np.random.RandomState(seed=coadd_rng_seed)
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cdata = run_des_pizza_cutter_coadding_on_sim(
-            rng=coadd_rng,
-            tmpdir=tmpdir,
-            single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
-            img=sdata["img"],
-            wgt=sdata["wgt"],
-            msk=sdata["msk"],
-            bkg=sdata["bkg"],
-            info=sdata["info"],
-            n_extra_noise_images=0,
-        )
+    if not cfg["pizza_cutter"]["skip"]:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cdata = run_des_pizza_cutter_coadding_on_sim(
+                rng=coadd_rng,
+                tmpdir=tmpdir,
+                single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
+                img=sdata["img"],
+                wgt=sdata["wgt"],
+                msk=sdata["msk"],
+                bkg=sdata["bkg"],
+                info=sdata["info"],
+                n_extra_noise_images=0,
+            )
+    else:
+        LOGGER.info("skipping coadding w/ pizza-cutter")
+        raise RuntimeError("skipping coadding is not implemeneted")
 
     mask_and_interp_stars(
         rng=star_rng,
@@ -179,4 +184,6 @@ def run_end2end_with_shear(
         psf=cdata["psf"],
         weight=cdata["weight"],
         mfrac=cdata["mfrac"],
+        mask_catalog=sdata["stars"],
+        mask_expand_rad=cfg["star"]["mask_expand_rad"],
     )

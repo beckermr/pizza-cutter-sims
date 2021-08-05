@@ -71,8 +71,10 @@ star:
     # the rest of the pixels.
     iso_buff: 1
     fill_isolated_with_noise: False
+  mask_expand_rad: 16
 
 pizza_cutter:
+  skip: False
   single_epoch_config:
     # pixel spacing for building various WCS interpolants
     se_wcs_interp_delta: 10
@@ -86,7 +88,7 @@ pizza_cutter:
     edge_buffer: 8
     mask_tape_bumps: False
 
-    # set the interp flags to 0 or 3 to interp stuff in the mask
+    # set the interp flags to 0 or 3 or 7 to interp stuff in the mask
     spline_interp_flags:
       - 0
     noise_interp_flags:
@@ -126,7 +128,7 @@ metadetect:
     rad_fac: 2
     rad_min: 4
 
-  maskflags: 33554432
+  maskflags: 33554432  # 2**25 = BMASK_GAIA_STAR from pizza cutter
 
   # check for an edge hit
   bmask_flags: 1610612736  # 2**29 || 2**30

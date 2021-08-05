@@ -27,6 +27,7 @@ def _run_sim(cfg, rng_seed, gal_rng_seed, star_rng_seed):
         shear_config=cfg["shear"],
         star_config=cfg["star"],
         star_rng=star_rng,
+        skip_coadding=False,
     )
 
 

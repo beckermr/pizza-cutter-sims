@@ -33,6 +33,7 @@ def generate_sim(
     layout_config,
     msk_config,
     shear_config,
+    skip_coadding,
 ):
     """Generate a set of SE images and their metadata for coadding.
 
@@ -60,6 +61,9 @@ def generate_sim(
         A dictionary with info about masking effects being applied.
     shear_config : dict
         A dictionary with info about the true shear applied.
+    skip_coadding : bool
+        If True, skip coadding. Requires the SE image to have
+        the same WCS as the coadd image and that there be only 1 SE image.
 
     Returns
     -------
@@ -106,26 +110,38 @@ def generate_sim(
     info["scale"] = 1.0
     info["position_offset"] = 0
 
-    se_factor = 1.7 * (
-        1.0
-        + se_config["wcs_config"]["scale_frac_std"]
-        + np.sqrt(2) * se_config["wcs_config"]["shear_std"]
-    )
-    se_image_shape = int(se_factor * coadd_image_shape)
-    if se_image_shape % 2 == 0:
-        se_image_shape += 1
-    se_image_cen = (se_image_shape - 1) // 2
+    if not skip_coadding:
+        se_factor = 1.7 * (
+            1.0
+            + se_config["wcs_config"]["scale_frac_std"]
+            + np.sqrt(2) * se_config["wcs_config"]["shear_std"]
+        )
+        se_image_shape = int(se_factor * coadd_image_shape)
+        if se_image_shape % 2 == 0:
+            se_image_shape += 1
+        se_image_cen = (se_image_shape - 1) // 2
+    else:
+        se_image_shape = coadd_image_shape
+        se_image_cen = coadd_image_cen
 
     for ii in src_info:
         ii["magzp"] = MAGZP_REF
         ii["scale"] = 1.0
         ii["position_offset"] = 0
+
+        # done here to make sure the RNG calls are consistent
+        # may not be used below
         _wcs = gen_affine_wcs(
             rng=rng,
             world_origin=galsim.PositionD(x=0, y=0),
             origin=galsim.PositionD(x=se_image_cen, y=se_image_cen),
             **se_config["wcs_config"],
         )
+        # use the coadd WCS if we are skipping coadding since they have to be
+        # the same in this case
+        if skip_coadding:
+            _wcs = coadd_wcs
+
         wcss.append(_wcs)
         ii['affine_wcs_config'] = {
             'dudx': float(_wcs.dudx),
