@@ -29,6 +29,7 @@ def _run_to_pizza_cutter(
         shear_config=cfg["shear"],
         star_rng=star_rng,
         star_config=cfg["star"],
+        skip_coadding=False,
     )
 
     coadd_rng = np.random.RandomState(seed=coadd_rng_seed)
