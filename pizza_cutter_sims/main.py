@@ -2,6 +2,7 @@ import logging
 import copy
 import tempfile
 import numpy as np
+import galsim
 
 from pizza_cutter_sims.mdet import run_metadetect
 from pizza_cutter_sims.pizza_cutter import run_des_pizza_cutter_coadding_on_sim
@@ -163,7 +164,24 @@ def run_end2end_with_shear(
             )
     else:
         LOGGER.info("skipping coadding w/ pizza-cutter")
-        raise RuntimeError("skipping coadding is not implemeneted")
+        coadd_cen = (sdata["img"][0].shape[0]-1)/2
+        coadd_cen_pos = galsim.PositionD(x=coadd_cen, y=coadd_cen)
+        psf = sdata["psfs"][0].getPSF(coadd_cen_pos).drawImage(
+            nx=53, ny=53,
+            wcs=sdata["coadd_wcs"].jacobian(coadd_cen_pos),
+        ).array
+        cdata = dict(
+            image=sdata["img"][0].copy(),
+            bmask=sdata["msk"][0].copy(),
+            ormask=sdata["msk"][0].copy(),
+            weight=sdata["wgt"][0].copy(),
+            mfrac=np.zeros_like(sdata["img"][0]),
+            noise=coadd_rng.normal(
+                size=sdata["img"][0].shape,
+                scale=np.sqrt(1.0/sdata["wgt"][0]),
+            ),
+            psf=psf,
+        )
 
     mask_and_interp_stars(
         rng=star_rng,
@@ -176,7 +194,7 @@ def run_end2end_with_shear(
     return run_metadetect(
         rng=mdet_rng,
         config=cfg["metadetect"],
-        wcs=sdata["info"]["affine_wcs"],
+        wcs=sdata["coadd_wcs"],
         image=cdata["image"],
         bmask=cdata["bmask"],
         ormask=cdata["ormask"],

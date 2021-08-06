@@ -61,7 +61,7 @@ def gen_stars(
         An RNG instance to use.
     pos_bounds : 2-tuple of floats
         The range in which to generate u and v.
-    coadd_wcs : an AffineWCS object
+    coadd_wcs : a non-celestial galsim WCS object
         The WCS for the coadd.
     dens_factor : float
         The factor by which to adjust the star density. A value of 1.0 results in a
@@ -87,7 +87,7 @@ def gen_stars(
         _, rad = gen_gaia_mag_rad(rng=rng, num=num)
         upos = rng.uniform(low=pos_bounds[0], high=pos_bounds[1], size=num)
         vpos = rng.uniform(low=pos_bounds[0], high=pos_bounds[1], size=num)
-        x, y = coadd_wcs.sky2image(upos, vpos)
+        x, y = coadd_wcs.toImage(upos, vpos)
         return np.array(list(zip(x, y, rad)), dtype=dt)
     else:
         return np.empty(0, dtype=dt)

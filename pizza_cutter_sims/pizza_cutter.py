@@ -45,14 +45,16 @@ def run_des_pizza_cutter_coadding_on_sim(
             The bit mask for the coadded image.
         ormask : np.ndarray
             The logical "OR" mask for the coadded image.
-        noises : list of np.ndarray
-            A list of noise images for the coadd.
+        noise : np.ndarray
+            The noise image for the coadd.
         psf : np.ndarray
             The coadd PSF image.
         weight : np.ndarray
             The weight map for the coadd.
         mfrac : np.ndarray
             The fraction of SE images in each pixel that is masked.
+        extra_noises : list of np.ndarray
+            A list of noise images for the coadd.
     """
     # this creates the WCS objects
     load_objects_into_info(info=info, verbose=False)

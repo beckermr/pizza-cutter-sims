@@ -1,7 +1,7 @@
+import logging
+
 import numpy as np
 import galsim
-
-from pizza_cutter.des_pizza_cutter._affine_wcs import AffineWCS
 
 from .wcs import gen_affine_wcs
 from .constants import (
@@ -18,6 +18,8 @@ from .masking import (
     generate_streaks,
 )
 from .stars import gen_stars
+
+LOGGER = logging.getLogger(__name__)
 
 
 def generate_sim(
@@ -81,7 +83,20 @@ def generate_sim(
             The bit masks of the images to coadd.
         bkg : list of np.ndarray
             The background images.
+        stars : np.ndarray
+            An array of the stars with coadd x, y and the radius_pixels for the
+            mask radius.
+        psfs : list of PSF objects
+            A list of PSF objects with the method getPSF for the PSF at a given
+            image location.
+        coadd_wcs : galsim.BaseWCS or subclass
+            The coadd WCS transform.
     """
+    if skip_coadding:
+        assert se_config["n_images"] == 1, (
+            "You must use only one image when skipping coadding!"
+        )
+
     info = {}
     src_info = [dict() for _ in range(se_config["n_images"])]
     info['src_info'] = src_info
@@ -104,7 +119,16 @@ def generate_sim(
         "x0": coadd_image_cen,
         "y0": coadd_image_cen,
     }
-    coadd_wcs = AffineWCS(**info["affine_wcs_config"])
+    coadd_wcs = galsim.AffineTransform(
+        info["affine_wcs_config"]["dudx"],
+        info["affine_wcs_config"]["dudy"],
+        info["affine_wcs_config"]["dvdx"],
+        info["affine_wcs_config"]["dvdy"],
+        origin=galsim.PositionD(
+            x=coadd_image_cen,
+            y=coadd_image_cen,
+        )
+    )
     info["image_shape"] = [coadd_image_shape, coadd_image_shape]
     info["magzp"] = MAGZP_REF
     info["scale"] = 1.0
@@ -121,6 +145,10 @@ def generate_sim(
             se_image_shape += 1
         se_image_cen = (se_image_shape - 1) // 2
     else:
+        LOGGER.debug(
+            "skipping coadding w/ pizza-cutter so setting SE "
+            "image shape to coadd image shape"
+        )
         se_image_shape = coadd_image_shape
         se_image_cen = coadd_image_cen
 
@@ -140,6 +168,9 @@ def generate_sim(
         # use the coadd WCS if we are skipping coadding since they have to be
         # the same in this case
         if skip_coadding:
+            LOGGER.debug(
+                "skipping coadding w/ pizza-cutter so setting SE WCS to coadd WCS"
+            )
             _wcs = coadd_wcs
 
         wcss.append(_wcs)
@@ -291,4 +322,6 @@ def generate_sim(
         "msk": bmasks,
         "bkg": bkgs,
         "stars": stars,
+        "psfs": psfs,
+        "coadd_wcs": coadd_wcs,
     }
