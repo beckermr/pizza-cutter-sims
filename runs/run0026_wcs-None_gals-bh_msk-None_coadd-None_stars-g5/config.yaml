@@ -63,7 +63,7 @@ gal:
   type: exp-super-bright
 
 star:
-  dens_factor: 0
+  dens_factor: 1
   interp:
     # these control how the interpolation is applied for star holes
     # if fill_isolated_with_noise is True, then any missing pixel with no non-missing
