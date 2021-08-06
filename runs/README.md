@@ -36,6 +36,7 @@ wcs key:
 
 gals key:
 
+ - B = super bright mag 14 objects
  - b = bright mag 18 exp objects
  - f = faint mag 23.5 objects
  - g = gals in grid
