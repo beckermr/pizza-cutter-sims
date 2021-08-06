@@ -24,7 +24,7 @@ n_se:
 
 psf key:
 
- - g = Gaussian w/ FWHM of 0.8 arcsec
+ - g = Gaussian w/ FWHM of 0.9 arcsec
  - f = frac change in FWHM of +/-10%
 
 wcs key:
@@ -57,3 +57,12 @@ msk key:
 shear key:
 
  - w = swap role of shears 1 and 2
+
+coadd key:
+
+ - {N} = coadd this many images
+ - None = skip coadding
+
+stars key:
+
+ - g{N} = GAIA-like at approx dens of N per arcmin^2
