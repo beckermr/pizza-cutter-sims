@@ -35,6 +35,8 @@ def _run_to_pizza_cutter(
     coadd_rng = np.random.RandomState(seed=coadd_rng_seed)
     with tempfile.TemporaryDirectory() as tmpdir:
         stars = sdata.pop("stars")
+        psfs = sdata.pop("psfs")
+        coadd_wcs = sdata.pop("coadd_wcs")
         cdata = run_des_pizza_cutter_coadding_on_sim(
             rng=coadd_rng,
             tmpdir=tmpdir,
@@ -43,6 +45,8 @@ def _run_to_pizza_cutter(
             **sdata,
         )
         sdata["stars"] = stars
+        sdata["psfs"] = psfs
+        sdata["coadd_wcs"] = coadd_wcs
 
     if return_sim:
         return cdata, sdata
