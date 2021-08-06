@@ -54,6 +54,7 @@ msk key:
  - o{N} = set ormask flag from region of size 2N about object center
  - k{N} = only skinny bad columns (e.g. no bleed masks) of max width N
  - a{N} = use all rotation angles for masks (a8) or just all 90 degree rotations (a4)
+ - e{N} = expand star masks by N pixels
 
 shear key:
 
