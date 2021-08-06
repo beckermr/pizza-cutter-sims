@@ -60,7 +60,7 @@ layout:
   dither_scale: 0.263
 
 gal:
-  type: exp-bright
+  type: exp-super-bright
 
 star:
   dens_factor: 5
