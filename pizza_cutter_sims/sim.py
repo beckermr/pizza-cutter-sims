@@ -227,12 +227,15 @@ def generate_sim(
         image = galsim.ImageD(bnds, dtype=np.float32, init_value=0)
 
         for gal, u, v in zip(gals, upos, vpos):
+            print(u, v)
             uvpos = galsim.PositionD(x=u, y=v)
             if shear_config["scene"]:
                 uvpos = uvpos.shear(g1=g1true, g2=g2true)
+            print(uvpos)
             gal = gal.shear(g1=g1true, g2=g2true)
             x, y = _wcs.uvToxy(u, v)
             xypos = galsim.PositionD(x=x, y=y)
+            print(xypos)
             galsim.Convolve(
                 gal, _psf.getPSF(xypos)
             ).drawImage(
