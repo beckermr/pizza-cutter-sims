@@ -68,3 +68,9 @@ coadd key:
 stars key:
 
  - g{N} = GAIA-like at approx dens of N per arcmin^2
+
+
+## notes
+
+### run0027
+  - done with mfrac and ormak/bmask at the sheared locations
