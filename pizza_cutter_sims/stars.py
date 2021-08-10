@@ -134,38 +134,43 @@ def mask_and_interp_stars(*, rng, cdata, stars, interp_cfg):
             med_wgt = np.median(
                 cdata["weight"][(cdata["bmask"] == 0) & (cdata["weight"] > 0)]
             )
-            cdata["image"][msk] = np.nan
-            cdata["weight"][msk] = 0.0
+
             cdata["mfrac"][msk] = 1.0
             cdata["ormask"][msk] |= SIM_BMASK_GAIA_STAR
             cdata["bmask"][msk] |= BMASK_SPLINE_INTERP
             cdata["bmask"][msk] |= BMASK_GAIA_STAR
 
-            interp_image = interpolate_image_at_mask(
-                image=cdata["image"], bad_msk=msk, maxfrac=1.0,
-                rng=rng, weight=med_wgt, **interp_cfg,
-            )
-            interp_noise = interpolate_image_at_mask(
-                image=cdata["noise"], bad_msk=msk, maxfrac=1.0,
-                rng=rng, weight=med_wgt, **interp_cfg,
-            )
-            if "extra_noises" in cdata:
-                interp_noises = []
-                for nse in cdata["extra_noises"]:
-                    interp_noises.append(interpolate_image_at_mask(
-                        image=nse, bad_msk=msk, maxfrac=1.0,
-                        rng=rng, weight=med_wgt, **interp_cfg,
-                    ))
-            if (
-                interp_image is None
-                or interp_noise is None
-                or ("extra_noises" in cdata and any(im is None for im in interp_noises))
-            ):
-                raise RuntimeError("Interpolation for gaia stars returned None!")
-            else:
-                cdata["image"] = interp_image
-                cdata["noise"] = interp_noise
+            if not interp_cfg.get('skip', False):
+                cdata["image"][msk] = np.nan
+                cdata["weight"][msk] = 0.0
+                interp_image = interpolate_image_at_mask(
+                    image=cdata["image"], bad_msk=msk, maxfrac=1.0,
+                    rng=rng, weight=med_wgt, **interp_cfg,
+                )
+                interp_noise = interpolate_image_at_mask(
+                    image=cdata["noise"], bad_msk=msk, maxfrac=1.0,
+                    rng=rng, weight=med_wgt, **interp_cfg,
+                )
                 if "extra_noises" in cdata:
-                    cdata["extra_noises"] = interp_noises
+                    interp_noises = []
+                    for nse in cdata["extra_noises"]:
+                        interp_noises.append(interpolate_image_at_mask(
+                            image=nse, bad_msk=msk, maxfrac=1.0,
+                            rng=rng, weight=med_wgt, **interp_cfg,
+                        ))
+                if (
+                    interp_image is None
+                    or interp_noise is None
+                    or (
+                        "extra_noises" in cdata
+                        and any(im is None for im in interp_noises)
+                    )
+                ):
+                    raise RuntimeError("Interpolation for gaia stars returned None!")
+                else:
+                    cdata["image"] = interp_image
+                    cdata["noise"] = interp_noise
+                    if "extra_noises" in cdata:
+                        cdata["extra_noises"] = interp_noises
         elif np.all(msk):
             raise RuntimeError("All pixels are masked by the star!")

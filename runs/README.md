@@ -68,6 +68,7 @@ coadd key:
 stars key:
 
  - g{N} = GAIA-like at approx dens of N per arcmin^2
+ - n = skip the interpolation inside regions with star holes
 
 
 ## notes
