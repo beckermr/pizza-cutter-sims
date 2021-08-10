@@ -117,6 +117,9 @@ def _measure_m_c(outputs, cfg, write=None):
             for i in range(pdata[pmsk].shape[0])
         ]
 
+        if write is None:
+            print("\n", flush=True, end="")
+
         m, msd, c, csd = estimate_m_and_c(
             pres,
             mres,
