@@ -73,4 +73,4 @@ stars key:
 ## notes
 
 ### run0027
-  - done with mfrac and ormak/bmask at the sheared locations
+  - when done with mfrac and ormak/bmask at the sheared locations had 1.5 +/ 0.5 10^-3 bias
