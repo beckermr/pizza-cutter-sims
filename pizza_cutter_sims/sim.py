@@ -230,7 +230,7 @@ def generate_sim(
             print(u, v)
             uvpos = galsim.PositionD(x=u, y=v)
             if shear_config["scene"]:
-                uvpos = uvpos.shear(g1=g1true, g2=g2true)
+                uvpos = uvpos.shear(galsim.Shear(g1=g1true, g2=g2true))
             print(uvpos)
             gal = gal.shear(g1=g1true, g2=g2true)
             x, y = _wcs.uvToxy(u, v)
