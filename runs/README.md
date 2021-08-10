@@ -69,6 +69,7 @@ stars key:
 
  - g{N} = GAIA-like at approx dens of N per arcmin^2
  - n = skip the interpolation inside regions with star holes
+ - e = put star flags in metadetect bmask_flags for skipping stuff on survey edges
 
 
 ## notes
