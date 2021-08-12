@@ -2,6 +2,11 @@ import numpy as np
 
 import ngmix
 from metadetect.metadetect import do_metadetect
+from pizza_cutter_sims.stars import (
+    BMASK_GAIA_STAR,
+    BMASK_EXPAND_GAIA_STAR,
+    apply_mask_bit_mask,
+)
 
 
 def run_metadetect(
@@ -65,6 +70,12 @@ def run_metadetect(
         jacobian=psf_jac,
     )
 
+    if mask_expand_rad > 0:
+        _mask_catalog = mask_catalog.copy()
+        _mask_catalog['radius_pixels'] += mask_expand_rad
+        bmask = bmask.copy()
+        apply_mask_bit_mask(bmask, _mask_catalog, BMASK_EXPAND_GAIA_STAR)
+
     im_jac = ngmix.jacobian.Jacobian(
         x=im_cen,
         y=im_cen,
@@ -89,10 +100,17 @@ def run_metadetect(
     obslist.append(obs)
     mbobs.append(obslist)
 
-    if mask_expand_rad > 0:
-        _mask_catalog = mask_catalog.copy()
-        _mask_catalog['radius_pixels'] += mask_expand_rad
-    else:
-        _mask_catalog = None
+    mdet_res = do_metadetect(config, mbobs, rng)
 
-    return do_metadetect(config, mbobs, rng, mask_catalog=_mask_catalog)
+    if mask_expand_rad > 0 and mdet_res is not None:
+        new_mdet_res = {}
+        for k, v in mdet_res.items():
+            if v is not None:
+                msk = (
+                    ((v['bmask'] & BMASK_EXPAND_GAIA_STAR) == 0)
+                    & ((v['bmask'] & BMASK_GAIA_STAR) == 0)
+                )
+                new_mdet_res[k] = v[msk]
+        mdet_res = new_mdet_res
+
+    return mdet_res

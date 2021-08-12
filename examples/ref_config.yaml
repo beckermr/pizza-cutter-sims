@@ -40,16 +40,16 @@ coadd:
 se:
   n_images: 1
   wcs_config:
-    position_angle_range: [0, 360]
-    dither_scale: 1  # set to an odd number of pixels
+    position_angle_range: [0, 0]
+    dither_scale: 0  # set to an odd number of pixels
     scale: 0.263
-    scale_frac_std: 0.1
-    shear_std: 0.01
+    scale_frac_std: 0.0
+    shear_std: 0.00
 
 psf:
   type: galsim.Gaussian
   fwhm: 0.9
-  fwhm_frac_std: 0.1
+  fwhm_frac_std: 0.0
   shear_std: 0
   shear: 0
 
@@ -60,11 +60,12 @@ layout:
   dither_scale: 0.263
 
 gal:
-  type: exp-dim
+  type: exp-super-bright
 
 star:
   dens_factor: 1
   interp:
+    skip: True
     # these control how the interpolation is applied for star holes
     # if fill_isolated_with_noise is True, then any missing pixel with no non-missing
     # pixels within iso_buff will be filled with noise and then used to interpolate
@@ -74,7 +75,7 @@ star:
   mask_expand_rad: 16
 
 pizza_cutter:
-  skip: False
+  skip: True
   single_epoch_config:
     # pixel spacing for building various WCS interpolants
     se_wcs_interp_delta: 10
@@ -90,7 +91,7 @@ pizza_cutter:
 
     # set the interp flags to 0 or 3 or 7 to interp stuff in the mask
     spline_interp_flags:
-      - 0
+      - 7
     noise_interp_flags:
       - 0
 
