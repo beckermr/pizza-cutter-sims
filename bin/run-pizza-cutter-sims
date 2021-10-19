@@ -27,12 +27,22 @@ from pizza_cutter_sims.run_utils import (
 START = time.time()
 
 
+def _is_none(res):
+    if res is None:
+        return True
+
+    if any(res[k] is None for k in res):
+        return True
+
+    return False
+
+
 def _run_pair(args):
     try:
         kwargs, num, backend = args
         pres, mres = run_end2end_pair_with_shear(**kwargs)
 
-        if pres is None or mres is None:
+        if _is_none(pres) or _is_none(mres):
             return None, None
 
         fkeys = ["g1p", "g1m", "g1", "g2p", "g2m", "g2"]
