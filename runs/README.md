@@ -71,6 +71,7 @@ stars key:
  - n = skip the interpolation inside regions with star holes
  - e = put star flags in metadetect bmask_flags for skipping stuff on survey edges
  - f = when interpolating fill with noise
+ - a = apodize as opposed to interpolating
 
 
 ## notes
