@@ -4,10 +4,10 @@ import tempfile
 import numpy as np
 import galsim
 
-from pizza_cutter_sims.mdet import run_metadetect
+from pizza_cutter_sims.mdet import run_metadetect, make_mbobs_from_coadd_data
 from pizza_cutter_sims.pizza_cutter import run_des_pizza_cutter_coadding_on_sim
 from pizza_cutter_sims.sim import generate_sim
-from pizza_cutter_sims.stars import mask_and_interp_stars
+from pizza_cutter_sims.stars import mask_stars
 
 LOGGER = logging.getLogger(__name__)
 
@@ -183,25 +183,23 @@ def run_end2end_with_shear(
             psf=psf,
         )
 
-    mask_and_interp_stars(
-        rng=star_rng,
+    mbobs = make_mbobs_from_coadd_data(
+        wcs=sdata["coadd_wcs"],
         cdata=cdata,
+    )
+
+    mask_stars(
+        rng=star_rng,
+        mbobs=mbobs,
         stars=sdata["stars"],
         interp_cfg=cfg["star"]["interp"],
+        apodize_cfg=cfg["star"]["apodize"],
+        mask_expand_rad=cfg["star"]["mask_expand_rad"],
     )
 
     mdet_rng = np.random.RandomState(seed=mdet_rng_seed)
     return run_metadetect(
         rng=mdet_rng,
         config=cfg["metadetect"],
-        wcs=sdata["coadd_wcs"],
-        image=cdata["image"],
-        bmask=cdata["bmask"],
-        ormask=cdata["ormask"],
-        noise=cdata["noise"],
-        psf=cdata["psf"],
-        weight=cdata["weight"],
-        mfrac=cdata["mfrac"],
-        mask_catalog=sdata["stars"],
-        mask_expand_rad=cfg["star"]["mask_expand_rad"],
+        mbobs=mbobs,
     )

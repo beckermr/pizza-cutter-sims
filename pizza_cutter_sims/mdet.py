@@ -5,51 +5,35 @@ from metadetect.metadetect import do_metadetect
 from pizza_cutter_sims.stars import (
     BMASK_GAIA_STAR,
     BMASK_EXPAND_GAIA_STAR,
-    apply_mask_bit_mask,
 )
 
 
-def run_metadetect(
-    *, rng, config, wcs, image, bmask, ormask,
-    noise, psf, weight, mfrac, mask_catalog, mask_expand_rad,
+def make_mbobs_from_coadd_data(
+    *, wcs, cdata,
 ):
-    """Run metadetect on an input sim.
+    """Make an ngmix.MultiBandObsList from the coadd data.
 
     Parameters
     ----------
-    rng : np.random.RandomState
-        An RNG to use for running metadetection.
-    config : dict
-        A dictionary with the metadetection config information.
     wcs : galsim.BaseWCS or similar
         The coadd WCS object representing the WCS of the final images.
-    image : np.ndarray
-        The coadded image
-    bmask : np.ndarray
-        The bit mask for the coadded image.
-    ormask : np.ndarray
-        The logical "OR" mask for the coadded image.
-    noise : np.ndarray
-        A noise image for the coadd.
-    psf : np.ndarray
-        The coadd PSF image.
-    weight : np.ndarray
-        The weight map for the coadd.
-    mfrac : np.ndarray
-        The fraction of SE images in each pixel that is masked.
-    mask_catalog : np.ndarray, optional
-        If not None, this array should have columns 'x', 'y' and 'radius_pixels'
-        that gives the location and radius of any masked objects in the image.
-        Default of None indicates no catalog. This mask will be applied to each
-        of the metacalibration images after they are sheared.
-    mask_expand_rad : float
-        The number of pixels to expand the mask radius.
+    cdata : dict
+        The dictionary of coadd data from
+        `pizza_cutter_sims.pizza_cutter.run_des_pizza_cutter_coadding_on_sim`
 
     Returns
     -------
-    res : dict
-        Dictioanry with metadetection results.
+    mbobs : ngmix.MultiBandObsList
+        The coadd data in mbobs form.
     """
+    image = cdata["image"]
+    bmask = cdata["bmask"]
+    ormask = cdata["ormask"]
+    noise = cdata["noise"]
+    psf = cdata["psf"]
+    weight = cdata["weight"]
+    mfrac = cdata["mfrac"]
+
     psf_cen = (psf.shape[0] - 1)/2
     im_cen = (image.shape[0] - 1)/2
 
@@ -69,12 +53,6 @@ def run_metadetect(
         weight=np.ones_like(psf)/target_noise**2,
         jacobian=psf_jac,
     )
-
-    if mask_expand_rad > 0:
-        _mask_catalog = mask_catalog.copy()
-        _mask_catalog['radius_pixels'] += mask_expand_rad
-        bmask = bmask.copy()
-        apply_mask_bit_mask(bmask, _mask_catalog, BMASK_EXPAND_GAIA_STAR)
 
     im_jac = ngmix.jacobian.Jacobian(
         x=im_cen,
@@ -100,9 +78,31 @@ def run_metadetect(
     obslist.append(obs)
     mbobs.append(obslist)
 
+    return mbobs
+
+
+def run_metadetect(
+    *, rng, config, mbobs,
+):
+    """Run metadetect on an input sim.
+
+    Parameters
+    ----------
+    rng : np.random.RandomState
+        An RNG to use for running metadetection.
+    config : dict
+        A dictionary with the metadetection config information.
+    mbobs : ngmix.MultiBandObsList
+        The coadd data in mbobs form.
+
+    Returns
+    -------
+    res : dict
+        Dictioanry with metadetection results.
+    """
     mdet_res = do_metadetect(config, mbobs, rng)
 
-    if mask_expand_rad > 0 and mdet_res is not None:
+    if mdet_res is not None:
         new_mdet_res = {}
         for k, v in mdet_res.items():
             if v is not None:
@@ -110,7 +110,10 @@ def run_metadetect(
                     ((v['bmask'] & BMASK_EXPAND_GAIA_STAR) == 0)
                     & ((v['bmask'] & BMASK_GAIA_STAR) == 0)
                 )
-                new_mdet_res[k] = v[msk]
+                if np.any(msk):
+                    new_mdet_res[k] = v[msk]
+                else:
+                    new_mdet_res[k] = None
         mdet_res = new_mdet_res
 
     return mdet_res

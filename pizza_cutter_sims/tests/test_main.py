@@ -40,7 +40,7 @@ def test_run_end2end_with_shear_seeding(sim_config):
             g2=0.0,
             **_kws,
         )
-        assert not recursive_equal(res1, res3)
+        assert not recursive_equal(res1, res3), k
 
 
 def test_run_end2end_pair_with_shear_seeding(sim_config):
@@ -79,7 +79,7 @@ def test_run_end2end_pair_with_shear_seeding(sim_config):
             swap12=False,
             **_kws,
         )
-        assert not recursive_equal(res1, res3)
+        assert not recursive_equal(res1, res3), k
 
 
 def test_run_end2end_with_shear_skip_coadding(sim_config):

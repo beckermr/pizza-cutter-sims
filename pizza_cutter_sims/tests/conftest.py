@@ -87,8 +87,12 @@ star:
     # if fill_isolated_with_noise is True, then any missing pixel with no non-missing
     # pixels within iso_buff will be filled with noise and then used to interpolate
     # the rest of the pixels.
+    skip: False
     iso_buff: 1
-    fill_isolated_with_noise: False
+    fill_isolated_with_noise: True
+  apodize:
+    ap_rad: 1
+    skip: True
   mask_expand_rad: 0
 
 pizza_cutter:
