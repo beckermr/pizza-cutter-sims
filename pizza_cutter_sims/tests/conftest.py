@@ -6,7 +6,21 @@ import yaml
 def recursive_equal(sdata1, sdata2):
     eq = True
     if isinstance(sdata1, np.ndarray):
-        eq = eq and np.array_equal(sdata1, sdata2)
+        if hasattr(sdata1.dtype, "names"):
+            _eq = True
+            for name in sdata1.dtype.names:
+                try:
+                    np.testing.assert_array_equal(sdata1[name], sdata2[name])
+                    _eq = _eq and True
+                except AssertionError:
+                    _eq = _eq and False
+        else:
+            try:
+                np.testing.assert_array_equal(sdata1, sdata2)
+                _eq = True
+            except AssertionError:
+                _eq = False
+        eq = eq and _eq
     elif isinstance(sdata1, dict):
         for k in sdata1:
             eq = eq and recursive_equal(sdata1[k], sdata2[k])
