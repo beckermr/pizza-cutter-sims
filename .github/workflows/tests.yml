@@ -34,29 +34,31 @@ jobs:
             --file=requirements.txt
           python -m pip install -e .
 
-      - name: lint
-        shell: bash -l {0}
-        run: |
-          flake8 pizza_cutter_sims
-          flake8 bin/*
-
-      - name: test
-        shell: bash -l {0}
-        run: |
-          pytest -vvs pizza_cutter_sims
-
-      - name: run example
-        shell: bash -l {0}
-        run: |
-          pushd examples
-          run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=10 --backend=loky
-          popd
+      # - name: lint
+      #   shell: bash -l {0}
+      #   run: |
+      #     flake8 pizza_cutter_sims
+      #     flake8 bin/*
+      #
+      # - name: test
+      #   shell: bash -l {0}
+      #   run: |
+      #     pytest -vvs pizza_cutter_sims
+      #
+      # - name: run example
+      #   shell: bash -l {0}
+      #   run: |
+      #     pushd examples
+      #     run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=10 --backend=loky
+      #     popd
 
       - name: try all runs
         shell: bash -l {0}
         run: |
           pushd runs
+          ls
           for dname in `ls run*`; do
+            ls
             pushd ${dname}
             run-pizza-cutter-sims --seed=42 --n-sims=1 --backend=local
             popd
