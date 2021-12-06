@@ -49,7 +49,7 @@ jobs:
         shell: bash -l {0}
         run: |
           pushd examples
-          run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=100 --backend=loky
+          run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=10 --backend=loky
           popd
 
       - name: try all runs
