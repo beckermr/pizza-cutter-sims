@@ -72,6 +72,9 @@ star:
     # the rest of the pixels.
     iso_buff: 1
     fill_isolated_with_noise: False
+  apodize:
+    skip: True
+    ap_rad: 1
   mask_expand_rad: 16
 
 pizza_cutter:

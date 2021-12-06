@@ -65,12 +65,16 @@ gal:
 star:
   dens_factor: 1
   interp:
+    skip: False
     # these control how the interpolation is applied for star holes
     # if fill_isolated_with_noise is True, then any missing pixel with no non-missing
     # pixels within iso_buff will be filled with noise and then used to interpolate
     # the rest of the pixels.
     iso_buff: 1
     fill_isolated_with_noise: False
+  apodize:
+    skip: True
+    ap_rad: 1
   mask_expand_rad: 96
 
 pizza_cutter:

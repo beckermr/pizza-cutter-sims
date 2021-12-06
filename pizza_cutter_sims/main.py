@@ -84,7 +84,8 @@ def run_end2end_pair_with_shear(
 
         return pres, mres
     except Exception as e:
-        LOGGER.debug("Error running the sim: %s", repr(e))
+        import traceback
+        print("sim failed: %s\n%s" % (repr(e), traceback.format_exc()), flush=True)
         return None, None
 
 

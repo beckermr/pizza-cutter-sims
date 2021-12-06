@@ -24,7 +24,7 @@ jobs:
           channel-priority: strict
           show-channel-urls: true
           miniforge-version: latest
-          miniforge-variant: Mambaforge          
+          miniforge-variant: Mambaforge
 
       - name: configure conda and install code
         shell: bash -l {0}
@@ -45,9 +45,20 @@ jobs:
         run: |
           pytest -vvs pizza_cutter_sims
 
-      - name: run it
+      - name: run example
         shell: bash -l {0}
         run: |
-          cd examples
+          pushd examples
           run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=100 --backend=loky
-          cd -
+          popd
+
+      - name: try all runs
+        shell: bash -l {0}
+        run: |
+          pushd runs
+          for dname in `ls run*`; do
+            pushd ${dirname}
+            run-pizza-cutter-sims --seed=42 --n-sims=1 --backend=local
+            popd
+          done
+          popd

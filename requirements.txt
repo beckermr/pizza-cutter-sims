@@ -30,3 +30,4 @@ hexalattice
 dask
 distributed
 des-sxdes
+parsl

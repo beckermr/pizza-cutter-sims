@@ -182,7 +182,7 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
 def main(config, seed, output, n_sims, log_level, backend, n_workers):
     """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
 
-    if backend == "sequential":
+    if backend == "sequential" or backend == "local":
         logging.basicConfig(stream=sys.stdout)
         for code in ["ngmix", "metadetect", "pizza_cutter", "pizza_cutter_sims"]:
             logging.getLogger(code).setLevel(
@@ -234,7 +234,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
     else:
         args = []
 
-    if backend == "sequential":
+    if backend == "sequential" or backend == "local":
         n_chunks = 1
         n_sub = n_sims
     else:
@@ -248,28 +248,34 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
         if n_chunks * n_sub < n_sims:
             n_chunks += 1
 
-    with backend_pool(
-        backend,
-        n_workers=n_workers,
-        verbose=100,
-    ) as pool:
-        loc = 0
-        outputs = []
-        for chunk in PBar(range(n_chunks), n_bars=79):
-            end = loc + n_sub
-            if end > n_sims:
-                end = n_sims
-            if backend in ["dask", "loky"]:
-                print("\n", flush=True, end="")
-            _outputs = pool.map(_run_pair, args[loc:end])
-            outputs.extend(_outputs)
-            if rank == 0:
-                res = _measure_m_c(outputs, cfg)
-                if output is not None and res is not None:
-                    with fitsio.FITS(output, 'rw', clobber=True) as fits:
-                        fits.write(res[0], extname='plus')
-                        fits.write(res[1], extname='minus')
-            loc += n_sub
+    if backend == "local":
+        if rank == 0:
+            outputs = []
+            for arg in args:
+                outputs.append(_run_pair(arg))
+    else:
+        with backend_pool(
+            backend,
+            n_workers=n_workers,
+            verbose=100,
+        ) as pool:
+            loc = 0
+            outputs = []
+            for chunk in PBar(range(n_chunks), n_bars=79):
+                end = loc + n_sub
+                if end > n_sims:
+                    end = n_sims
+                if backend in ["dask", "loky"]:
+                    print("\n", flush=True, end="")
+                _outputs = pool.map(_run_pair, args[loc:end])
+                outputs.extend(_outputs)
+                if rank == 0:
+                    res = _measure_m_c(outputs, cfg)
+                    if output is not None and res is not None:
+                        with fitsio.FITS(output, 'rw', clobber=True) as fits:
+                            fits.write(res[0], extname='plus')
+                            fits.write(res[1], extname='minus')
+                loc += n_sub
 
     if rank == 0:
         res = _measure_m_c(outputs, cfg)
