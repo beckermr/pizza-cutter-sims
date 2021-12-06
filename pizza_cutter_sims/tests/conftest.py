@@ -15,7 +15,7 @@ def recursive_equal(sdata1, sdata2):
                 _eq = True
             except AssertionError:
                 _eq = False
-        eq = eq and _eq
+            eq = eq and _eq
     elif isinstance(sdata1, dict):
         for k in sdata1:
             eq = eq and recursive_equal(sdata1[k], sdata2[k])
