@@ -17,6 +17,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: try all runs
+        shell: bash -l {0}
+        run: |
+          pushd runs
+          for dname in $(ls -1 run*); do
+            echo "'${dname}'"
+            # ls ${dname}
+            # cd ${dname}
+            # run-pizza-cutter-sims --seed=42 --n-sims=1 --backend=local
+            # cd -
+          done
+          popd
+
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: 3.8
@@ -51,15 +64,16 @@ jobs:
       #     pushd examples
       #     run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=10 --backend=loky
       #     popd
-
-      - name: try all runs
-        shell: bash -l {0}
-        run: |
-          pushd runs
-          for dname in $(ls run*); do
-            ls ${dname}
-            cd ${dname}
-            run-pizza-cutter-sims --seed=42 --n-sims=1 --backend=local
-            cd -
-          done
-          popd
+      #
+      # - name: try all runs
+      #   shell: bash -l {0}
+      #   run: |
+      #     pushd runs
+      #     for dname in $(ls -1 run*); do
+      #       echo "'${dname}'"
+      #       # ls ${dname}
+      #       # cd ${dname}
+      #       # run-pizza-cutter-sims --seed=42 --n-sims=1 --backend=local
+      #       # cd -
+      #     done
+      #     popd
