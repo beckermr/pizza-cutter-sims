@@ -57,7 +57,7 @@ jobs:
         run: |
           pushd runs
           for dname in `ls run*`; do
-            pushd ${dirname}
+            pushd ${dname}
             run-pizza-cutter-sims --seed=42 --n-sims=1 --backend=local
             popd
           done
