@@ -21,7 +21,7 @@ jobs:
         shell: bash -l {0}
         run: |
           pushd runs
-          for dname in $(ls -1 run*); do
+          for dname in $(ls -d */); do
             echo "'${dname}'"
             # ls ${dname}
             # cd ${dname}
