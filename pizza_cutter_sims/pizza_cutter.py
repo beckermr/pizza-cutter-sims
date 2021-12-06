@@ -127,6 +127,7 @@ def run_des_pizza_cutter_coadding_on_sim(
         rng=rng,
         tmpdir=tmpdir,
         n_extra_noise_images=n_extra_noise_images,
+        mask_piff_failure_config=None,
     )
 
     se_image_slices, weights, slices_not_used, flags_not_used = bsres
