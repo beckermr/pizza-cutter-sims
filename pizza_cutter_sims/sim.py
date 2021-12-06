@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import galsim
 
@@ -15,19 +17,25 @@ from .masking import (
     generate_cosmic_rays,
     generate_streaks,
 )
+from .stars import gen_stars
+
+LOGGER = logging.getLogger(__name__)
 
 
 def generate_sim(
     *,
     rng,
     gal_rng,
+    star_rng,
     coadd_config,
     se_config,
     psf_config,
     gal_config,
+    star_config,
     layout_config,
     msk_config,
     shear_config,
+    skip_coadding,
 ):
     """Generate a set of SE images and their metadata for coadding.
 
@@ -37,6 +45,8 @@ def generate_sim(
         An RNG instance to use to build info for this band.
     gal_rng : np.random.RandomState
         An RNG instance to use to build galaxies.
+    star_rng : np.random.RandomState
+        An RNG instance to use to build stars.
     coadd_config : dict
         A dictionary with info about the coadd image.
     se_config : dict
@@ -45,12 +55,17 @@ def generate_sim(
         A dictionary with info about the PSF.
     gal_config : dict
         A dictionary with info about the galaxies.
+    star_config : dict
+        A dictionatu witjh info about the stars.
     layout_config : dict
         A dictionary with info about the galaxy layout.
     msk_config : dict
         A dictionary with info about masking effects being applied.
     shear_config : dict
         A dictionary with info about the true shear applied.
+    skip_coadding : bool
+        If True, skip coadding. Requires the SE image to have
+        the same WCS as the coadd image and that there be only 1 SE image.
 
     Returns
     -------
@@ -68,7 +83,20 @@ def generate_sim(
             The bit masks of the images to coadd.
         bkg : list of np.ndarray
             The background images.
+        stars : np.ndarray
+            An array of the stars with coadd x, y and the radius_pixels for the
+            mask radius.
+        psfs : list of PSF objects
+            A list of PSF objects with the method getPSF for the PSF at a given
+            image location.
+        coadd_wcs : galsim.BaseWCS or subclass
+            The coadd WCS transform.
     """
+    if skip_coadding:
+        assert se_config["n_images"] == 1, (
+            "You must use only one image when skipping coadding!"
+        )
+
     info = {}
     src_info = [dict() for _ in range(se_config["n_images"])]
     info['src_info'] = src_info
@@ -91,31 +119,60 @@ def generate_sim(
         "x0": coadd_image_cen,
         "y0": coadd_image_cen,
     }
+    coadd_wcs = galsim.AffineTransform(
+        info["affine_wcs_config"]["dudx"],
+        info["affine_wcs_config"]["dudy"],
+        info["affine_wcs_config"]["dvdx"],
+        info["affine_wcs_config"]["dvdy"],
+        origin=galsim.PositionD(
+            x=coadd_image_cen,
+            y=coadd_image_cen,
+        )
+    )
     info["image_shape"] = [coadd_image_shape, coadd_image_shape]
     info["magzp"] = MAGZP_REF
     info["scale"] = 1.0
     info["position_offset"] = 0
 
-    se_factor = 1.7 * (
-        1.0
-        + se_config["wcs_config"]["scale_frac_std"]
-        + np.sqrt(2) * se_config["wcs_config"]["shear_std"]
-    )
-    se_image_shape = int(se_factor * coadd_image_shape)
-    if se_image_shape % 2 == 0:
-        se_image_shape += 1
-    se_image_cen = (se_image_shape - 1) // 2
+    if not skip_coadding:
+        se_factor = 1.7 * (
+            1.0
+            + se_config["wcs_config"]["scale_frac_std"]
+            + np.sqrt(2) * se_config["wcs_config"]["shear_std"]
+        )
+        se_image_shape = int(se_factor * coadd_image_shape)
+        if se_image_shape % 2 == 0:
+            se_image_shape += 1
+        se_image_cen = (se_image_shape - 1) // 2
+    else:
+        LOGGER.debug(
+            "skipping coadding w/ pizza-cutter so setting SE "
+            "image shape to coadd image shape"
+        )
+        se_image_shape = coadd_image_shape
+        se_image_cen = coadd_image_cen
 
     for ii in src_info:
         ii["magzp"] = MAGZP_REF
         ii["scale"] = 1.0
         ii["position_offset"] = 0
+
+        # done here to make sure the RNG calls are consistent
+        # may not be used below
         _wcs = gen_affine_wcs(
             rng=rng,
             world_origin=galsim.PositionD(x=0, y=0),
             origin=galsim.PositionD(x=se_image_cen, y=se_image_cen),
             **se_config["wcs_config"],
         )
+        # use the coadd WCS if we are skipping coadding since they have to be
+        # the same in this case
+        if skip_coadding:
+            LOGGER.debug(
+                "skipping coadding w/ pizza-cutter so setting SE WCS to coadd WCS"
+            )
+            _wcs = coadd_wcs
+
         wcss.append(_wcs)
         ii['affine_wcs_config'] = {
             'dudx': float(_wcs.dudx),
@@ -137,7 +194,7 @@ def generate_sim(
         ii['galsim_psf_config'] = _psf_config
         psfs.append(_psf_obj)
 
-    # generate galaxies
+    # generate galaxies and stars
     pos_bounds = (
         -0.5 * coadd_config["central_size"] * coadd_config["scale"],
         0.5 * coadd_config["central_size"] * coadd_config["scale"],
@@ -147,6 +204,13 @@ def generate_sim(
         layout_config=layout_config,
         gal_config=gal_config,
         pos_bounds=pos_bounds,
+    )
+
+    stars = gen_stars(
+        rng=star_rng,
+        pos_bounds=pos_bounds,
+        coadd_wcs=coadd_wcs,
+        **star_config
     )
 
     # now render and apply masks
@@ -257,4 +321,7 @@ def generate_sim(
         "wgt": weights,
         "msk": bmasks,
         "bkg": bkgs,
+        "stars": stars,
+        "psfs": psfs,
+        "coadd_wcs": coadd_wcs,
     }

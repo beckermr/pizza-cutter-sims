@@ -6,7 +6,16 @@ import yaml
 def recursive_equal(sdata1, sdata2):
     eq = True
     if isinstance(sdata1, np.ndarray):
-        eq = eq and np.array_equal(sdata1, sdata2)
+        if hasattr(sdata1.dtype, "names") and sdata1.dtype.names is not None:
+            for name in sdata1.dtype.names:
+                eq = eq and recursive_equal(sdata1[name], sdata2[name])
+        else:
+            try:
+                np.testing.assert_array_equal(sdata1, sdata2)
+                _eq = True
+            except AssertionError:
+                _eq = False
+            eq = eq and _eq
     elif isinstance(sdata1, dict):
         for k in sdata1:
             eq = eq and recursive_equal(sdata1[k], sdata2[k])
@@ -80,8 +89,23 @@ layout:
 gal:
   type: exp-bright
 
+star:
+  dens_factor: 1
+  interp:
+    # these control how the interpolation is applied for star wholes
+    # if fill_isolated_with_noise is True, then any missing pixel with no non-missing
+    # pixels within iso_buff will be filled with noise and then used to interpolate
+    # the rest of the pixels.
+    skip: False
+    iso_buff: 1
+    fill_isolated_with_noise: True
+  apodize:
+    ap_rad: 1
+    skip: True
+  mask_expand_rad: 0
 
 pizza_cutter:
+  skip: False
   single_epoch_config:
     se_wcs_interp_delta: 10
     coadd_wcs_interp_delta: 25

@@ -24,7 +24,7 @@ n_se:
 
 psf key:
 
- - g = Gaussian w/ FWHM of 0.8 arcsec
+ - g = Gaussian w/ FWHM of 0.9 arcsec
  - f = frac change in FWHM of +/-10%
 
 wcs key:
@@ -36,6 +36,7 @@ wcs key:
 
 gals key:
 
+ - B = super bright mag 14 objects
  - b = bright mag 18 exp objects
  - f = faint mag 23.5 objects
  - g = gals in grid
@@ -53,7 +54,27 @@ msk key:
  - o{N} = set ormask flag from region of size 2N about object center
  - k{N} = only skinny bad columns (e.g. no bleed masks) of max width N
  - a{N} = use all rotation angles for masks (a8) or just all 90 degree rotations (a4)
+ - e{N} = expand star masks by N pixels
 
 shear key:
 
  - w = swap role of shears 1 and 2
+
+coadd key:
+
+ - {N} = coadd this many images
+ - None = skip coadding
+
+stars key:
+
+ - g{N} = GAIA-like at approx dens of N per arcmin^2
+ - n = skip the interpolation inside regions with star holes
+ - e = put star flags in metadetect bmask_flags for skipping stuff on survey edges
+ - f = when interpolating fill with noise
+ - a = apodize as opposed to interpolating
+
+
+## notes
+
+### run0027
+  - when done with mfrac and ormak/bmask at the sheared locations had 1.5 +/ 0.5 10^-3 bias

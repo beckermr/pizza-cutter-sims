@@ -45,14 +45,16 @@ def run_des_pizza_cutter_coadding_on_sim(
             The bit mask for the coadded image.
         ormask : np.ndarray
             The logical "OR" mask for the coadded image.
-        noises : list of np.ndarray
-            A list of noise images for the coadd.
+        noise : np.ndarray
+            The noise image for the coadd.
         psf : np.ndarray
             The coadd PSF image.
         weight : np.ndarray
             The weight map for the coadd.
         mfrac : np.ndarray
             The fraction of SE images in each pixel that is masked.
+        extra_noises : list of np.ndarray
+            A list of noise images for the coadd.
     """
     # this creates the WCS objects
     load_objects_into_info(info=info, verbose=False)
@@ -99,9 +101,11 @@ def run_des_pizza_cutter_coadding_on_sim(
         dec=object_config['dec'],
         ra_psf=ra_psf,
         dec_psf=dec_psf,
+        wcs=info["affine_wcs"],
+        wcs_position_offset=info["position_offset"],
+        wcs_interp_delta=single_epoch_config["se_wcs_interp_delta"],
         box_size=object_config['box_size'],
         frac_buffer=single_epoch_config['frac_buffer'],
-        coadd_info=info,
         start_row=object_config['orig_start_row'],
         start_col=object_config['orig_start_col'],
         se_src_info=info['src_info'],
@@ -119,9 +123,11 @@ def run_des_pizza_cutter_coadding_on_sim(
         wcs_type=single_epoch_config['wcs_type'],
         wcs_color=0.0,  # we never deal with this kind of thing
         psf_type=single_epoch_config['psf_type'],
+        psf_kwargs={},
         rng=rng,
         tmpdir=tmpdir,
         n_extra_noise_images=n_extra_noise_images,
+        mask_piff_failure_config=None,
     )
 
     se_image_slices, weights, slices_not_used, flags_not_used = bsres

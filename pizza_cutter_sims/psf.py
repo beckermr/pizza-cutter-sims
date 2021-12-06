@@ -34,6 +34,9 @@ class GalsimPSF(object):
         """
         return self.gs_object
 
+    def __eq__(self, other):
+        return self.gs_object == other.gs_object
+
 
 def gen_psf(*, rng, psf_config):
     """Generate the PSF for the SE image.
