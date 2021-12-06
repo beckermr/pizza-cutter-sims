@@ -94,6 +94,8 @@ def _run_pair(args):
             )
 
         return np.array(datap, dtype=dtype), np.array(datam, dtype=dtype)
+    except KeyError:
+        raise
     except Exception as e:
         import traceback
         print("sim failed: %s\n%s" % (repr(e), traceback.format_exc()), flush=True)
