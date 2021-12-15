@@ -20,7 +20,7 @@ def test_psf_gen_psf_gsobject():
         "beta": 2.5,
         "fwhm": 2.0,
         "fwhm_frac_std": 0,
-        "shear": 0.1,
+        "shear": [0.1, 0.1],
         "shear_std": 0,
     }
     gs_config, psf = gen_psf(rng=rng, psf_config=psf_config)
@@ -42,7 +42,7 @@ def test_psf_gen_psf_gsobject_rng():
         "beta": 2.5,
         "fwhm": 2.0,
         "fwhm_frac_std": 0.1,
-        "shear": 0.1,
+        "shear": [0.1, 0.1],
         "shear_std": 0.01,
     }
     gs_config, psf = gen_psf(rng=rng, psf_config=psf_config)
