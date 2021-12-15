@@ -60,10 +60,10 @@ def gen_psf(*, rng, psf_config):
         g2 = 1.1
         while np.abs(g1) > 1 or np.abs(g2) > 1 or np.abs(g1*g1 + g2*g2) > 1:
             g1 = (
-                psf_config["shear"] + rng.normal() * psf_config["shear_std"]
+                psf_config["shear"][0] + rng.normal() * psf_config["shear_std"]
             )
             g2 = (
-                psf_config["shear"] + rng.normal() * psf_config["shear_std"]
+                psf_config["shear"][1] + rng.normal() * psf_config["shear_std"]
             )
         width = psf_config["fwhm"] * (
             1.0 + psf_config["fwhm_frac_std"] * rng.normal()

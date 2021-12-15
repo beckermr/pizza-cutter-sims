@@ -52,12 +52,12 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
         upos = upos.ravel() * delta + delta / 2 - width / 2
         vpos = vpos.ravel() * delta + delta / 2 - width / 2
 
+        n_gals = layout_config["ngal_per_side"]**2
+
         # dither
         dither_scale = layout_config["dither_scale"]
-        upos += rng.uniform(low=-dither_scale/2, high=dither_scale/2)
-        vpos += rng.uniform(low=-dither_scale/2, high=dither_scale/2)
-
-        n_gals = layout_config["ngal_per_side"]**2
+        upos += rng.uniform(low=-dither_scale/2, high=dither_scale/2, size=n_gals)
+        vpos += rng.uniform(low=-dither_scale/2, high=dither_scale/2, size=n_gals)
 
     elif layout_config["type"] == "hex":
         width = pos_bounds[1] - pos_bounds[0]
@@ -76,9 +76,10 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
         vpos = hg[:, 1].ravel()
 
         # dither
+        n = upos.shape[0]
         dither_scale = layout_config["dither_scale"]
-        upos += rng.uniform(low=-dither_scale/2, high=dither_scale/2)
-        vpos += rng.uniform(low=-dither_scale/2, high=dither_scale/2)
+        upos += rng.uniform(low=-dither_scale/2, high=dither_scale/2, size=n)
+        vpos += rng.uniform(low=-dither_scale/2, high=dither_scale/2, size=n)
 
         msk = (
             (upos >= pos_bounds[0])

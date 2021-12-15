@@ -78,7 +78,7 @@ psf:
   fwhm: 0.9
   fwhm_frac_std: 0.1
   shear_std: 0
-  shear: 0
+  shear: [0, 0]
 
 layout:
   type: grid

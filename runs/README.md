@@ -73,6 +73,9 @@ stars key:
  - f = when interpolating fill with noise
  - a = apodize as opposed to interpolating
 
+psf key:
+ - m1{p|m}{N.NN} = shear has mean of N.NN in 1-axis with sign p or m
+ - m2{p|m}{N.NN} = shear has mean of B.NN in 2-axis with sign p or m
 
 ## notes
 
