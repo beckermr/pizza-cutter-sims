@@ -26,7 +26,7 @@ BMASK_EXPAND_GAIA_STAR = 2**24
 LOGGER = logging.getLogger(__name__)
 
 
-def gen_gaia_mag_rad(*, rng, num):
+def gen_gaia_mag_rad(*, rng, num, rad_dist):
     """Generate GAIA stars with radii.
 
     Parameters
@@ -35,24 +35,30 @@ def gen_gaia_mag_rad(*, rng, num):
         An RNG instance to use.
     num : int
         The number of stars to generate.
+    rad_dist : str
+        The distribution from which to draw the star radii. One of "gaia-des" or
+        "uniform".
 
     Returns
     -------
     mag_g : array-like, shape (num,)
         The g band magnitude.
     rad : array-like, shape (num,)
-        The mask radius for a DEs-like survey.
+        The mask radius for a DES-like survey.
     """
     u = rng.uniform(size=num)
     mag_g = np.polyval(GAIA_STAR_DIST_POLY, np.arcsinh(u/1e-6))
-    ply = np.poly1d(GAIA_STAR_RAD_POLY)
-    log10rad = ply(mag_g)
-    rad = np.power(10, log10rad)
+    if rad_dist == "gaia-des":
+        ply = np.poly1d(GAIA_STAR_RAD_POLY)
+        log10rad = ply(mag_g)
+        rad = np.power(10, log10rad)
+    else:
+        rad = rng.uniform(size=num) * 20 + 5
     return mag_g, rad
 
 
 def gen_stars(
-    *, rng, pos_bounds, coadd_wcs, dens_factor,
+    *, rng, pos_bounds, coadd_wcs, dens_factor, rad_dist,
     interp=None, mask_expand_rad=None, apodize=None
 ):
     """Generate GAIA stars for a simulation.
@@ -68,6 +74,9 @@ def gen_stars(
     dens_factor : float
         The factor by which to adjust the star density. A value of 1.0 results in a
         density of roughly 1 star per arcmin^2.
+    rad_dist : str
+        The distribution from which to draw the star radii. One of "gaia-des" or
+        "uniform".
     interp : ignored by this function
     mask_expand_rad : ignored by this function
     apodize : ignored by this function
@@ -88,7 +97,7 @@ def gen_stars(
     num = rng.poisson(lam=area*GAIA_STAR_DENS_PER_ARCMIN2 * dens_factor)
     if num > 0:
         LOGGER.debug("generating %d stars", num)
-        _, rad = gen_gaia_mag_rad(rng=rng, num=num)
+        _, rad = gen_gaia_mag_rad(rng=rng, num=num, rad_dist=rad_dist)
         upos = rng.uniform(low=pos_bounds[0], high=pos_bounds[1], size=num)
         vpos = rng.uniform(low=pos_bounds[0], high=pos_bounds[1], size=num)
         x, y = coadd_wcs.toImage(upos, vpos)
