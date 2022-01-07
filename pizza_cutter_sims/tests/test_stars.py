@@ -19,7 +19,7 @@ def test_gen_gaia_mag_rad():
     num = 5
     seed = 10
     rng = np.random.RandomState(seed=seed)
-    mag_g, rad = gen_gaia_mag_rad(rng=rng, num=num)
+    mag_g, rad = gen_gaia_mag_rad(rng=rng, num=num, rad_dist="gaia+des")
 
     assert mag_g.shape == (5,)
     assert rad.shape == (5,)
