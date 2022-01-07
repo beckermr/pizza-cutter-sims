@@ -26,7 +26,7 @@ def test_gen_gaia_mag_rad():
 
     seed = 10
     rng = np.random.RandomState(seed=seed)
-    mag_g1, rad1 = gen_gaia_mag_rad(rng=rng, num=num)
+    mag_g1, rad1 = gen_gaia_mag_rad(rng=rng, num=num, dist="gaia+des")
 
     assert np.array_equal(mag_g, mag_g1)
     assert np.array_equal(rad, rad1)
