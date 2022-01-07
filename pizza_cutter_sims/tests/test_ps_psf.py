@@ -1,10 +1,9 @@
 import numpy as np
 import galsim
 
-import pytest
-
 from pizza_cutter_sims.ps_psf import PowerSpectrumPSF
 from pizza_cutter_sims.constants import PIXEL_SCALE
+from pizza_cutter_sims.gsutils import build_gsobject
 
 
 def _get_fwhm_g1g2(psf_im):
@@ -29,22 +28,19 @@ def test_ps_psf_smoke():
     assert psf_im.calculateFWHM() > 0.5
 
 
-@pytest.mark.parametrize('noise_level', [None, 0, 1e-3])
-def test_ps_psf_seeding(noise_level):
+def test_ps_psf_seeding():
     ps1 = PowerSpectrumPSF(
         rng=np.random.RandomState(seed=10),
         im_width=120,
         buff=20,
         scale=PIXEL_SCALE,
-        trunc=10,
-        noise_level=noise_level)
+        trunc=10)
     ps2 = PowerSpectrumPSF(
         rng=np.random.RandomState(seed=10),
         im_width=120,
         buff=20,
         scale=PIXEL_SCALE,
-        trunc=10,
-        noise_level=noise_level)
+        trunc=10)
 
     psf1 = ps1.getPSF(galsim.PositionD(x=10, y=10))
     psf_im1 = psf1.drawImage(scale=PIXEL_SCALE)
@@ -55,16 +51,14 @@ def test_ps_psf_seeding(noise_level):
     assert np.array_equal(psf_im1.array, psf_im2.array)
 
 
-@pytest.mark.parametrize('noise_level', [None, 0, 1e-3])
-def test_ps_psf_variation(noise_level):
+def test_ps_psf_variation():
     rng = np.random.RandomState(seed=10)
     ps = PowerSpectrumPSF(
         rng=rng,
         im_width=120,
         buff=20,
         scale=PIXEL_SCALE,
-        trunc=1,
-        noise_level=noise_level)
+        trunc=1)
 
     psf1 = ps.getPSF(galsim.PositionD(x=0, y=0))
     psf_im1 = psf1.drawImage(scale=PIXEL_SCALE)
@@ -80,22 +74,19 @@ def test_ps_psf_variation(noise_level):
     assert np.abs(g21/g22 - 1) > 0.01
 
 
-@pytest.mark.parametrize('noise_level', [None, 0, 1e-3])
-def test_ps_psf_truncation(noise_level):
+def test_ps_psf_truncation():
     ps1 = PowerSpectrumPSF(
         rng=np.random.RandomState(seed=15),
         im_width=120,
         buff=120,
         scale=PIXEL_SCALE,
-        trunc=1,
-        noise_level=noise_level)
+        trunc=1)
     ps2 = PowerSpectrumPSF(
         rng=np.random.RandomState(seed=15),
         im_width=120,
         buff=120,
         scale=PIXEL_SCALE,
-        trunc=100,
-        noise_level=noise_level)
+        trunc=100)
 
     g1s1 = []
     g2s1 = []
@@ -117,3 +108,21 @@ def test_ps_psf_truncation(noise_level):
 
     assert np.std(g1s1) > np.std(g1s2)
     assert np.std(g2s1) > np.std(g2s2)
+
+
+def test_ps_psf_config():
+    rng = np.random.RandomState(seed=10)
+    ps = PowerSpectrumPSF(
+        rng=rng,
+        im_width=120,
+        buff=20,
+        scale=PIXEL_SCALE,
+        trunc=10)
+    psf = ps.getPSF(galsim.PositionD(x=10, y=10))
+    gs_config = ps.getPSFConfig(galsim.PositionD(x=10, y=10))
+    assert isinstance(psf, galsim.GSObject)
+    assert isinstance(gs_config, dict)
+
+    config_psf = build_gsobject(config=gs_config, kind='psf')
+    # galsim Moffat profiles support this
+    assert config_psf == psf
