@@ -19,14 +19,14 @@ def test_gen_gaia_mag_rad():
     num = 5
     seed = 10
     rng = np.random.RandomState(seed=seed)
-    mag_g, rad = gen_gaia_mag_rad(rng=rng, num=num)
+    mag_g, rad = gen_gaia_mag_rad(rng=rng, num=num, rad_dist="gaia+des")
 
     assert mag_g.shape == (5,)
     assert rad.shape == (5,)
 
     seed = 10
     rng = np.random.RandomState(seed=seed)
-    mag_g1, rad1 = gen_gaia_mag_rad(rng=rng, num=num)
+    mag_g1, rad1 = gen_gaia_mag_rad(rng=rng, num=num, rad_dist="gaia+des")
 
     assert np.array_equal(mag_g, mag_g1)
     assert np.array_equal(rad, rad1)

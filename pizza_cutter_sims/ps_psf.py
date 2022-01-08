@@ -18,20 +18,16 @@ class PowerSpectrumPSF(object):
     buff : int
         An extra buffer of pixels for things near the edge.
     scale : float
-        The pixel scale of the image
+        The pixel scale of the image.
     trunc : float
         The truncation scale for the shape/magnification power spectrum
         used to generate the PSF variation.
-    noise_level : float, optional
-        If not `None`, generate a noise field to add to the PSF images with
-        desired noise. A value of 1e-2 generates a PSF image with an
-        effective signal-to-noise of ~250.
     variation_factor : float, optional
         This factor is used internally to scale the overall variance in the
         PSF shape power spectra and the change in the PSF size across the
         image. Setting this factor greater than 1 results in more variation
         and less than 1 results in less variation.
-    median_seeing : float, optional
+    fwhm : float, optional
         The approximate median seeing for the PSF.
 
     Methods
@@ -39,19 +35,19 @@ class PowerSpectrumPSF(object):
     getPSF(pos)
         Get a PSF model at a given position.
     """
-    def __init__(self, *,
-                 rng, im_width, buff, scale, trunc=1,
-                 noise_level=None, variation_factor=10,
-                 median_seeing=0.8):
+    def __init__(
+        self, *,
+        rng, im_width, buff, scale, trunc=1, variation_factor=10,
+        fwhm=0.8
+    ):
         self._rng = rng
         self._im_cen = (im_width - 1)/2
         self._scale = scale
         self._tot_width = im_width + 2 * buff
         self._x_scale = 2.0 / self._tot_width / scale
-        self._noise_level = noise_level
         self._buff = buff
         self._variation_factor = variation_factor
-        self._median_seeing = median_seeing
+        self._median_seeing = fwhm
 
         # set the power spectrum and PSF params
         # Heymans et al, 2012 found L0 ~= 3 arcmin, given as 180 arcsec here.
@@ -96,11 +92,6 @@ class PowerSpectrumPSF(object):
         self._g1_mean = self._rng.normal() * 0.01 * variation_factor
         self._g2_mean = self._rng.normal() * 0.01 * variation_factor
 
-        if self._noise_level is not None and self._noise_level > 0:
-            self._noise_field = self._rng.normal(
-                size=(im_width + buff + 37, im_width + buff + 37)
-            ) * noise_level
-
         def _getlogmnsigma(mean, sigma):
             logmean = np.log(mean) - 0.5*np.log(1 + sigma**2/mean**2)
             logvar = np.log(1 + sigma**2/mean**2)
@@ -134,7 +125,17 @@ class PowerSpectrumPSF(object):
             beta=2.5,
             fwhm=fwhm).shear(g1=g1 + self._g1_mean, g2=g2 + self._g2_mean)
 
-        return psf
+        gs_config = {}
+        gs_config["type"] = "Moffat"
+        gs_config["fwhm"] = fwhm
+        gs_config["beta"] = 2.5
+        gs_config["shear"] = {
+            "type": "G1G2",
+            "g1": g1 + self._g1_mean,
+            "g2": g2 + self._g2_mean,
+        }
+
+        return psf, gs_config
 
     def getPSF(self, pos):
         """Get a PSF model at a given position.
@@ -150,17 +151,24 @@ class PowerSpectrumPSF(object):
         psf : galsim.GSObject
             A representation of the PSF as a galism object.
         """
-        psf = self._get_atm(pos.x, pos.y)
-
-        if self._noise_level is not None and self._noise_level > 0:
-            xll = int(pos.x + self._buff - 16)
-            yll = int(pos.y + self._buff - 16)
-            assert xll >= 0 and xll+33 <= self._noise_field.shape[1]
-            assert yll >= 0 and yll+33 <= self._noise_field.shape[0]
-
-            stamp = self._noise_field[yll:yll+33, xll:xll+33].copy()
-            psf += galsim.InterpolatedImage(
-                galsim.ImageD(stamp, scale=self._scale),
-                normalization="sb")
+        psf, _ = self._get_atm(pos.x, pos.y)
 
         return psf
+
+    def getPSFConfig(self, pos):
+        """Get a PSF config for a model at a given position.
+
+        Parameters
+        ----------
+        pos : galsim.PositionD
+            The position at which to compute the PSF. In zero-indexed
+            pixel coordinates.
+
+        Returns
+        -------
+        gs_config : dict
+            A representation of the PSF as a dictionary.
+        """
+        _, gs_config = self._get_atm(pos.x, pos.y)
+
+        return gs_config

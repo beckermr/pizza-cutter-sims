@@ -91,6 +91,7 @@ gal:
 
 star:
   dens_factor: 1
+  rad_dist: uniform
   interp:
     # these control how the interpolation is applied for star wholes
     # if fill_isolated_with_noise is True, then any missing pixel with no non-missing

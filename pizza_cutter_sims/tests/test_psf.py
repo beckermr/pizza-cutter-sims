@@ -23,7 +23,9 @@ def test_psf_gen_psf_gsobject():
         "shear": [0.1, 0.1],
         "shear_std": 0,
     }
-    gs_config, psf = gen_psf(rng=rng, psf_config=psf_config)
+    gs_config, psf = gen_psf(
+        rng=rng, psf_config=psf_config, se_image_shape=None, se_wcs=None
+    )
 
     assert gs_config == {
         "type": "Moffat",
@@ -45,7 +47,9 @@ def test_psf_gen_psf_gsobject_rng():
         "shear": [0.1, 0.1],
         "shear_std": 0.01,
     }
-    gs_config, psf = gen_psf(rng=rng, psf_config=psf_config)
+    gs_config, psf = gen_psf(
+        rng=rng, psf_config=psf_config, se_image_shape=None, se_wcs=None
+    )
 
     rng = np.random.RandomState(seed=42)
     g1 = 0.1 + 0.01 * rng.normal()
@@ -65,4 +69,6 @@ def test_psf_gen_psf_gsobject_rng():
 def test_psf_gen_psf_raises():
     rng = np.random.RandomState(seed=42)
     with pytest.raises(ValueError):
-        gen_psf(rng=rng, psf_config={"type": "blah"})
+        gen_psf(
+            rng=rng, psf_config={"type": "blah"}, se_image_shape=None, se_wcs=None
+        )

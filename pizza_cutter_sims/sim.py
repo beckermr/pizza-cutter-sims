@@ -186,10 +186,12 @@ def generate_sim(
         ii['image_flags'] = 0
 
     # now make PSFs
-    for ii in src_info:
+    for se_ind, ii in enumerate(src_info):
         _psf_config, _psf_obj = gen_psf(
             rng=rng,
             psf_config=psf_config,
+            se_image_shape=se_image_shape,
+            se_wcs=wcss[se_ind],
         )
         ii['galsim_psf_config'] = _psf_config
         psfs.append(_psf_obj)

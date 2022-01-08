@@ -3,6 +3,7 @@ import logging
 import numpy as np
 
 from .gsutils import build_gsobject
+from .ps_psf import PowerSpectrumPSF
 
 LOGGER = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class GalsimPSF(object):
         return self.gs_object == other.gs_object
 
 
-def gen_psf(*, rng, psf_config):
+def gen_psf(*, rng, psf_config, se_image_shape, se_wcs):
     """Generate the PSF for the SE image.
 
     Parameters
@@ -47,6 +48,10 @@ def gen_psf(*, rng, psf_config):
         An RNG instance to use.
     psf_config : dict
         A dictionary of the PSF config information.
+    se_image_shape : int
+        The shape of the SE image.
+    se_wcs : galsim WCS object
+        The WCS for the SE image.
 
     Returns
     -------
@@ -91,5 +96,19 @@ def gen_psf(*, rng, psf_config):
         LOGGER.debug("psf config: %s", res[0])
         LOGGER.debug("galsim psf: %s", res[1].gs_object)
         return res
+    elif psf_config["type"] == "ps":
+        psf_obj = PowerSpectrumPSF(
+            rng=rng,
+            im_width=se_image_shape,
+            buff=20,
+            trunc=1,
+            scale=np.sqrt(se_wcs.pixelArea(image_pos=se_wcs.origin)),
+            variation_factor=psf_config["variation_factor"],
+            fwhm=psf_config["fwhm"],
+        )
+        gs_config = psf_obj.getPSFConfig(se_wcs.origin)
+        LOGGER.debug("psf config: %s", gs_config)
+        LOGGER.debug("galsim psf: %s", psf_obj.getPSF(se_wcs.origin))
+        return gs_config, psf_obj
     else:
         raise ValueError("PSF type '%s' not supported!" % psf_config["type"])
