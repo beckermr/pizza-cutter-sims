@@ -31,3 +31,4 @@ dask
 distributed
 des-sxdes
 parsl
+lsstdesc.weaklensingdeblending

@@ -33,7 +33,7 @@ jobs:
           mamba install --quiet \
             --file=requirements.txt
           python -m pip install -e .
-          wget https://www.cosmo.bnl.gov/www/beckermr/OneDegSq.fits
+          wget -q https://www.cosmo.bnl.gov/www/beckermr/OneDegSq.fits
           echo "CATSIM_DIR=$(pwd)" >> $GITHUB_ENV
 
       - name: lint
