@@ -85,6 +85,8 @@ def run_end2end_pair_with_shear(
         return pres, mres
     except KeyError:
         raise
+    except TypeError:
+        raise
     except Exception as e:
         import traceback
         print("sim failed: %s\n%s" % (repr(e), traceback.format_exc()), flush=True)
