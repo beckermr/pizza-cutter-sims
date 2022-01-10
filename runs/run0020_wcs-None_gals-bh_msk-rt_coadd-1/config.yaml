@@ -62,6 +62,7 @@ gal:
 
 star:
   dens_factor: 0
+  rad_dist: "uniform"
   interp:
     skip: True
   apodize:
