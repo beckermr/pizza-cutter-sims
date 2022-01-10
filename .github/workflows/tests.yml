@@ -33,17 +33,23 @@ jobs:
           mamba install --quiet \
             --file=requirements.txt
           python -m pip install -e .
+          wget https://www.cosmo.bnl.gov/www/beckermr/OneDegSq.fits
+          echo "CATSIM_DIR=$(pwd)" >> $GITHUB_ENV
 
       - name: lint
         shell: bash -l {0}
         run: |
           flake8 pizza_cutter_sims
           flake8 bin/*
+        env:
+          CATSIM_DIR: ${{ env.CATSIM_DIR }}
 
       - name: test
         shell: bash -l {0}
         run: |
           pytest -vvs pizza_cutter_sims
+        env:
+          CATSIM_DIR: ${{ env.CATSIM_DIR }}
 
       - name: run example
         shell: bash -l {0}
@@ -51,6 +57,8 @@ jobs:
           pushd examples
           run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=10 --backend=loky
           popd
+        env:
+          CATSIM_DIR: ${{ env.CATSIM_DIR }}
 
       - name: try all runs
         shell: bash -l {0}
@@ -63,3 +71,5 @@ jobs:
             popd
           done
           popd
+        env:
+          CATSIM_DIR: ${{ env.CATSIM_DIR }}

@@ -1,9 +1,11 @@
 import logging
 import numpy as np
 import galsim
+import copy
 from hexalattice.hexalattice import create_hex_grid
 from .glass import make_glass_layout
 from .constants import MAGZP_REF
+from . import gals_wldeblend
 
 LOGGER = logging.getLogger(__name__)
 
@@ -32,10 +34,21 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
         The v position in world coordinates.
     noise : float
         The pixel noise to apply to the image.
+    noise_scale : float
+        The pixel scale associated with the noise level. This can be used to
+        adjust the noise for varying pixel sizes. Can be None.
     """
     # possibly get the number density
     if gal_config["type"] in ["exp-bright", "exp-dim", "exp-super-bright"]:
         n_gals = None
+    elif (
+        gal_config["type"].startswith("des-")
+        or gal_config["type"].startswith("lsst-")
+    ):
+        data = gals_wldeblend.init_wldeblend(survey_bands=gal_config["type"])
+        area = ((pos_bounds[1] - pos_bounds[0]) / 60.0)**2
+        n_gals_mn = area * data.ngal_per_arcmin2
+        n_gals = rng.poisson(n_gals_mn)
     else:
         raise ValueError("galaxy type '%s' not supported!" % gal_config["type"])
 
@@ -126,6 +139,7 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
                 "The key 'noise' is in the gal config but it is being "
                 "ignored and set to 10!"
             )
+        noise_scale = None
 
         if gal_config["type"] == "exp-super-bright":
             mag = 14.0  # snr ~ 2e4
@@ -145,7 +159,21 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
                     n=1,
                 ).withFlux(flux)
             )
+    elif (
+        gal_config["type"].startswith("des-")
+        or gal_config["type"].startswith("lsst-")
+    ):
+        data = gals_wldeblend.init_wldeblend(survey_bands=gal_config["type"])
+        gals = [
+            gals_wldeblend.get_gal_wldeblend(
+                rng=rng,
+                data=data,
+            )
+            for _ in range(n_gals)
+        ]
+        noise = copy.copy(data.noise)
+        noise_scale = copy.copy(data.pixel_scale)
     else:
         raise ValueError("galaxy type '%s' not supported!" % gal_config["type"])
 
-    return gals, upos, vpos, noise
+    return gals, upos, vpos, noise, noise_scale
