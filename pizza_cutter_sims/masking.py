@@ -1,9 +1,13 @@
 import numpy as np
+from numba import njit
+
+FIDUCIAL_COADD_AREA = (0.263*250)**2
 
 
 def generate_cosmic_rays(
-        shape, mean_cosmic_rays=10,
-        min_length=10, max_length=30, rng=None):
+    shape, mean_cosmic_rays=10,
+    min_length=10, max_length=30, rng=None, area=None
+):
     """Generate a binary mask w/ cosmic rays.
 
     This routine generates cosmic rays by choosing a random
@@ -32,6 +36,8 @@ def generate_cosmic_rays(
     rng : np.random.RandomState or None, optional
         An RNG to use. If none is provided, a new `np.random.RandomState`
         state instance will be created.
+    area : float
+        If not None, scale the mean rate by area / FIDUCIAL_COADD_AREA.
 
     Returns
     -------
@@ -40,6 +46,8 @@ def generate_cosmic_rays(
     """
     msk = np.zeros(shape)
     rng = rng or np.random.RandomState()
+    if area is not None:
+        mean_cosmic_rays *= (area / FIDUCIAL_COADD_AREA)
     n_cosmic_rays = rng.poisson(mean_cosmic_rays)
 
     for _ in range(n_cosmic_rays):
@@ -71,14 +79,15 @@ def generate_cosmic_rays(
 
 
 def generate_bad_columns(
-        shape, mean_bad_cols=10,
-        widths=(1, 2, 5, 10), p=(0.8, 0.1, 0.075, 0.025),
-        min_length_frac=(1, 1, 0.25, 0.25),
-        max_length_frac=(1, 1, 0.75, 0.75),
-        gap_prob=(0.30, 0.30, 0, 0),
-        min_gap_frac=(0.1, 0.1, 0, 0),
-        max_gap_frac=(0.3, 0.3, 0, 0),
-        rng=None):
+    shape, mean_bad_cols=10,
+    widths=(1, 2, 5, 10), p=(0.8, 0.1, 0.075, 0.025),
+    min_length_frac=(1, 1, 0.25, 0.25),
+    max_length_frac=(1, 1, 0.75, 0.75),
+    gap_prob=(0.30, 0.30, 0, 0),
+    min_gap_frac=(0.1, 0.1, 0, 0),
+    max_gap_frac=(0.3, 0.3, 0, 0),
+    rng=None, area=None,
+):
     """Generate a binary mask w/ bad columns.
 
     Parameters
@@ -110,6 +119,8 @@ def generate_bad_columns(
     rng : np.random.RandomState or None, optional
         An RNG to use. If none is provided, a new `np.random.RandomState`
         state instance will be created.
+    area : float
+        If not None, scale the mean rate by sqrt(area / FIDUCIAL_COADD_AREA).
 
     Returns
     -------
@@ -119,6 +130,8 @@ def generate_bad_columns(
     p = np.array(p) / np.sum(p)
     msk = np.zeros(shape)
     rng = rng or np.random.RandomState()
+    if area is not None:
+        mean_bad_cols *= np.sqrt(area / FIDUCIAL_COADD_AREA)
     n_bad_cols = rng.poisson(mean_bad_cols)
 
     for _ in range(n_bad_cols):
@@ -147,11 +160,25 @@ def generate_bad_columns(
     return msk.astype(bool)
 
 
+@njit
 def _point_line_dist(x1, y1, x2, y2, x0, y0):
     return np.abs((x2-x1)*(y1-y0) - (x1-x0)*(y2-y1)) / np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 
-def generate_streaks(shape, mean_streaks=1, min_wdth=2, max_width=10, rng=None):
+@njit
+def _fill_streaks_mask(msk, shape, x1s, y1s, x2s, y2s, half_widths):
+    for yind in range(shape[0]):
+        y0 = yind + 0.5
+        for xind in range(shape[1]):
+            x0 = xind + 0.5
+            for x1, y1, x2, y2, half_width in zip(x1s, y1s, x2s, y2s, half_widths):
+                if _point_line_dist(x1, y1, x2, y2, x0, y0) < half_width:
+                    msk[yind, xind] = 1
+
+
+def generate_streaks(
+    shape, mean_streaks=1, min_wdth=2, max_width=10, rng=None, area=None,
+):
     """Make image streaks representing airplanes and other flying things.
 
     The streak width range is guess based on
@@ -171,6 +198,8 @@ def generate_streaks(shape, mean_streaks=1, min_wdth=2, max_width=10, rng=None):
     rng : np.random.RandomState or None, optional
         An RNG to use. If none is provided, a new `np.random.RandomState`
         state instance will be created.
+    area : float
+        If not None, scale the mean rate by area / FIDUCIAL_COADD_AREA.
 
     Returns
     -------
@@ -179,6 +208,8 @@ def generate_streaks(shape, mean_streaks=1, min_wdth=2, max_width=10, rng=None):
     """
     msk = np.zeros(shape, dtype=np.int32)
     rng = rng or np.random.RandomState()
+    if area is not None:
+        mean_streaks *= (area / FIDUCIAL_COADD_AREA)
 
     n_streaks = rng.poisson(mean_streaks)
     if n_streaks > 0:
@@ -192,13 +223,6 @@ def generate_streaks(shape, mean_streaks=1, min_wdth=2, max_width=10, rng=None):
             high=max_width,
             size=n_streaks,
         ) / 2
-
-        for yind in range(shape[0]):
-            y0 = yind + 0.5
-            for xind in range(shape[1]):
-                x0 = xind + 0.5
-                for x1, y1, x2, y2, half_width in zip(x1s, y1s, x2s, y2s, half_widths):
-                    if _point_line_dist(x1, y1, x2, y2, x0, y0) < half_width:
-                        msk[yind, xind] = 1
+        _fill_streaks_mask(msk, shape, x1s, y1s, x2s, y2s, half_widths)
 
     return msk.astype(bool)

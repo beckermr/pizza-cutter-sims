@@ -230,9 +230,10 @@ def generate_sim(
             _img_noise = img_noise / img_noise_scale**2 * _wcs.pixelArea()
         else:
             _img_noise = img_noise
+        area = _wcs.pixelArea() * se_image_shape**2
 
         # keep overall S/N constant
-        _img_noise /= np.sqrt(len(src_info))
+        _img_noise *= np.sqrt(len(src_info))
 
         image = galsim.ImageD(bnds, dtype=np.float32, init_value=0)
 
@@ -271,7 +272,7 @@ def generate_sim(
 
             _msk = generate_bad_columns(
                 shape=(se_image_shape, se_image_shape),
-                rng=bad_col_rng,
+                rng=bad_col_rng, area=area,
                 **msk_config["bad_columns"],
             )
             msk[_msk] |= SIM_BMASK_BADCOLS
@@ -283,7 +284,7 @@ def generate_sim(
 
             _msk = generate_cosmic_rays(
                 shape=(se_image_shape, se_image_shape),
-                rng=cray_rng,
+                rng=cray_rng, area=area,
                 **msk_config["cosmic_rays"],
             )
             msk[_msk] |= SIM_BMASK_COSMICS
@@ -295,7 +296,7 @@ def generate_sim(
 
             _msk = generate_streaks(
                 shape=(se_image_shape, se_image_shape),
-                rng=streak_rng,
+                rng=streak_rng, area=area,
                 **msk_config["streaks"],
             )
             msk[_msk] |= SIM_BMASK_STREAKS
