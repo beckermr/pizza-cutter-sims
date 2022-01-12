@@ -263,6 +263,8 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         n_chunks += 1
 
     n_report_chunks = n_report // n_pack
+    if n_report_chunks * n_pack < n_report:
+        n_report_chunks += 1
     if n_report_chunks < 1:
         n_report_chunks = 1
 
