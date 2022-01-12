@@ -296,7 +296,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                 for chunk in range(n_chunks):
                     start = chunk * n_pack
                     end = min(start + n_pack, len(args))
-                    futs.append(_run_sets_of_pairs, args[start:end])
+                    futs.append(pool.submit(_run_sets_of_pairs, args[start:end]))
 
                 outputs = []
                 for i in PBar(
