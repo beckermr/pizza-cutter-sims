@@ -107,11 +107,12 @@ source activate %s
 
     def __enter__(self):
         parsl.load(self.config)
-        self._axctive = True
+        self._active = True
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         parsl.clear()
-        self._axctive = False
+        self._active = False
 
     def map(self, func, args):
         """Map a function over a list of arguments."""
