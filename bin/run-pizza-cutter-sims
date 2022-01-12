@@ -282,26 +282,27 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_sub):
                     range(len(futs)), total=len(futs), n_bars=79, desc='running jobs'
                 ):
                     ok = False
-                    for k in range(len(futs)):
-                        f = futs[k]
-                        f.done()
-                        try:
-                            res = f.result(timeout=10)
-                            ok = True
-                            break
-                        except Exception as e:
-                            if isinstance(e,  concurrent.futures.TimeoutError):
-                                continue
-                            else:
-                                res = None, None
+                    while not ok:
+                        for k in range(len(futs)):
+                            f = futs[k]
+                            f.done()
+                            try:
+                                res = f.result(timeout=10)
                                 ok = True
                                 break
+                            except Exception as e:
+                                if isinstance(e,  concurrent.futures.TimeoutError):
+                                    continue
+                                else:
+                                    res = None, None
+                                    ok = True
+                                    break
 
                     if ok:
                         futs.pop(k)
                         outputs.append(res)
 
-                    if i % n_sub == 0 and i > 0 and rank == 0:
+                    if (i+1) % n_sub == 0 and i+1 > 0 and rank == 0:
                         print("\n", flush=True, end="")
                         res = _measure_m_c(outputs, cfg)
                         if output is not None and res is not None:
