@@ -14,6 +14,8 @@ import numpy as np
 import tqdm
 import schwimmbad
 
+from .parsl import ParslCondorPool
+
 GLOBAL_START_TIME = time.time()
 
 
@@ -69,71 +71,77 @@ def get_n_workers(backend, n_workers=None):
 
 
 @contextlib.contextmanager
-def backend_pool(backend, n_workers=None, verbose=100):
+def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
     """Context manager to build a schwimmbad `pool` object with the `map` method.
 
     Parameters
     ----------
     backend : str
-        One of 'sequential', `dask`, `multiprocessing`, `loky`, or 'mpi'.
+        One of 'condor', 'sequential', 'dask', 'multiprocessing', 'loky', or 'mpi'.
     n_workers : int, optional
         The number of workers to use. Defaults to 1 for the 'sequential' backend,
         the cpu count for the 'loky' backend, and the size of the default global
         communicator for the 'mpi' backend.
+    **kwargs : extra keyword arguments
+        These are passed to ParslCondorPool.
     """
     if backend == "mp":
         backend = "multiprocessing"
 
-    _n_workers = get_n_workers(backend, n_workers=n_workers)
+    if backend == "condor":
+        with ParslCondorPool(verbose=verbose, **kwargs) as pool:
+            yield pool
+    else:
+        _n_workers = get_n_workers(backend, n_workers=n_workers)
 
-    try:
-        if "dask" in backend:
-            env = {
-                "OMP_NUM_THREADS": "1",
-                "OPENBLAS_NUM_THREADS": "1",
-                "MKL_NUM_THREADS": "1",
-                "VECLIB_MAXIMUM_THREADS": "1",
-                "NUMEXPR_NUM_THREADS": "1",
-            }
-            env.update(os.environ)
-            with dask.config.set({"distributed.worker.daemon": False}):
-                with Client(
-                    processes=True,
-                    n_workers=_n_workers,
-                    threads_per_worker=1,
-                    env=env,
-                    silence_logs=logging.ERROR,
-                ) as client:
-                    with joblib.parallel_backend('dask', n_jobs=_n_workers):
-                        yield schwimmbad.JoblibPool(
-                            n_jobs=_n_workers,
-                            verbose=verbose,
-                            max_nbytes=0,
-                        )
-        else:
-            if backend == "sequential":
-                pool = schwimmbad.JoblibPool(
-                    _n_workers,
-                    backend=backend,
-                    verbose=verbose,
-                )
+        try:
+            if "dask" in backend:
+                env = {
+                    "OMP_NUM_THREADS": "1",
+                    "OPENBLAS_NUM_THREADS": "1",
+                    "MKL_NUM_THREADS": "1",
+                    "VECLIB_MAXIMUM_THREADS": "1",
+                    "NUMEXPR_NUM_THREADS": "1",
+                }
+                env.update(os.environ)
+                with dask.config.set({"distributed.worker.daemon": False}):
+                    with Client(
+                        processes=True,
+                        n_workers=_n_workers,
+                        threads_per_worker=1,
+                        env=env,
+                        silence_logs=logging.ERROR,
+                    ) as client:
+                        with joblib.parallel_backend('dask', n_jobs=_n_workers):
+                            yield schwimmbad.JoblibPool(
+                                n_jobs=_n_workers,
+                                verbose=verbose,
+                                max_nbytes=0,
+                            )
             else:
-                if backend in ["mpi", "multiprocessing"]:
-                    pool = schwimmbad.choose_pool(
-                        mpi=backend == "mpi",
-                        processes=_n_workers,
-                    )
-                else:
+                if backend == "sequential":
                     pool = schwimmbad.JoblibPool(
                         _n_workers,
                         backend=backend,
                         verbose=verbose,
-                        max_nbytes=0,
                     )
-            yield pool
-    finally:
-        if "pool" in locals():
-            pool.close()
+                else:
+                    if backend in ["mpi", "multiprocessing"]:
+                        pool = schwimmbad.choose_pool(
+                            mpi=backend == "mpi",
+                            processes=_n_workers,
+                        )
+                    else:
+                        pool = schwimmbad.JoblibPool(
+                            _n_workers,
+                            backend=backend,
+                            verbose=verbose,
+                            max_nbytes=0,
+                        )
+                yield pool
+        finally:
+            if "pool" in locals():
+                pool.close()
 
 
 def cut_nones(presults, mresults):

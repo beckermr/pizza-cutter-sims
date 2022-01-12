@@ -15,31 +15,31 @@ from esutil.pbar import PBar
 # used to get the DEBUG_PLOT logging level
 import pizza_cutter  # noqa
 
-from pizza_cutter_sims.main import run_end2end_pair_with_shear
 from pizza_cutter_sims.run_utils import (
-    measure_shear_metadetect,
     estimate_m_and_c,
     backend_pool,
     cut_nones,
     get_n_workers,
 )
 
-START = time.time()
-
-
-def _is_none(res):
-    if res is None:
-        return True
-
-    if any(res[k] is None for k in res):
-        return True
-
-    return False
-
 
 def _run_pair(args):
+    import numpy as np
+    from pizza_cutter_sims.main import run_end2end_pair_with_shear
+    from pizza_cutter_sims.run_utils import measure_shear_metadetect
+
+    def _is_none(res):
+        if res is None:
+            return True
+
+        if any(res[k] is None for k in res):
+            return True
+
+        return False
+
     try:
-        kwargs, num, backend = args
+        kwargs, num, backend, start_time = args
+
         pres, mres = run_end2end_pair_with_shear(**kwargs)
 
         if _is_none(pres) or _is_none(mres):
@@ -89,7 +89,7 @@ def _run_pair(args):
 
         if backend == "mpi":
             print(
-                "[% 10ds] did %04d" % (time.time() - START, num+1),
+                "[% 10ds] did %04d" % (time.time() - start_time, num+1),
                 flush=True,
             )
 
@@ -186,6 +186,8 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
 def main(config, seed, output, n_sims, log_level, backend, n_workers):
     """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
 
+    start_time = time.time()
+
     if backend == "sequential" or backend == "local":
         logging.basicConfig(stream=sys.stdout)
         for code in ["ngmix", "metadetect", "pizza_cutter", "pizza_cutter_sims"]:
@@ -234,6 +236,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
                 ),
                 i,
                 backend,
+                start_time,
             ))
     else:
         args = []
@@ -269,7 +272,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
                 end = loc + n_sub
                 if end > n_sims:
                     end = n_sims
-                if backend in ["dask", "loky"]:
+                if backend in ["dask", "loky", "condor"]:
                     print("\n", flush=True, end="")
                 _outputs = pool.map(_run_pair, args[loc:end])
                 outputs.extend(_outputs)
