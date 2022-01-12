@@ -287,7 +287,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_sub):
                             f = futs[k]
                             f.done()
                             try:
-                                res = f.result(timeout=10)
+                                res = f.result(timeout=1)
                                 ok = True
                                 break
                             except Exception as e:
