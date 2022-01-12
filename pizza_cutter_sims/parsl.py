@@ -88,7 +88,7 @@ source activate %s
                 HighThroughputExecutor(
                     worker_debug=True,
                     max_workers=1,
-                    poll_period=60000,  # 10 seconds in milliseconds
+                    poll_period=10000,  # 10 seconds in milliseconds
                     provider=MyCondorProvider(
                         cores_per_slot=1,
                         # mem_per_slot=2, done in scheduler_options
