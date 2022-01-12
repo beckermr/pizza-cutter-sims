@@ -74,7 +74,7 @@ source activate %s
         self,
         conda_env="pizza-cutter-sims",
         walltime_hours=12,
-        parallelism=0.75,
+        parallelism=1,
         verbose=0,
     ):
         self._conda_env = conda_env
@@ -135,3 +135,10 @@ source activate %s
             results.append(fut.result())
 
         return results
+
+    def submit(self, func, arg):
+        """Submit a function with arguments and return a future."""
+        if not self._active:
+            raise RuntimeError("You must call 'map' within a context manager!")
+        pfunc = parsl.python_app(func)
+        return pfunc(arg)
