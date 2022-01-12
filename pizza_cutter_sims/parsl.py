@@ -88,14 +88,14 @@ source activate %s
                 HighThroughputExecutor(
                     worker_debug=True,
                     max_workers=1,
-                    poll_period=10000,
+                    poll_period=60000,  # 10 seconds in milliseconds
                     provider=MyCondorProvider(
                         cores_per_slot=1,
                         # mem_per_slot=2, done in scheduler_options
                         nodes_per_block=1,
                         init_blocks=0,
                         parallelism=self._parallelism,
-                        max_blocks=10000,  # 10 seconds in milliseconds
+                        max_blocks=10000,
                         scheduler_options=self._condor_preamble,
                         worker_init=self._worker_init % self._conda_env,
                         walltime="%d:00:00" % self._walltime_hours,
