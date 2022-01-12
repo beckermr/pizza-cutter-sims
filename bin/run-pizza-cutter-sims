@@ -176,7 +176,7 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
     '--backend', default='sequential', type=str,
     help=(
         "parallel backend to use (one of 'sequential', "
-        "'loky', 'multiprocessing', or 'mpi')"
+        "'loky', 'multiprocessing', 'condor', or 'mpi')"
     )
 )
 @click.option(
