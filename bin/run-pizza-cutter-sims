@@ -268,7 +268,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers):
         ) as pool:
             loc = 0
             outputs = []
-            for chunk in PBar(range(n_chunks), n_bars=79):
+            for chunk in PBar(range(n_chunks), n_bars=79, desc='simulation chunks'):
                 end = loc + n_sub
                 if end > n_sims:
                     end = n_sims

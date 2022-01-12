@@ -127,7 +127,7 @@ source activate %s
         n_tot = len(futs)
         itr = range(n_tot)
         if self._verbose > 0:
-            itr = PBar(itr, n_bars=79)
+            itr = PBar(itr, n_bars=79, desc='parsl+condor map')
         for i in itr:
             fut = futs[i]
             # this call sometimes helps the result return properly

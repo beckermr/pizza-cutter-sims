@@ -67,7 +67,7 @@ def get_n_workers(backend, n_workers=None):
     elif backend == "sequential":
         return 1
     elif backend == "condor":
-        return 10000
+        return 1000
     else:
         raise RuntimeError("backend '%s' not recognized!" % backend)
 
