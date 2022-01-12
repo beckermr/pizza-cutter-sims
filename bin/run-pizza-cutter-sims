@@ -277,7 +277,9 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_sub):
                     for arg in PBar(args, n_bars=79, desc="submitting jobs")
                 ]
                 outputs = []
-                for i, fut in PBar(enumerate(futs), n_bars=79, desc='running jobs'):
+                for i, fut in PBar(
+                    enumerate(futs), total=len(futs), n_bars=79, desc='running jobs'
+                ):
                     # this call sometimes helps the result return properly
                     fut.done()
                     outputs.append(fut.result())
