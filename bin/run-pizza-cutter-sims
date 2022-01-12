@@ -256,9 +256,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         args = []
 
     if n_report is None:
-        n_report = len(args) // 100
-    if n_report < 100:
-        n_report = 100
+        n_report = max(len(args) // 100, 100)
 
     n_chunks = n_sims // n_pack
     if n_chunks * n_pack < n_sims:
