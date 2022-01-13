@@ -140,6 +140,7 @@ run-pickled-task $1 $2 >& $3
         self.max_workers = max_workers
         self.execid = uuid.uuid4().hex
         self.execdir = "condor-exec/%s" % self.execid
+        self.conda_env = conda_env
         self._exec = None
         self.poll_interval = poll_interval
 
