@@ -135,7 +135,7 @@ run-pickled-task $1 $2 >& $3
 
     def __init__(
         self, max_workers=10000, poll_interval=10, conda_env="pizza-cutter-sims",
-        verbpse=None,
+        verbose=None,
     ):
         self.max_workers = max_workers
         self.execid = uuid.uuid4().hex
