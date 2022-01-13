@@ -147,6 +147,7 @@ run-pickled-task $1 $2 >& $3
 
     def __enter__(self):
         os.makedirs(self.execdir, exist_ok=True)
+        print("starting condor executor: %s" % self.execir, flush=True)
 
         with open(os.path.join(self.execdir, "run.sh"), "w") as fp:
             fp.write(self._worker_init % self.conda_env)
