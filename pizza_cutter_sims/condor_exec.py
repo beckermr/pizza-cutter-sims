@@ -133,9 +133,9 @@ fi
 
 source activate %s
 
-run-pickled-task $1 $2 $3 >& ${tmpdir}/$3
+run-pickled-task $1 $2 $3 >& ${tmpdir}/$(basename $3)
 
-mv ${tmpdir}/$3 $3
+mv ${tmpdir}/$(basename $3) $3
 """
 
     def __init__(
