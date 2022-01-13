@@ -5,6 +5,7 @@ scripts = [
     'bin/run-pizza-cutter-sims',
     'bin/make-pizza-cutter-sims-job',
     'bin/meas-pizza-cutter-sims',
+    'bin/run-pickled-task',
 ]
 
 __version__ = None

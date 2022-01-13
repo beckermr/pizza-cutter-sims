@@ -14,7 +14,8 @@ import numpy as np
 import tqdm
 import schwimmbad
 
-from .parsl import ParslCondorPool
+# from .parsl import ParslCondorPool
+from .condor_exec import CondorExecutor
 
 GLOBAL_START_TIME = time.time()
 
@@ -91,7 +92,7 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
         backend = "multiprocessing"
 
     if backend == "condor":
-        with ParslCondorPool(verbose=verbose, **kwargs) as pool:
+        with CondorExecutor(verbose=verbose, **kwargs) as pool:
             yield pool
     else:
         _n_workers = get_n_workers(backend, n_workers=n_workers)
