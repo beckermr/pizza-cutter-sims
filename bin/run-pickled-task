@@ -3,6 +3,7 @@ import os
 import sys
 import joblib
 import subprocess
+import cloudpickle
 
 
 def main():
@@ -11,7 +12,8 @@ def main():
     logfile = sys.argv[3]
 
     try:
-        rd = joblib.load(input_file)
+        with open(input_file, "rb") as fp:
+            rd = cloudpickle.load(fp)
 
         try:
             res = rd[0](*rd[1], **rd[2])

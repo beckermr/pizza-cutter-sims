@@ -2,6 +2,7 @@ import os
 import time
 import uuid
 import subprocess
+import cloudpickle
 import joblib
 import atexit
 
@@ -39,7 +40,8 @@ def _submit_and_poll_function(execid, execdir, id, poll_interval, func, args, kw
 
     ##############################
     # dump the file
-    joblib.dump(joblib.delayed(func)(*args, **kwargs), infile)
+    with open(infile, "wb") as fp:
+        cloudpickle.dump(joblib.delayed(func)(*args, **kwargs), fp)
 
     ##############################
     # submit the condor job
