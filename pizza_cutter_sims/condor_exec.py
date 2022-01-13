@@ -13,7 +13,7 @@ ALL_CONDOR_JOBS = {}
 def _kill_condor_jobs():
     chunksize = 100
     cjobs = []
-    for i, cjob in list(ALL_CONDOR_JOBS):
+    for cjob in list(ALL_CONDOR_JOBS):
         cjobs.append(cjob)
         if len(cjobs) == chunksize:
             os.system("condor_rm " + cjobs)
@@ -108,6 +108,8 @@ Queue
 
 class CondorExecutor():
     _worker_init = """\
+#!/bin/bash
+
 source ~/.bashrc
 
 export OMP_NUM_THREADS=1
