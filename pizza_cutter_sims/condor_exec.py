@@ -10,6 +10,17 @@ from concurrent.futures import ThreadPoolExecutor
 
 ALL_CONDOR_JOBS = {}
 
+STATUS_DICT = {
+    "": "unknown condor failure :(",
+    "1": "Idle",
+    "2": "Running",
+    "3": "Removed",
+    "4": "Completed",
+    "5": "Held",
+    "6": "Transferring Output",
+    "7": "Suspended",
+}
+
 
 def _kill_condor_jobs():
     chunksize = 100
@@ -91,11 +102,27 @@ Queue
     ##############################
     # poll for it being done
     check_file = outfile + ".done"
+    status_code = None
     while not os.path.exists(check_file):
         time.sleep(poll_interval)
+        res = subprocess.run(
+            "condor_q %s -af JobStatus" % cjob,
+            shell=True,
+            capture_output=True,
+        )
+        status_code = res.stdout.decode("utf-8").strip()
+        if status_code in ["3", "5", "7"]:
+            break
 
     del ALL_CONDOR_JOBS[cjob]
-    res = joblib.load(outfile)
+    if os.path.exists(outfile):
+        res = joblib.load(outfile)
+    elif status_code in ["3", "5", "7"]:
+        res = RuntimeError(
+            "Condor job %s: status %s" % (id, STATUS_DICT[status_code])
+        )
+    else:
+        res = RuntimeError("Condor job %s: no status or job output found!" % id)
 
     subprocess.run(
         "rm -f %s %s %s.done" % (infile, outfile, outfile),
