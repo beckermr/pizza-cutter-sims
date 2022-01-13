@@ -17,8 +17,9 @@ def _kill_condor_jobs():
     for cjob in list(ALL_CONDOR_JOBS):
         cjobs.append(cjob)
         if len(cjobs) == chunksize:
-            os.system("condor_rm " + cjobs)
-            os.system("condor_rm -forcex " + cjobs)
+            _cjobs = " ".join(cjobs)
+            os.system("condor_rm " + _cjobs)
+            os.system("condor_rm -forcex " + _cjobs)
             cjobs = []
 
     if cjobs:
