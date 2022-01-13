@@ -131,7 +131,7 @@ fi
 
 source activate %s
 
-run-pickled-task $1 $2 >& $3
+run-pickled-task $1 $2 $3 >& $3
 """
 
     def __init__(

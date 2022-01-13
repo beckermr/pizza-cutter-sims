@@ -1,26 +1,28 @@
 #!/usr/bin/env python
+import os
 import sys
-import cloudpickle
+import joblib
 import subprocess
 
 
 def main():
     input_file = sys.argv[1]
     output_file = sys.argv[2]
-
-    with open(input_file, "rb") as fp:
-        rd = cloudpickle.loads(fp)
+    logfile = sys.argv[3]
 
     try:
-        res = rd[0](*rd[1], **rd[2])
+        rd = joblib.load(input_file)
 
-    except Exception as e:
-        res = e
+        try:
+            res = rd[0](*rd[1], **rd[2])
+        except Exception as e:
+            res = e
 
-    with open(output_file, "wb") as fp:
-        cloudpickle.dump(res, fp)
-
-    subprocess.run("touch " + output_file + ".done", shell=True, check=True)
+        joblib.dump(res, output_file)
+    finally:
+        if not os.path.exists(output_file):
+            joblib.dump(RuntimeError("job failed - see %s" % logfile), output_file)
+        subprocess.run("touch " + output_file + ".done", shell=True, check=True)
 
 
 if __name__ == '__main__':
