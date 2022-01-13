@@ -95,7 +95,7 @@ source activate %s
                         nodes_per_block=1,
                         init_blocks=0,
                         parallelism=self._parallelism,
-                        max_blocks=10000,
+                        max_blocks=1000,
                         scheduler_options=self._condor_preamble,
                         worker_init=self._worker_init % self._conda_env,
                         walltime="%d:00:00" % self._walltime_hours,
