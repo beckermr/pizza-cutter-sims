@@ -162,7 +162,7 @@ run-pickled-task $1 $2 >& $3
         self._exec = None
 
     def submit(self, func, *args, **kwargs):
-        subid = uuid.uuid4.hex()
+        subid = uuid.uuid4().hex()
         fut = self._exec.submit(
             _submit_and_poll_function,
             self.execid,
