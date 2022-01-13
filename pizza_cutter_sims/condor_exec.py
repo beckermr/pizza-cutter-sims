@@ -68,10 +68,9 @@ Queue
         )
 
     sub = subprocess.run(
-        "condor_submit %s/%s" % (id, "condor.sub"),
+        "condor_submit %s" % condorfile,
         shell=True,
         check=True,
-        cwd=execdir,
         capture_output=True,
     )
 
