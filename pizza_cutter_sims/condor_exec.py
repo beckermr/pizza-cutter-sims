@@ -55,6 +55,7 @@ def _nanny_function(
             return
 
         subids = list(exec._nanny_subids[nanny_id])
+        print("%d: looping for %d subids" % (nanny_id, len(subids)), flush=True)
         for subid in subids:
             cjob = exec._nanny_subids[nanny_id][subid][0]
             fut = exec._nanny_subids[nanny_id][subid][1]
