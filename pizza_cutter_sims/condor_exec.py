@@ -109,8 +109,8 @@ def _nanny_function(
             for subid in subids
             if exec._nanny_subids[nanny_id][subid][0] is not None
         ])
-        if DEBUG:
-            print("got job statuses:", statuses, flush=True)
+        # if DEBUG:
+        print("got job statuses:", statuses, flush=True)
 
         if DEBUG:
             print("%d: looping for %d subids" % (nanny_id, len(subids)), flush=True)
