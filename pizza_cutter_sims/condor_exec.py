@@ -2,7 +2,6 @@ import os
 import uuid
 import subprocess
 import cloudpickle
-import time
 import joblib
 import atexit
 import threading
@@ -69,8 +68,6 @@ def _nanny_function(
     exec, nanny_id
 ):
     while True:
-        time.sleep(1)
-
         if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
             return
 
@@ -108,7 +105,7 @@ def _nanny_function(
                             print("submitted %s" % subid, flush=True)
                         fut.cjob = cjob
                         exec._nanny_subids[nanny_id][subid] = (cjob, fut, None)
-                continue
+                break
 
             status_code = _get_job_status(cjob)
             if status_code in ["4", "3", "5", "7"]:
