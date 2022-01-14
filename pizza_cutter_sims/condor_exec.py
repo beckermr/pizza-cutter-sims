@@ -327,7 +327,7 @@ mv ${tmpdir}/$(basename $2) $2
     def _submit_condor_job(exec, subid, nanny_id, fut, job_data):
         cjob = None
 
-        if fut.set_running_or_notify_cancel():
+        if not fut.cancelled():
             infile = os.path.abspath(os.path.join(exec.execdir, subid, "input.pkl"))
             condorfile = os.path.join(exec.execdir, subid, "condor.sub")
             outfile = os.path.abspath(
@@ -395,6 +395,7 @@ Queue
         fut.execid = self.execid
         fut.subid = subid
         self._nanny_subids[self._nanny_ind][subid] = (None, fut, job_data)
+        fut.set_running_or_notify_cancel()
 
         self._nanny_ind += 1
         self._nanny_ind = self._nanny_ind % self._num_nannies
