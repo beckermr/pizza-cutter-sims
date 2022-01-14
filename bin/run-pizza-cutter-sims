@@ -230,11 +230,13 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         for i, (
             rng_seed, gal_rng_seed, star_rng_seed,
             coadd_rng_seed, mdet_rng_seed
-        ) in enumerate(
-            zip(
+        ) in PBar(
+            enumerate(zip(
                 sim_rng_seeds, gal_rng_seeds, star_rng_seeds,
                 coadd_rng_seeds, mdet_rng_seeds,
-            )
+            )),
+            total=len(sim_rng_seeds),
+            desc="making sims",
         ):
             args.append((
                 dict(
@@ -294,7 +296,9 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         ) as pool:
             if hasattr(pool, "submit"):
                 futs = []
-                for chunk in range(n_chunks):
+                for chunk in PBar(
+                    range(n_chunks), total=n_chunks, desc="submitting jobs"
+                ):
                     start = chunk * n_pack
                     end = min(start + n_pack, len(args))
                     futs.append(pool.submit(_run_sets_of_pairs, args[start:end]))
