@@ -155,14 +155,24 @@ mv ${tmpdir}/$(basename $3) $3
         self.conda_env = conda_env
         self._exec = None
         if poll_interval is None:
-            self.poll_interval = max(10, 10000/600*self.max_workers)
+            self.poll_interval = max(
+                (600-10)/(10000 - 100) * (self.max_workers - 100) + 10,
+                10,
+            )
         else:
             self.poll_interval = poll_interval
         self.job_timeout = job_timeout
 
     def __enter__(self):
         os.makedirs(self.execdir, exist_ok=True)
-        print("starting condor executor: %s" % self.execdir, flush=True)
+        print(
+            "starting condor executor: dir %s - poll %ss - max workers %s" % (
+                self.execdir,
+                self.poll_interval,
+                self.max_workers,
+            ),
+            flush=True,
+        )
 
         with open(os.path.join(self.execdir, "run.sh"), "w") as fp:
             fp.write(self._worker_init % self.conda_env)
