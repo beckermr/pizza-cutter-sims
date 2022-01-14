@@ -157,7 +157,7 @@ def _nanny_function(
         for cjob, status_code in statuses.items():
             subid = None
             for _subid in subids:
-                if exec._nanny_subids[nanny_id][subid][0] == cjob:
+                if exec._nanny_subids[nanny_id][_subid][0] == cjob:
                     subid = _subid
                     break
             if subid is not None and status_code in ["4", "3", "5", "7"]:
