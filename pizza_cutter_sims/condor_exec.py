@@ -147,7 +147,7 @@ mv ${tmpdir}/$(basename $3) $3
 """
 
     def __init__(
-        self, max_workers=10000, poll_interval=10, conda_env="pizza-cutter-sims",
+        self, max_workers=10000, poll_interval=1, conda_env="pizza-cutter-sims",
         verbose=None, job_timeout=7200,
     ):
         self.max_workers = max_workers
@@ -225,7 +225,7 @@ Queue
             min(
                 self.poll_interval * max(
                     1,
-                    np.power(len(ALL_CONDOR_JOBS)/100, 2)
+                    np.power(len(ALL_CONDOR_JOBS)/100, 1)
                 ),
                 300
             ),
