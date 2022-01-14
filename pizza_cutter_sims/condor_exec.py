@@ -236,7 +236,9 @@ def _nanny_function(
 
                     n_submitted += 1
                     if n_submitted >= 100:
+                        print("%d: broke results loop!" % nanny_id, flush=True)
                         break
+            print("%d: done with results loop!" % nanny_id, flush=True)
 
         print("%d: nanny is going on break! - %d" % (
             nanny_id, len(exec._nanny_subids[nanny_id])
