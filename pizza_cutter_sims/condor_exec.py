@@ -201,20 +201,28 @@ def _nanny_function(
                     res = RuntimeError(
                         "Condor job %s: no status or job output found!" % subid)
 
+                print("subid:", subid, "made res", flush=True)
+
                 subprocess.run(
                     "rm -f %s %s" % (infile, outfile),
                     shell=True,
                     check=True,
                 )
 
+                print("subid:", subid, "removed files", flush=True)
+                fut = exec._nanny_subids[nanny_id][subid][1]
                 if isinstance(res, Exception):
                     fut.set_exception(res)
                 else:
                     fut.set_result(res)
 
+                print("subid:", subid, "set future res", flush=True)
+
                 del exec._nanny_subids[nanny_id][subid]
                 with ACTIVE_THREAD_LOCK:
                     exec._num_jobs -= 1
+
+                print("subid:", subid, "cleaned up the job", flush=True)
 
                 n_submitted += 1
                 if n_submitted >= 100:
