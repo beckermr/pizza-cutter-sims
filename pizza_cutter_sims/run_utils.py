@@ -65,7 +65,7 @@ def get_n_workers(backend, n_workers=None):
     elif backend == "mpi":
         from mpi4py import MPI
         return MPI.COMM_WORLD.Get_size()
-    elif backend == "sequential":
+    elif backend == "sequential" or backend == "local":
         return 1
     elif backend == "condor":
         return 1000
