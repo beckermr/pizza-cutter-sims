@@ -123,10 +123,8 @@ def _attempt_result(exec, nanny_id, cjob, subids, status_code):
             subid = _subid
             break
     if subid is not None and status_code in ["4", "3", "5", "7"]:
-        outfile = os.path.abspath(
-            os.path.join(exec.execdir, subid, "output.pkl"))
-        infile = os.path.abspath(
-            os.path.join(exec.execdir, subid, "input.pkl"))
+        outfile = os.path.join(exec.execdir, subid, "output.pkl")
+        infile = os.path.join(exec.execdir, subid, "input.pkl")
 
         del ALL_CONDOR_JOBS[cjob]
         subprocess.run(
@@ -253,10 +251,10 @@ fi
 
 source activate %s
 
-mkdir -p ${tmpdir}/$(dirname $2)
-mkdir -p ${tmpdir}/$(dirname $3)
+mkdir -p $(dirname $2)
+mkdir -p $(dirname $3)
 
-run-pickled-task $1 ${tmpdir}/$(basename $2) $3 >& ${tmpdir}/$(basename $3)
+run-pickled-task $1 $2 $3 >& $3
 """
 
     def __init__(
@@ -337,6 +335,7 @@ leave_in_queue = TRUE
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 preserve_relative_paths = TRUE
+transfer_input_files = %s
 
 +job_name = "%s"
 transfer_output_files = %s,%s
@@ -344,6 +343,7 @@ Arguments = %s %s %s
 Queue
     """ % (
                         os.path.join(exec.execdir, "run.sh"),
+                        infile,
                         "job-%s-%s" % (exec.execid, subid),
                         outfile,
                         logfile,
