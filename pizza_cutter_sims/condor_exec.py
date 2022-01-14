@@ -254,7 +254,7 @@ source activate %s
 mkdir -p $(dirname $2)
 mkdir -p $(dirname $3)
 
-run-pickled-task $1 $2 $3 >& $3
+run-pickled-task $1 $2 $3 &> $3
 """
 
     def __init__(
