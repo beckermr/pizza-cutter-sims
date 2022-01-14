@@ -154,8 +154,13 @@ def _nanny_function(
                     break
 
         n_submitted = 0
-        for subid, status_code in statuses.items():
-            if status_code in ["4", "3", "5", "7"]:
+        for cjob, status_code in statuses.items():
+            subid = None
+            for _subid in subids:
+                if exec._nanny_subids[nanny_id][subid][0] == cjob:
+                    subid = _subid
+                    break
+            if subid is not None and status_code in ["4", "3", "5", "7"]:
                 print("subid|status:", subid, status_code, flush=True)
                 outfile = os.path.abspath(
                     os.path.join(exec.execdir, subid, "output.pkl"))
