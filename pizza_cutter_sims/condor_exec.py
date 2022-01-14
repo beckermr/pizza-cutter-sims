@@ -51,8 +51,6 @@ def _nanny_function(
     exec, nanny_id
 ):
     while True:
-        time.sleep(10)
-
         if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
             return
 
@@ -106,6 +104,11 @@ def _nanny_function(
                     os.path.join(exec.execdir, subid, "input.pkl"))
 
                 del ALL_CONDOR_JOBS[cjob]
+                subprocess.run(
+                    "condor_rm %s; condor_rm -forcex %s" % (cjob, cjob),
+                    shell=True,
+                    check=True,
+                )
                 if os.path.exists(outfile):
                     res = joblib.load(outfile)
                 elif status_code in ["3", "5", "7"]:
@@ -128,7 +131,8 @@ def _nanny_function(
                     fut.set_result(res)
 
                 del exec._nanny_subids[nanny_id][subid]
-                exec._num_jobs -= 1
+                with ACTIVE_THREAD_LOCK:
+                    exec._num_jobs -= 1
 
 
 class CondorExecutor():
