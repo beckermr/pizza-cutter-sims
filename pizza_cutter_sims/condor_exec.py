@@ -114,6 +114,7 @@ def _nanny_function(
 
         if DEBUG:
             print("%d: looping for %d subids" % (nanny_id, len(subids)), flush=True)
+        n_submitted = 0
         for subid in subids:
             cjob = exec._nanny_subids[nanny_id][subid][0]
             fut = exec._nanny_subids[nanny_id][subid][1]
@@ -145,6 +146,10 @@ def _nanny_function(
                             print("submitted %s" % subid, flush=True)
                         fut.cjob = cjob
                         exec._nanny_subids[nanny_id][subid] = (cjob, fut, None)
+
+                n_submitted += 1
+                if n_submitted >= 100:
+                    break
 
             if subid in statuses:
                 status_code = statuses[subid]
