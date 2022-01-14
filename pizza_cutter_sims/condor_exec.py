@@ -196,9 +196,9 @@ def _attempt_result(exec, nanny_id, cjob, subids, status_code):
         #
         # print("subid:", subid, "set future res", flush=True)
         #
-        with ACTIVE_THREAD_LOCK:
-            del exec._nanny_subids[nanny_id][subid]
-            exec._num_jobs -= 1
+        exec._nanny_subids[nanny_id][subid] = (None, None, None)
+        # with ACTIVE_THREAD_LOCK:
+        #     exec._num_jobs -= 1
         #
         # print("subid:", subid, "cleaned up the job", flush=True)
         didit = True
@@ -212,13 +212,17 @@ def _nanny_function(
     try:
         while True:
             time.sleep(1)
+            subids = [
+                k for k in list(exec._nanny_subids[nanny_id])
+                if exec._nanny_subids[nanny_id][1] is not None
+            ]
+
             print(
-                "%d: %d left to do" % (nanny_id, len(exec._nanny_subids[nanny_id]))
+                "%d: %d left to do" % (nanny_id, len(subids))
             )
-            if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
+            if exec._done and len(subids) == 0:
                 break
 
-            subids = list(exec._nanny_subids[nanny_id])
             if DEBUG:
                 print("getting job statuses for %d" % len(subids), flush=True)
             statuses = _get_all_job_statuses([
