@@ -5,6 +5,7 @@ import subprocess
 import cloudpickle
 import joblib
 import atexit
+import numpy as np
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -202,7 +203,7 @@ mv ${tmpdir}/$(basename $3) $3
             self.execid,
             self.execdir,
             subid,
-            self.poll_interval * min(1, len(ALL_CONDOR_JOBS)/100),
+            max(self.poll_interval * min(1, np.sqrt(len(ALL_CONDOR_JOBS)/100)), 300),
             func,
             args,
             kwargs,
