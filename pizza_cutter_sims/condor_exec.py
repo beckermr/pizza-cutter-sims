@@ -253,10 +253,10 @@ fi
 
 source activate %s
 
-run-pickled-task $1 ${tmpdir}/$(basename $2) $3 >& ${tmpdir}/$(basename $3)
+mkdir -p ${tmpdir}/$(dirname $2)
+mkdir -p ${tmpdir}/$(dirname $3)
 
-mv ${tmpdir}/$(basename $3) $3
-mv ${tmpdir}/$(basename $2) $2
+run-pickled-task $1 ${tmpdir}/$(basename $2) $3 >& ${tmpdir}/$(basename $3)
 """
 
     def __init__(
@@ -309,11 +309,10 @@ mv ${tmpdir}/$(basename $2) $2
         cjob = None
 
         if not fut.cancelled():
-            infile = os.path.abspath(os.path.join(exec.execdir, subid, "input.pkl"))
+            infile = os.path.join(exec.execdir, subid, "input.pkl")
             condorfile = os.path.join(exec.execdir, subid, "condor.sub")
-            outfile = os.path.abspath(
-                os.path.join(exec.execdir, subid, "output.pkl"))
-            logfile = os.path.abspath(os.path.join(exec.execdir, subid, "log.oe"))
+            outfile = os.path.join(exec.execdir, subid, "output.pkl")
+            logfile = os.path.join(exec.execdir, subid, "log.oe")
 
             os.makedirs(os.path.join(exec.execdir, subid), exist_ok=True)
 
@@ -335,13 +334,19 @@ request_memory = 2G
 kill_sig       = SIGINT
 leave_in_queue = TRUE
 +Experiment    = "astro"
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+preserve_relative_paths = TRUE
 
 +job_name = "%s"
+transfer_output_files = %s,%s
 Arguments = %s %s %s
 Queue
     """ % (
                         os.path.join(exec.execdir, "run.sh"),
                         "job-%s-%s" % (exec.execid, subid),
+                        outfile,
+                        logfile,
                         infile,
                         outfile,
                         logfile,
