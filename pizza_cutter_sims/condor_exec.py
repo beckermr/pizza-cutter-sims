@@ -146,7 +146,7 @@ mv ${tmpdir}/$(basename $3) $3
 """
 
     def __init__(
-        self, max_workers=10000, poll_interval=10, conda_env="pizza-cutter-sims",
+        self, max_workers=10000, poll_interval=None, conda_env="pizza-cutter-sims",
         verbose=None, job_timeout=7200,
     ):
         self.max_workers = max_workers
@@ -154,7 +154,10 @@ mv ${tmpdir}/$(basename $3) $3
         self.execdir = "condor-exec/%s" % self.execid
         self.conda_env = conda_env
         self._exec = None
-        self.poll_interval = poll_interval
+        if poll_interval is None:
+            self.poll_interval = max(10, 10000/600*self.max_workers)
+        else:
+            self.poll_interval = poll_interval
         self.job_timeout = job_timeout
 
     def __enter__(self):

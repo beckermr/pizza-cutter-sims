@@ -92,7 +92,7 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
         backend = "multiprocessing"
 
     if backend == "condor":
-        with CondorExecutor(verbose=verbose, **kwargs) as pool:
+        with CondorExecutor(verbose=verbose, max_workers=n_workers, **kwargs) as pool:
             yield pool
     else:
         _n_workers = get_n_workers(backend, n_workers=n_workers)

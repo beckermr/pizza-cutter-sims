@@ -271,7 +271,10 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         n_report_chunks = 1
 
     if n_workers is None:
-        n_workers = min(n_report_chunks, get_n_workers(backend))
+        if backend == "condor":
+            n_workers = min(10000, n_chunks)
+        else:
+            n_workers = min(n_report_chunks, get_n_workers(backend))
 
     if backend == "local":
         if rank == 0:
