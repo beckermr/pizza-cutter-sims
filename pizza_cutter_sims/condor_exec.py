@@ -153,7 +153,7 @@ mv ${tmpdir}/$(basename $3) $3
 """
 
     def __init__(
-        self, max_workers=10000, poll_interval=None, conda_env="pizza-cutter-sims",
+        self, max_workers=10000, poll_interval=30, conda_env="pizza-cutter-sims",
         verbose=None, job_timeout=7200,
     ):
         self.max_workers = max_workers
