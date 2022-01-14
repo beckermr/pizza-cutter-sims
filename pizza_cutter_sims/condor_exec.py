@@ -6,6 +6,7 @@ import joblib
 import atexit
 import threading
 import logging
+import time
 
 from concurrent.futures import ThreadPoolExecutor, Future
 
@@ -177,7 +178,7 @@ def _attempt_result(exec, nanny_id, cjob, subids, status_code):
 
 
 def _nanny_function(
-    exec, nanny_id
+    exec, nanny_id, poll_delay=10,
 ):
     LOGGER.info("nanny %d started for exec %s", nanny_id, exec.execid)
 
@@ -191,25 +192,28 @@ def _nanny_function(
             if exec._done and len(subids) == 0:
                 break
 
-            statuses = _get_all_job_statuses([
-                exec._nanny_subids[nanny_id][subid][0]
-                for subid in subids
-                if exec._nanny_subids[nanny_id][subid][0] is not None
-            ])
+            if len(subids) > 0:
+                statuses = _get_all_job_statuses([
+                    exec._nanny_subids[nanny_id][subid][0]
+                    for subid in subids
+                    if exec._nanny_subids[nanny_id][subid][0] is not None
+                ])
 
-            n_submitted = 0
-            for subid in subids:
-                if _attempt_submit(exec, nanny_id, subid):
-                    n_submitted += 1
-                if n_submitted >= 100:
-                    break
+                n_submitted = 0
+                for subid in subids:
+                    if _attempt_submit(exec, nanny_id, subid):
+                        n_submitted += 1
+                    if n_submitted >= 100:
+                        break
 
-            n_submitted = 0
-            for cjob, status_code in statuses.items():
-                if _attempt_result(exec, nanny_id, cjob, subids, status_code):
-                    n_submitted += 1
-                if n_submitted >= 100:
-                    break
+                n_submitted = 0
+                for cjob, status_code in statuses.items():
+                    if _attempt_result(exec, nanny_id, cjob, subids, status_code):
+                        n_submitted += 1
+                    if n_submitted >= 100:
+                        break
+
+            time.sleep(poll_delay)
 
         subids = [
             k for k in list(exec._nanny_subids[nanny_id])
