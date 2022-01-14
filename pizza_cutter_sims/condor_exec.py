@@ -150,6 +150,7 @@ def _nanny_function(
                 if n_submitted >= 100:
                     break
 
+        n_submitted = 0
         for subid, status_code in statuses.items():
             if status_code in ["4", "3", "5", "7"]:
                 outfile = os.path.abspath(
@@ -190,6 +191,10 @@ def _nanny_function(
                 del exec._nanny_subids[nanny_id][subid]
                 with ACTIVE_THREAD_LOCK:
                     exec._num_jobs -= 1
+
+                n_submitted += 1
+                if n_submitted >= 100:
+                    break
 
 
 class CondorExecutor():
