@@ -157,11 +157,6 @@ def _attempt_result(exec, nanny_id, cjob, subids, status_code):
             check=True,
             capture_output=True,
         )
-        if status_code == "4":
-            for _ in range(10):
-                if os.path.exists(outfile):
-                    break
-                time.sleep(1)
 
         if not os.path.exists(outfile):
             print(
@@ -191,15 +186,16 @@ def _attempt_result(exec, nanny_id, cjob, subids, status_code):
             shell=True,
             check=True,
         )
-
         print("subid:", subid, "removed files", flush=True)
-        fut = exec._nanny_subids[nanny_id][subid][1]
-        if isinstance(res, Exception):
-            fut.set_exception(res)
-        else:
-            fut.set_result(res)
 
-        print("subid:", subid, "set future res", flush=True)
+        if False:
+            fut = exec._nanny_subids[nanny_id][subid][1]
+            if isinstance(res, Exception):
+                fut.set_exception(res)
+            else:
+                fut.set_result(res)
+
+            print("subid:", subid, "set future res", flush=True)
 
         del exec._nanny_subids[nanny_id][subid]
         with ACTIVE_THREAD_LOCK:
