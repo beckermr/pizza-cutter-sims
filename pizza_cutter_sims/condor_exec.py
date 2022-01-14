@@ -99,6 +99,7 @@ def _nanny_function(
     exec, nanny_id
 ):
     while True:
+        time.sleep(1)
         print(
             "%d: %d left to do" % (nanny_id, len(exec._nanny_subids[nanny_id]))
         )
@@ -230,6 +231,10 @@ def _nanny_function(
                 n_submitted += 1
                 if n_submitted >= 100:
                     break
+
+    print("%d: nanny is going on break! - %d" % (
+        nanny_id, len(exec._nanny_subids[nanny_id])
+        ), flush=True)
 
 
 class CondorExecutor():
