@@ -209,8 +209,10 @@ def _attempt_result(exec, nanny_id, cjob, subids, status_code):
 def _nanny_function(
     exec, nanny_id
 ):
+    print("nanny %d:" % nanny_id, flush=True)
     try:
         while True:
+            print("nanny %d loop head:" % nanny_id, flush=True)
             time.sleep(1)
             subids = [
                 k for k in list(exec._nanny_subids[nanny_id])
