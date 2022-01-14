@@ -43,7 +43,9 @@ def _kill_condor_jobs():
 atexit.register(_kill_condor_jobs)
 
 
-def _submit_and_poll_function(execid, execdir, id, poll_interval, func, args, kwargs):
+def _submit_and_poll_function(
+    execid, execdir, id, poll_interval, max_poll_time, func, args, kwargs
+):
     infile = os.path.abspath(os.path.join(execdir, id, "input.pkl"))
     outfile = os.path.abspath(os.path.join(execdir, id, "output.pkl"))
     logfile = os.path.abspath(os.path.join(execdir, id, "log.oe"))
@@ -104,8 +106,11 @@ Queue
     # poll for it being done
     check_file = outfile + ".done"
     status_code = None
+    timed_out = False
+    start_poll = time.time()
     while not os.path.exists(check_file):
         time.sleep(poll_interval)
+
         res = subprocess.run(
             "condor_q %s -af JobStatus" % cjob,
             shell=True,
@@ -113,6 +118,10 @@ Queue
         )
         status_code = res.stdout.decode("utf-8").strip()
         if status_code in ["3", "5", "7"]:
+            timed_out = True
+            break
+
+        if time.time() - start_poll < max_poll_time:
             break
 
     del ALL_CONDOR_JOBS[cjob]
@@ -122,6 +131,8 @@ Queue
         res = RuntimeError(
             "Condor job %s: status %s" % (id, STATUS_DICT[status_code])
         )
+    elif timed_out:
+        res = RuntimeError("Condor job %s: timed out after %ss!" % (id, max_poll_time))
     else:
         res = RuntimeError("Condor job %s: no status or job output found!" % id)
 
@@ -169,7 +180,7 @@ mv ${tmpdir}/$(basename $3) $3
 
     def __init__(
         self, max_workers=10000, poll_interval=10, conda_env="pizza-cutter-sims",
-        verbose=None,
+        verbose=None, job_timeout=7200,
     ):
         self.max_workers = max_workers
         self.execid = uuid.uuid4().hex
@@ -177,6 +188,7 @@ mv ${tmpdir}/$(basename $3) $3
         self.conda_env = conda_env
         self._exec = None
         self.poll_interval = poll_interval
+        self.job_timeout = job_timeout
 
     def __enter__(self):
         os.makedirs(self.execdir, exist_ok=True)
@@ -203,7 +215,8 @@ mv ${tmpdir}/$(basename $3) $3
             self.execid,
             self.execdir,
             subid,
-            max(self.poll_interval * min(1, np.sqrt(len(ALL_CONDOR_JOBS)/100)), 300),
+            min(self.poll_interval * max(1, np.sqrt(len(ALL_CONDOR_JOBS)/100)), 300),
+            self.job_timeout,
             func,
             args,
             kwargs,
