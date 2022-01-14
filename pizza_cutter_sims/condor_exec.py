@@ -104,7 +104,7 @@ def _nanny_function(
             "%d: %d left to do" % (nanny_id, len(exec._nanny_subids[nanny_id]))
         )
         if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
-            return
+            break
 
         subids = list(exec._nanny_subids[nanny_id])
         if DEBUG:
