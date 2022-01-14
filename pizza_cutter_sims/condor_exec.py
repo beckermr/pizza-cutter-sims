@@ -76,8 +76,10 @@ def _nanny_function(
                     )
 
                     if cjob is None:
+                        print("could not submit %s" % subid, flush=True)
                         del exec._nanny_subids[nanny_id][subid]
                     else:
+                        print("submitted %s" % subid, flush=True)
                         fut.cjob = cjob
                         exec._nanny_subids[nanny_id][subid] = (cjob, fut, None)
                 continue
