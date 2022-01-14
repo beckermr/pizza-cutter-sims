@@ -118,10 +118,10 @@ Queue
         )
         status_code = res.stdout.decode("utf-8").strip()
         if status_code in ["3", "5", "7"]:
-            timed_out = True
             break
 
         if time.time() - start_poll < max_poll_time:
+            timed_out = True
             break
 
     del ALL_CONDOR_JOBS[cjob]
