@@ -30,14 +30,15 @@ def _kill_condor_jobs():
         cjobs.append(cjob)
         if len(cjobs) == chunksize:
             _cjobs = " ".join(cjobs)
-            os.system("condor_rm " + _cjobs)
-            os.system("condor_rm -forcex " + _cjobs)
+            subprocess.run("condor_rm " + _cjobs, shell=True, capture_output=True)
+            subprocess.run(
+                "condor_rm -forcex " + _cjobs, shell=True, capture_output=True)
             cjobs = []
 
     if cjobs:
         _cjobs = " ".join(cjobs)
-        os.system("condor_rm " + _cjobs)
-        os.system("condor_rm -forcex " + _cjobs)
+        subprocess.run("condor_rm " + _cjobs, shell=True, capture_output=True)
+        subprocess.run("condor_rm -forcex " + _cjobs, shell=True, capture_output=True)
         cjobs = []
 
 
