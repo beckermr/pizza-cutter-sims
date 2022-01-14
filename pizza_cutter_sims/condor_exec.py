@@ -50,38 +50,43 @@ atexit.register(_kill_condor_jobs)
 def _submit_and_poll_function(
     execid, execdir, id, poll_interval, max_poll_time, func, args, kwargs
 ):
-    infile = os.path.abspath(os.path.join(execdir, id, "input.pkl"))
-    condorfile = os.path.join(execdir, id, "condor.sub")
-    outfile = os.path.abspath(os.path.join(execdir, id, "output.pkl"))
+    with ACTIVE_THREAD_LOCK:
+        infile = os.path.abspath(os.path.join(execdir, id, "input.pkl"))
+        condorfile = os.path.join(execdir, id, "condor.sub")
+        outfile = os.path.abspath(os.path.join(execdir, id, "output.pkl"))
 
-    sub = subprocess.run(
-        "condor_submit %s" % condorfile,
-        shell=True,
-        check=True,
-        capture_output=True,
-    )
+        sub = subprocess.run(
+            "condor_submit %s" % condorfile,
+            shell=True,
+            check=True,
+            capture_output=True,
+        )
 
-    cjob = None
-    for line in sub.stdout.decode("utf-8").splitlines():
-        line = line.strip()
-        if "submitted to cluster" in line:
-            line = line.split(" ")
-            cjob = line[5] + "0"
-            break
+        cjob = None
+        for line in sub.stdout.decode("utf-8").splitlines():
+            line = line.strip()
+            if "submitted to cluster" in line:
+                line = line.split(" ")
+                cjob = line[5] + "0"
+                break
 
-    assert cjob is not None
-    ALL_CONDOR_JOBS[cjob] = None
+        assert cjob is not None
+        ALL_CONDOR_JOBS[cjob] = None
 
     ##############################
     # poll for it being done
-    check_file = outfile + ".done"
-    status_code = None
-    timed_out = False
-    start_poll = time.time()
-    while not os.path.exists(check_file):
+    with ACTIVE_THREAD_LOCK:
+        check_file = outfile + ".done"
+        status_code = None
+        timed_out = False
+        start_poll = time.time()
+    while True:
         time.sleep(poll_interval)
 
         with ACTIVE_THREAD_LOCK:
+            if os.path.exists(check_file):
+                break
+
             res = subprocess.run(
                 "condor_q %s -af JobStatus" % cjob,
                 shell=True,
@@ -153,7 +158,7 @@ mv ${tmpdir}/$(basename $3) $3
 """
 
     def __init__(
-        self, max_workers=10000, poll_interval=30, conda_env="pizza-cutter-sims",
+        self, max_workers=10000, poll_interval=10, conda_env="pizza-cutter-sims",
         verbose=None, job_timeout=7200,
     ):
         self.max_workers = max_workers
