@@ -4,6 +4,7 @@ import subprocess
 import cloudpickle
 import joblib
 import atexit
+import time
 import threading
 
 from concurrent.futures import ThreadPoolExecutor, Future
@@ -167,6 +168,12 @@ def _nanny_function(
                     check=True,
                     capture_output=True,
                 )
+                if status_code == "4":
+                    for _ in range(10):
+                        if os.path.exists(outfile):
+                            break
+                        time.sleep(1)
+
                 if os.path.exists(outfile):
                     try:
                         res = joblib.load(outfile)
@@ -227,9 +234,10 @@ fi
 
 source activate %s
 
-run-pickled-task $1 $2 $3 >& ${tmpdir}/$(basename $3)
+run-pickled-task $1 ${tmpdir}/$(basename $2) $3 >& ${tmpdir}/$(basename $3)
 
 mv ${tmpdir}/$(basename $3) $3
+mv ${tmpdir}/$(basename $2) $2
 """
 
     def __init__(
@@ -300,18 +308,18 @@ mv ${tmpdir}/$(basename $3) $3
             with open(condorfile, "w") as fp:
                 fp.write(
                     """\
-    Universe       = vanilla
-    Notification   = Never
-    # this executable must have u+x bits
-    Executable     = %s
-    request_memory = 2G
-    kill_sig       = SIGINT
-    leave_in_queue = TRUE
-    +Experiment    = "astro"
+Universe       = vanilla
+Notification   = Never
+# this executable must have u+x bits
+Executable     = %s
+request_memory = 2G
+kill_sig       = SIGINT
+leave_in_queue = TRUE
++Experiment    = "astro"
 
-    +job_name = "%s"
-    Arguments = %s %s %s
-    Queue
++job_name = "%s"
+Arguments = %s %s %s
+Queue
     """ % (
                         os.path.join(exec.execdir, "run.sh"),
                         "job-%s-%s" % (exec.execid, subid),
