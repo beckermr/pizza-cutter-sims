@@ -98,145 +98,151 @@ def _get_all_job_statuses(cjobs):
 def _nanny_function(
     exec, nanny_id
 ):
-    while True:
-        time.sleep(1)
-        print(
-            "%d: %d left to do" % (nanny_id, len(exec._nanny_subids[nanny_id]))
-        )
-        if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
-            break
+    try:
+        while True:
+            time.sleep(1)
+            print(
+                "%d: %d left to do" % (nanny_id, len(exec._nanny_subids[nanny_id]))
+            )
+            if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
+                break
 
-        subids = list(exec._nanny_subids[nanny_id])
-        if DEBUG:
-            print("getting job statuses for %d" % len(subids), flush=True)
-        statuses = _get_all_job_statuses([
-            exec._nanny_subids[nanny_id][subid][0]
-            for subid in subids
-            if exec._nanny_subids[nanny_id][subid][0] is not None
-        ])
-        # if DEBUG:
-        if any(val == "4" for val in statuses.values()):
-            print("%d: got job statuses:" % nanny_id, statuses, flush=True)
+            subids = list(exec._nanny_subids[nanny_id])
+            if DEBUG:
+                print("getting job statuses for %d" % len(subids), flush=True)
+            statuses = _get_all_job_statuses([
+                exec._nanny_subids[nanny_id][subid][0]
+                for subid in subids
+                if exec._nanny_subids[nanny_id][subid][0] is not None
+            ])
+            # if DEBUG:
+            if any(val == "4" for val in statuses.values()):
+                print("%d: got job statuses:" % nanny_id, statuses, flush=True)
 
-        if DEBUG:
-            print("%d: looping for %d subids" % (nanny_id, len(subids)), flush=True)
-        n_submitted = 0
-        for subid in subids:
-            cjob = exec._nanny_subids[nanny_id][subid][0]
-            fut = exec._nanny_subids[nanny_id][subid][1]
-            job_data = exec._nanny_subids[nanny_id][subid][2]
-
-            if cjob is None and job_data is not None:
-                if DEBUG:
-                    print("attempting to submit %s" % subid, flush=True)
-                with ACTIVE_THREAD_LOCK:
-                    if exec._num_jobs < exec.max_workers:
-                        exec._num_jobs += 1
-                        submit_job = True
-                    else:
-                        submit_job = False
-
-                if submit_job:
-                    if DEBUG:
-                        print("submitting %s" % subid, flush=True)
-                    cjob = exec._submit_condor_job(
-                        exec, subid, nanny_id, fut, job_data
-                    )
-
-                    if cjob is None:
-                        if DEBUG:
-                            print("could not submit %s" % subid, flush=True)
-                        del exec._nanny_subids[nanny_id][subid]
-                    else:
-                        if DEBUG:
-                            print("submitted %s" % subid, flush=True)
-                        fut.cjob = cjob
-                        exec._nanny_subids[nanny_id][subid] = (cjob, fut, None)
-
-                n_submitted += 1
-                if n_submitted >= 100:
-                    break
-
-        if DEBUG:
-            print("%d: looping for %d results" % (nanny_id, len(statuses)), flush=True)
-        n_submitted = 0
-        for cjob, status_code in statuses.items():
-            subid = None
-            for _subid in subids:
-                if exec._nanny_subids[nanny_id][_subid][0] == cjob:
-                    subid = _subid
-                    break
-            if subid is not None and status_code in ["4", "3", "5", "7"]:
-                print("subid|status:", subid, status_code, flush=True)
-                outfile = os.path.abspath(
-                    os.path.join(exec.execdir, subid, "output.pkl"))
-                infile = os.path.abspath(
-                    os.path.join(exec.execdir, subid, "input.pkl"))
-
-                del ALL_CONDOR_JOBS[cjob]
-                subprocess.run(
-                    "condor_rm %s; condor_rm -forcex %s" % (cjob, cjob),
-                    shell=True,
-                    check=True,
-                    capture_output=True,
-                )
-                if status_code == "4":
-                    for _ in range(10):
-                        if os.path.exists(outfile):
-                            break
-                        time.sleep(1)
-
-                if not os.path.exists(outfile):
-                    print(
-                        "nofile subid|status|file:", subid, status_code, outfile,
-                        flush=True,
-                    )
-
-                if os.path.exists(outfile):
-                    try:
-                        res = joblib.load(outfile)
-                    except Exception as e:
-                        res = e
-                elif status_code in ["3", "5", "7"]:
-                    res = RuntimeError(
-                        "Condor job %s: status %s" % (
-                            subid, STATUS_DICT[status_code]
-                        )
-                    )
-                else:
-                    res = RuntimeError(
-                        "Condor job %s: no status or job output found!" % subid)
-
-                print("subid:", subid, "made res", flush=True)
-
-                subprocess.run(
-                    "rm -f %s %s" % (infile, outfile),
-                    shell=True,
-                    check=True,
-                )
-
-                print("subid:", subid, "removed files", flush=True)
+            if DEBUG:
+                print("%d: looping for %d subids" % (nanny_id, len(subids)), flush=True)
+            n_submitted = 0
+            for subid in subids:
+                cjob = exec._nanny_subids[nanny_id][subid][0]
                 fut = exec._nanny_subids[nanny_id][subid][1]
-                if isinstance(res, Exception):
-                    fut.set_exception(res)
-                else:
-                    fut.set_result(res)
+                job_data = exec._nanny_subids[nanny_id][subid][2]
 
-                print("subid:", subid, "set future res", flush=True)
+                if cjob is None and job_data is not None:
+                    if DEBUG:
+                        print("attempting to submit %s" % subid, flush=True)
+                    with ACTIVE_THREAD_LOCK:
+                        if exec._num_jobs < exec.max_workers:
+                            exec._num_jobs += 1
+                            submit_job = True
+                        else:
+                            submit_job = False
 
-                del exec._nanny_subids[nanny_id][subid]
-                with ACTIVE_THREAD_LOCK:
-                    exec._num_jobs -= 1
+                    if submit_job:
+                        if DEBUG:
+                            print("submitting %s" % subid, flush=True)
+                        cjob = exec._submit_condor_job(
+                            exec, subid, nanny_id, fut, job_data
+                        )
 
-                print("subid:", subid, "cleaned up the job", flush=True)
+                        if cjob is None:
+                            if DEBUG:
+                                print("could not submit %s" % subid, flush=True)
+                            del exec._nanny_subids[nanny_id][subid]
+                        else:
+                            if DEBUG:
+                                print("submitted %s" % subid, flush=True)
+                            fut.cjob = cjob
+                            exec._nanny_subids[nanny_id][subid] = (cjob, fut, None)
 
-                n_submitted += 1
-                if n_submitted >= 100:
-                    break
+                    n_submitted += 1
+                    if n_submitted >= 100:
+                        break
 
-    print("%d: nanny is going on break! - %d" % (
-        nanny_id, len(exec._nanny_subids[nanny_id])
-        ), flush=True)
+            if DEBUG:
+                print(
+                    "%d: looping for %d results" % (nanny_id, len(statuses)),
+                    flush=True,
+                )
+            n_submitted = 0
+            for cjob, status_code in statuses.items():
+                subid = None
+                for _subid in subids:
+                    if exec._nanny_subids[nanny_id][_subid][0] == cjob:
+                        subid = _subid
+                        break
+                if subid is not None and status_code in ["4", "3", "5", "7"]:
+                    print("subid|status:", subid, status_code, flush=True)
+                    outfile = os.path.abspath(
+                        os.path.join(exec.execdir, subid, "output.pkl"))
+                    infile = os.path.abspath(
+                        os.path.join(exec.execdir, subid, "input.pkl"))
+
+                    del ALL_CONDOR_JOBS[cjob]
+                    subprocess.run(
+                        "condor_rm %s; condor_rm -forcex %s" % (cjob, cjob),
+                        shell=True,
+                        check=True,
+                        capture_output=True,
+                    )
+                    if status_code == "4":
+                        for _ in range(10):
+                            if os.path.exists(outfile):
+                                break
+                            time.sleep(1)
+
+                    if not os.path.exists(outfile):
+                        print(
+                            "nofile subid|status|file:", subid, status_code, outfile,
+                            flush=True,
+                        )
+
+                    if os.path.exists(outfile):
+                        try:
+                            res = joblib.load(outfile)
+                        except Exception as e:
+                            res = e
+                    elif status_code in ["3", "5", "7"]:
+                        res = RuntimeError(
+                            "Condor job %s: status %s" % (
+                                subid, STATUS_DICT[status_code]
+                            )
+                        )
+                    else:
+                        res = RuntimeError(
+                            "Condor job %s: no status or job output found!" % subid)
+
+                    print("subid:", subid, "made res", flush=True)
+
+                    subprocess.run(
+                        "rm -f %s %s" % (infile, outfile),
+                        shell=True,
+                        check=True,
+                    )
+
+                    print("subid:", subid, "removed files", flush=True)
+                    fut = exec._nanny_subids[nanny_id][subid][1]
+                    if isinstance(res, Exception):
+                        fut.set_exception(res)
+                    else:
+                        fut.set_result(res)
+
+                    print("subid:", subid, "set future res", flush=True)
+
+                    del exec._nanny_subids[nanny_id][subid]
+                    with ACTIVE_THREAD_LOCK:
+                        exec._num_jobs -= 1
+
+                    print("subid:", subid, "cleaned up the job", flush=True)
+
+                    n_submitted += 1
+                    if n_submitted >= 100:
+                        break
+
+        print("%d: nanny is going on break! - %d" % (
+            nanny_id, len(exec._nanny_subids[nanny_id])
+            ), flush=True)
+    except Exception as e:
+        print("nanny %d failed! - %s" % repr(e), flush=True)
 
 
 class CondorExecutor():
