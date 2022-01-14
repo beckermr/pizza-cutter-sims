@@ -92,6 +92,10 @@ def _get_all_job_statuses(cjobs):
     if jobs_to_check:
         status.update(_get_all_job_statuses_call(jobs_to_check))
 
+    for cjob in list(status):
+        if cjob not in cjobs:
+            del status[cjob]
+
     return status
 
 
