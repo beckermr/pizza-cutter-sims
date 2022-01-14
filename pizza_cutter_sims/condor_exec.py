@@ -202,7 +202,7 @@ mv ${tmpdir}/$(basename $3) $3
             self.execid,
             self.execdir,
             subid,
-            self.poll_interval,
+            self.poll_interval * min(1, len(ALL_CONDOR_JOBS)/100),
             func,
             args,
             kwargs,
