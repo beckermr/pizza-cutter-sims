@@ -220,7 +220,7 @@ mv ${tmpdir}/$(basename $3) $3
             min(
                 self.poll_interval * max(
                     1,
-                    np.power(len(ALL_CONDOR_JOBS)/100, 1)
+                    np.power(len(ALL_CONDOR_JOBS)/100, 2)
                 ),
                 300
             ),
