@@ -99,6 +99,9 @@ def _nanny_function(
     exec, nanny_id
 ):
     while True:
+        print(
+            "%d: %d left to do" % (nanny_id, len(exec._nanny_subids[nanny_id]))
+        )
         if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
             return
 
