@@ -9,7 +9,7 @@ import threading
 
 from concurrent.futures import ThreadPoolExecutor, Future
 
-DEBUG = False
+DEBUG = True
 
 ACTIVE_THREAD_LOCK = threading.RLock()
 
@@ -108,7 +108,7 @@ def _nanny_function(
 
         subids = list(exec._nanny_subids[nanny_id])
         if DEBUG:
-            print("getting job statuses", flush=True)
+            print("getting job statuses for %d" % len(subids), flush=True)
         statuses = _get_all_job_statuses([
             exec._nanny_subids[nanny_id][subid][0]
             for subid in subids
@@ -157,6 +157,8 @@ def _nanny_function(
                 if n_submitted >= 100:
                     break
 
+        if DEBUG:
+            print("%d: looping for %d results" % (nanny_id, len(statuses)), flush=True)
         n_submitted = 0
         for cjob, status_code in statuses.items():
             subid = None
