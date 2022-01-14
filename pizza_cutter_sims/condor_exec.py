@@ -35,8 +35,8 @@ def _kill_condor_jobs():
             cjobs = []
 
     if cjobs:
-        os.system("condor_rm " + cjobs)
-        os.system("condor_rm -forcex " + cjobs)
+        os.system("condor_rm " + _cjobs)
+        os.system("condor_rm -forcex " + _cjobs)
         cjobs = []
 
 
