@@ -9,6 +9,8 @@ import threading
 
 from concurrent.futures import ThreadPoolExecutor, Future
 
+DEBUG = False
+
 ACTIVE_THREAD_LOCK = threading.RLock()
 
 ALL_CONDOR_JOBS = {}
@@ -51,18 +53,22 @@ def _nanny_function(
     exec, nanny_id
 ):
     while True:
+        time.sleep(1)
+
         if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
             return
 
         subids = list(exec._nanny_subids[nanny_id])
-        print("%d: looping for %d subids" % (nanny_id, len(subids)), flush=True)
+        if DEBUG:
+            print("%d: looping for %d subids" % (nanny_id, len(subids)), flush=True)
         for subid in subids:
             cjob = exec._nanny_subids[nanny_id][subid][0]
             fut = exec._nanny_subids[nanny_id][subid][1]
             job_data = exec._nanny_subids[nanny_id][subid][2]
 
             if cjob is None and job_data is not None:
-                print("attempting to submit %s" % subid, flush=True)
+                if DEBUG:
+                    print("attempting to submit %s" % subid, flush=True)
                 with ACTIVE_THREAD_LOCK:
                     if exec._num_jobs < exec.max_workers:
                         exec._num_jobs += 1
@@ -71,16 +77,19 @@ def _nanny_function(
                         submit_job = False
 
                 if submit_job:
-                    print("submitting %s" % subid, flush=True)
+                    if DEBUG:
+                        print("submitting %s" % subid, flush=True)
                     cjob = exec._submit_condor_job(
                         exec, subid, nanny_id, fut, job_data
                     )
 
                     if cjob is None:
-                        print("could not submit %s" % subid, flush=True)
+                        if DEBUG:
+                            print("could not submit %s" % subid, flush=True)
                         del exec._nanny_subids[nanny_id][subid]
                     else:
-                        print("submitted %s" % subid, flush=True)
+                        if DEBUG:
+                            print("submitted %s" % subid, flush=True)
                         fut.cjob = cjob
                         exec._nanny_subids[nanny_id][subid] = (cjob, fut, None)
                 continue
@@ -113,6 +122,7 @@ def _nanny_function(
                     "condor_rm %s; condor_rm -forcex %s" % (cjob, cjob),
                     shell=True,
                     check=True,
+                    capture_output=True,
                 )
                 if os.path.exists(outfile):
                     res = joblib.load(outfile)
