@@ -216,7 +216,7 @@ def _nanny_function(
             time.sleep(1)
             subids = [
                 k for k in list(exec._nanny_subids[nanny_id])
-                if exec._nanny_subids[nanny_id][1] is not None
+                if exec._nanny_subids[nanny_id][k][1] is not None
             ]
 
             print(
