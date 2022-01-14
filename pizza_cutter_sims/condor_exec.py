@@ -131,8 +131,6 @@ def _nanny_function(
     exec, nanny_id
 ):
     while True:
-        time.sleep(10)
-
         if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
             return
 
