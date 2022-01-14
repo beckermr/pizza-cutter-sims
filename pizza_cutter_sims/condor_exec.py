@@ -199,7 +199,7 @@ mv ${tmpdir}/$(basename $3) $3
             shell=True,
             check=True,
         )
-        self._exec = ThreadPoolExecutor(max_workers=1)
+        self._exec = ThreadPoolExecutor(max_workers=self._num_nannies)
         self._done = False
         self._nanny_subids = [{} for _ in range(self._num_nannies)]
         self._num_jobs = 0
