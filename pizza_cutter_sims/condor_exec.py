@@ -5,8 +5,11 @@ import subprocess
 import cloudpickle
 import joblib
 import atexit
+import threading
 
 from concurrent.futures import ThreadPoolExecutor
+
+ACTIVE_THREAD_LOCK = threading.BoundedSemaphore(value=100)
 
 ALL_CONDOR_JOBS = {}
 
@@ -78,41 +81,45 @@ def _submit_and_poll_function(
     while not os.path.exists(check_file):
         time.sleep(poll_interval)
 
-        res = subprocess.run(
-            "condor_q %s -af JobStatus" % cjob,
+        with ACTIVE_THREAD_LOCK:
+            res = subprocess.run(
+                "condor_q %s -af JobStatus" % cjob,
+                shell=True,
+                capture_output=True,
+            )
+            status_code = res.stdout.decode("utf-8").strip()
+            if status_code in ["3", "5", "7"]:
+                break
+
+            if time.time() - start_poll > max_poll_time:
+                timed_out = True
+                break
+
+    with ACTIVE_THREAD_LOCK:
+        del ALL_CONDOR_JOBS[cjob]
+        if os.path.exists(outfile):
+            res = joblib.load(outfile)
+        elif status_code in ["3", "5", "7"]:
+            res = RuntimeError(
+                "Condor job %s: status %s" % (id, STATUS_DICT[status_code])
+            )
+        elif timed_out:
+            res = RuntimeError("Condor job %s: timed out after %ss!" % (
+                id, max_poll_time)
+            )
+        else:
+            res = RuntimeError("Condor job %s: no status or job output found!" % id)
+
+        subprocess.run(
+            "rm -f %s %s %s.done" % (infile, outfile, outfile),
             shell=True,
-            capture_output=True,
+            check=True,
         )
-        status_code = res.stdout.decode("utf-8").strip()
-        if status_code in ["3", "5", "7"]:
-            break
 
-        if time.time() - start_poll > max_poll_time:
-            timed_out = True
-            break
-
-    del ALL_CONDOR_JOBS[cjob]
-    if os.path.exists(outfile):
-        res = joblib.load(outfile)
-    elif status_code in ["3", "5", "7"]:
-        res = RuntimeError(
-            "Condor job %s: status %s" % (id, STATUS_DICT[status_code])
-        )
-    elif timed_out:
-        res = RuntimeError("Condor job %s: timed out after %ss!" % (id, max_poll_time))
-    else:
-        res = RuntimeError("Condor job %s: no status or job output found!" % id)
-
-    subprocess.run(
-        "rm -f %s %s %s.done" % (infile, outfile, outfile),
-        shell=True,
-        check=True,
-    )
-
-    if isinstance(res, Exception):
-        raise res
-    else:
-        return res
+        if isinstance(res, Exception):
+            raise res
+        else:
+            return res
 
 
 class CondorExecutor():
