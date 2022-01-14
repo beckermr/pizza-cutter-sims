@@ -166,7 +166,8 @@ mv ${tmpdir}/$(basename $3) $3
     def __enter__(self):
         os.makedirs(self.execdir, exist_ok=True)
         print(
-            "starting condor executor: dir %s - poll %ss - max workers %s" % (
+            "starting condor executor: "
+            "exec dir %s - poll interval %ss - max workers %s" % (
                 self.execdir,
                 self.poll_interval,
                 self.max_workers,
