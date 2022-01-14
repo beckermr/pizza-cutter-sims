@@ -110,7 +110,8 @@ def _nanny_function(
             if exec._nanny_subids[nanny_id][subid][0] is not None
         ])
         # if DEBUG:
-        print("got job statuses:", statuses, flush=True)
+        if any(val == "4" for val in statuses.values()):
+            print("%d: got job statuses:" % nanny_id, statuses, flush=True)
 
         if DEBUG:
             print("%d: looping for %d subids" % (nanny_id, len(subids)), flush=True)
