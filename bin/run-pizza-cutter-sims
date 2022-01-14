@@ -304,29 +304,24 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                     futs.append(pool.submit(_run_sets_of_pairs, args[start:end]))
 
                 outputs = []
-                for chunk in PBar(
-                    range(len(futs)), total=len(futs), n_bars=79, desc='running jobs'
+                chunk = 0
+                for chunk, fut in PBar(
+                    enumerate(concurrent.futures.as_completed(futs)),
+                    total=len(futs), n_bars=79, desc='running jobs'
                 ):
                     ok = False
-                    while not ok:
-                        for k in range(len(futs)):
-                            f = futs[k]
-                            f.done()
-                            try:
-                                res = f.result(timeout=1)
-                                ok = True
-                                break
-                            except Exception as e:
-                                if isinstance(e,  concurrent.futures.TimeoutError):
-                                    continue
-                                else:
-                                    print(e)
-                                    res = []
-                                    ok = True
-                                    break
+                    try:
+                        res = fut.result()
+                        ok = True
+                    except Exception as e:
+                        if isinstance(e,  concurrent.futures.TimeoutError):
+                            continue
+                        else:
+                            print(e)
+                            res = []
+                            ok = True
 
                     if ok:
-                        futs.pop(k)
                         outputs += res
 
                     n_outputs = len(outputs)
@@ -341,6 +336,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                             with fitsio.FITS(output, 'rw', clobber=True) as fits:
                                 fits.write(res[0], extname='plus')
                                 fits.write(res[1], extname='minus')
+
             else:
                 outputs = []
                 curr_args = []
