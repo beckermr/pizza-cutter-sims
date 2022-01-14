@@ -60,36 +60,26 @@ def _nanny_function(
         for subid in subids:
             cjob = exec._nanny_subids[nanny_id][subid][0]
             fut = exec._nanny_subids[nanny_id][subid][1]
+            job_data = exec._nanny_subids[nanny_id][subid][2]
 
-            if cjob is None:
+            if cjob is None and job_data is not None:
                 with ACTIVE_THREAD_LOCK:
                     if exec._num_jobs < exec.max_workers:
-                        if fut.set_running_or_notify_cancel():
-                            condorfile = os.path.join(exec.execdir, subid, "condor.sub")
-                            sub = subprocess.run(
-                                "condor_submit %s" % condorfile,
-                                shell=True,
-                                check=True,
-                                capture_output=True,
-                            )
+                        exec._num_jobs += 1
+                        submit_job = True
+                    else:
+                        submit_job = False
 
-                            cjob = None
-                            for line in sub.stdout.decode("utf-8").splitlines():
-                                line = line.strip()
-                                if "submitted to cluster" in line:
-                                    line = line.split(" ")
-                                    cjob = line[5] + "0"
-                                    break
+                if submit_job:
+                    cjob = exec._submit_condor_job(
+                        exec, subid, nanny_id, fut, job_data
+                    )
 
-                            assert cjob is not None
-                            ALL_CONDOR_JOBS[cjob] = None
-                            exec._num_jobs += 1
-                            fut.cjob = cjob
-
-                            exec._nanny_subids[nanny_id][subid] = (cjob, fut)
-                        else:
-                            del exec._nanny_subids[nanny_id][subid]
-
+                    if cjob is None:
+                        del exec._nanny_subids[nanny_id][subid]
+                    else:
+                        fut.cjob = cjob
+                        exec._nanny_subids[nanny_id][subid] = (cjob, fut, None)
                 continue
 
             outfile = os.path.abspath(
@@ -102,11 +92,11 @@ def _nanny_function(
 
             if not done:
                 res = subprocess.run(
-                    "condor_q %s -af JobStatus" % cjob,
+                    "condor_q %s -af:jr JobStatus" % cjob,
                     shell=True,
                     capture_output=True,
                 )
-                status_code = res.stdout.decode("utf-8").strip()
+                status_code = res.stdout.decode("utf-8").strip().split(" ")[1]
 
                 if status_code in ["3", "5", "7"]:
                     done = True
@@ -180,7 +170,7 @@ mv ${tmpdir}/$(basename $3) $3
         self.execdir = "condor-exec/%s" % self.execid
         self.conda_env = conda_env
         self._exec = None
-        self._num_nannies = 1
+        self._num_nannies = 10
 
     def __enter__(self):
         os.makedirs(self.execdir, exist_ok=True)
@@ -216,77 +206,78 @@ mv ${tmpdir}/$(basename $3) $3
         self._exec.shutdown()
         self._exec = None
 
-    def submit(self, func, *args, **kwargs):
-        subid = uuid.uuid4().hex
+    @staticmethod
+    def _submit_condor_job(exec, subid, nanny_id, fut, job_data):
+        cjob = None
 
-        infile = os.path.abspath(os.path.join(self.execdir, subid, "input.pkl"))
-        condorfile = os.path.join(self.execdir, subid, "condor.sub")
-        outfile = os.path.abspath(os.path.join(self.execdir, subid, "output.pkl"))
-        logfile = os.path.abspath(os.path.join(self.execdir, subid, "log.oe"))
+        if fut.set_running_or_notify_cancel():
+            infile = os.path.abspath(os.path.join(exec.execdir, subid, "input.pkl"))
+            condorfile = os.path.join(exec.execdir, subid, "condor.sub")
+            outfile = os.path.abspath(
+                os.path.join(exec.execdir, subid, "output.pkl"))
+            logfile = os.path.abspath(os.path.join(exec.execdir, subid, "log.oe"))
 
-        os.makedirs(os.path.join(self.execdir, subid), exist_ok=True)
+            os.makedirs(os.path.join(exec.execdir, subid), exist_ok=True)
 
-        ##############################
-        # dump the file
-        with open(infile, "wb") as fp:
-            cloudpickle.dump(joblib.delayed(func)(*args, **kwargs), fp)
+            ##############################
+            # dump the file
+            with open(infile, "wb") as fp:
+                cloudpickle.dump(job_data, fp)
 
-        ##############################
-        # submit the condor job
-        with open(condorfile, "w") as fp:
-            fp.write(
-                """\
-Universe = vanilla
-Notification = Never
-# Run this exe with these args
-Executable = %s
-# Image_Size =  2500000
-request_memory = 2G
-kill_sig = SIGINT
-+Experiment = "astro"
+            ##############################
+            # submit the condor job
+            with open(condorfile, "w") as fp:
+                fp.write(
+                    """\
+    Universe       = vanilla
+    Notification   = Never
+    # this executable must have u+x bits
+    Executable     = %s
+    request_memory = 2G
+    kill_sig       = SIGINT
+    leave_in_queue = TRUE
+    +Experiment    = "astro"
 
-+job_name = "%s"
-Arguments = %s %s %s
-Queue
-""" % (
-                    os.path.join(self.execdir, "run.sh"),
-                    "job-%s-%s" % (self.execid, subid),
-                    infile,
-                    outfile,
-                    logfile,
-                ),
-            )
-
-        with ACTIVE_THREAD_LOCK:
-            if self._num_jobs < self.max_workers:
-                sub = subprocess.run(
-                    "condor_submit %s" % condorfile,
-                    shell=True,
-                    check=True,
-                    capture_output=True,
+    +job_name = "%s"
+    Arguments = %s %s %s
+    Queue
+    """ % (
+                        os.path.join(exec.execdir, "run.sh"),
+                        "job-%s-%s" % (exec.execid, subid),
+                        infile,
+                        outfile,
+                        logfile,
+                    ),
                 )
 
-                cjob = None
-                for line in sub.stdout.decode("utf-8").splitlines():
-                    line = line.strip()
-                    if "submitted to cluster" in line:
-                        line = line.split(" ")
-                        cjob = line[5] + "0"
-                        break
+            sub = subprocess.run(
+                "condor_submit %s" % condorfile,
+                shell=True,
+                check=True,
+                capture_output=True,
+            )
 
-                assert cjob is not None
-                ALL_CONDOR_JOBS[cjob] = None
-                self._num_jobs += 1
-            else:
-                cjob = None
+            cjob = None
+            for line in sub.stdout.decode("utf-8").splitlines():
+                line = line.strip()
+                if "submitted to cluster" in line:
+                    line = line.split(" ")
+                    cjob = line[5] + "0"
+                    break
+
+            assert cjob is not None
+            ALL_CONDOR_JOBS[cjob] = None
+
+        return cjob
+
+    def submit(self, func, *args, **kwargs):
+        subid = uuid.uuid4().hex
+        job_data = joblib.delayed(func)(*args, **kwargs)
 
         fut = Future()
         fut.execid = self.execid
         fut.subid = subid
-        if cjob is not None:
-            fut.set_running_or_notify_cancel()
-            fut.cjob = cjob
-        self._nanny_subids[self._nanny_ind][subid] = (cjob, fut)
+        self._nanny_subids[self._nanny_ind][subid] = (None, fut, job_data)
 
         self._nanny_ind += 1
         self._nanny_ind = self._nanny_ind % self._num_nannies
