@@ -49,6 +49,22 @@ def _kill_condor_jobs():
 atexit.register(_kill_condor_jobs)
 
 
+def _get_job_status(cjob):
+    status = None
+    res = subprocess.run(
+        "condor_q %s -af:jr JobStatus" % cjob,
+        shell=True,
+        capture_output=True,
+    )
+    if res.returncode == 0:
+        for line in res.stdout.decode("utf-8").splitlines():
+            line = line.strip().split(" ")
+            if line[0] == cjob:
+                status = line[1]
+                break
+    return status
+
+
 def _nanny_function(
     exec, nanny_id
 ):
@@ -94,26 +110,10 @@ def _nanny_function(
                         exec._nanny_subids[nanny_id][subid] = (cjob, fut, None)
                 continue
 
-            outfile = os.path.abspath(
-                os.path.join(exec.execdir, subid, "output.pkl"))
-            check_file = outfile + ".done"
-            done = False
-
-            if os.path.exists(check_file):
-                done = True
-
-            if not done:
-                res = subprocess.run(
-                    "condor_q %s -af:jr JobStatus" % cjob,
-                    shell=True,
-                    capture_output=True,
-                )
-                status_code = res.stdout.decode("utf-8").strip().split(" ")[1]
-
-                if status_code in ["3", "5", "7"]:
-                    done = True
-
-            if done:
+            status_code = _get_job_status(cjob)
+            if status_code in ["4", "3", "5", "7"]:
+                outfile = os.path.abspath(
+                    os.path.join(exec.execdir, subid, "output.pkl"))
                 infile = os.path.abspath(
                     os.path.join(exec.execdir, subid, "input.pkl"))
 
@@ -135,7 +135,7 @@ def _nanny_function(
                         "Condor job %s: no status or job output found!" % subid)
 
                 subprocess.run(
-                    "rm -f %s %s %s.done" % (infile, outfile, outfile),
+                    "rm -f %s %s" % (infile, outfile),
                     shell=True,
                     check=True,
                 )

@@ -2,7 +2,6 @@
 import os
 import sys
 import joblib
-import subprocess
 import cloudpickle
 
 
@@ -24,7 +23,6 @@ def main():
     finally:
         if not os.path.exists(output_file):
             joblib.dump(RuntimeError("job failed - see %s" % logfile), output_file)
-        subprocess.run("touch " + output_file + ".done", shell=True, check=True)
 
 
 if __name__ == '__main__':
