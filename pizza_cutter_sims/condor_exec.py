@@ -216,7 +216,13 @@ mv ${tmpdir}/$(basename $3) $3
             self.execid,
             self.execdir,
             subid,
-            min(self.poll_interval * max(1, np.sqrt(len(ALL_CONDOR_JOBS)/100)), 300),
+            min(
+                self.poll_interval * max(
+                    1,
+                    np.power(len(ALL_CONDOR_JOBS)/100, 1)
+                ),
+                300
+            ),
             self.job_timeout,
             func,
             args,
