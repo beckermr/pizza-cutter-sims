@@ -145,6 +145,7 @@ def _measure_m_c(outputs, cfg, write=None):
             mres,
             cfg["shear"]["g"],
             swap12=cfg["shear"]["swap12"],
+            jackknife=200 if len(pres) >= 200 else None,
         )
 
         msg = """\
