@@ -121,7 +121,7 @@ Queue
         if status_code in ["3", "5", "7"]:
             break
 
-        if time.time() - start_poll < max_poll_time:
+        if time.time() - start_poll > max_poll_time:
             timed_out = True
             break
 
