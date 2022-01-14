@@ -65,7 +65,7 @@ def _get_job_status(cjob):
 
 
 def _get_all_job_statuses_call(cjobs):
-    status = {cjob: None for cjob in cjobs}
+    status = {}
     res = subprocess.run(
         "condor_q %s -af:jr JobStatus" % " ".join(cjobs),
         shell=True,
@@ -80,7 +80,7 @@ def _get_all_job_statuses_call(cjobs):
 
 
 def _get_all_job_statuses(cjobs):
-    status = {cjob: None for cjob in cjobs}
+    status = {}
     jobs_to_check = []
     for cjob in cjobs:
         jobs_to_check.append(cjob)
@@ -167,7 +167,10 @@ def _nanny_function(
                     capture_output=True,
                 )
                 if os.path.exists(outfile):
-                    res = joblib.load(outfile)
+                    try:
+                        res = joblib.load(outfile)
+                    except Exception as e:
+                        res = e
                 elif status_code in ["3", "5", "7"]:
                     res = RuntimeError(
                         "Condor job %s: status %s" % (
