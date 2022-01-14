@@ -155,6 +155,7 @@ def _nanny_function(
 
         n_submitted = 0
         for subid, status_code in statuses.items():
+            print("subid|status:", subid, status_code, flush=True)
             if status_code in ["4", "3", "5", "7"]:
                 outfile = os.path.abspath(
                     os.path.join(exec.execdir, subid, "output.pkl"))
@@ -173,6 +174,9 @@ def _nanny_function(
                         if os.path.exists(outfile):
                             break
                         time.sleep(1)
+
+                if not os.path.exists(outfile):
+                    print("nofile subid|status|file:", subid, status_code, outfile, flush=True)
 
                 if os.path.exists(outfile):
                     try:
