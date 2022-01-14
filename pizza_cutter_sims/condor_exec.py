@@ -196,8 +196,8 @@ def _attempt_result(exec, nanny_id, cjob, subids, status_code):
         #
         # print("subid:", subid, "set future res", flush=True)
         #
-        del exec._nanny_subids[nanny_id][subid]
         with ACTIVE_THREAD_LOCK:
+            del exec._nanny_subids[nanny_id][subid]
             exec._num_jobs -= 1
         #
         # print("subid:", subid, "cleaned up the job", flush=True)
