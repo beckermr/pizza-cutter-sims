@@ -7,7 +7,7 @@ import joblib
 import atexit
 import threading
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, Future
 
 ACTIVE_THREAD_LOCK = threading.BoundedSemaphore(value=100)
 
@@ -127,6 +127,64 @@ def _submit_and_poll_function(
             return res
 
 
+def _nanny_function(
+    exec, nanny_id
+):
+    while True:
+        time.sleep(10)
+
+        if exec._done and len(exec._nanny_subids[nanny_id]) == 0:
+            return
+
+        subids = list(exec._nanny_subids[nanny_id])
+        for subid in subids:
+            infile = os.path.abspath(os.path.join(exec.execdir, subid, "input.pkl"))
+            outfile = os.path.abspath(os.path.join(exec.execdir, subid, "output.pkl"))
+            check_file = outfile + ".done"
+            cjob = exec._nanny_subids[nanny_id][subid][0]
+            done = False
+
+            if os.path.exists(check_file):
+                done = True
+
+            if not done:
+                res = subprocess.run(
+                    "condor_q %s -af JobStatus" % cjob,
+                    shell=True,
+                    capture_output=True,
+                )
+                status_code = res.stdout.decode("utf-8").strip()
+
+                if status_code in ["3", "5", "7"]:
+                    done = True
+
+            if done:
+                del ALL_CONDOR_JOBS[cjob]
+                if os.path.exists(outfile):
+                    res = joblib.load(outfile)
+                elif status_code in ["3", "5", "7"]:
+                    res = RuntimeError(
+                        "Condor job %s: status %s" % (subid, STATUS_DICT[status_code])
+                    )
+                    res = RuntimeError(
+                        "Condor job %s: no status or job output found!" % subid)
+
+                subprocess.run(
+                    "rm -f %s %s %s.done" % (infile, outfile, outfile),
+                    shell=True,
+                    check=True,
+                )
+
+                fut = exec._nanny_subids[nanny_id][subid][1]
+                if isinstance(res, Exception):
+                    fut.set_exception(res)
+                else:
+                    fut.set_result(res)
+
+                del exec._nanny_subids[nanny_id][subid]
+                exec._num_jobs -= 1
+
+
 class CondorExecutor():
     _worker_init = """\
 #!/bin/bash
@@ -174,6 +232,7 @@ mv ${tmpdir}/$(basename $3) $3
         else:
             self.poll_interval = poll_interval
         self.job_timeout = job_timeout
+        self._num_nannies = 1
 
     def __enter__(self):
         os.makedirs(self.execdir, exist_ok=True)
@@ -194,10 +253,19 @@ mv ${tmpdir}/$(basename $3) $3
             shell=True,
             check=True,
         )
-        self._exec = ThreadPoolExecutor(max_workers=self.max_workers)
+        self._exec = ThreadPoolExecutor(max_workers=1)
+        self._done = False
+        self._nanny_subids = [{} for _ in range(self._num_nannies)]
+        self._num_jobs = 0
+        self._nanny_ind = 0
+        self._nanny_futs = [
+            self._exec.submit(_nanny_function, self, i)
+            for i in range(self._num_nannies)
+        ]
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self._done = True
         self._exec.shutdown()
         self._exec = None
 
@@ -242,18 +310,33 @@ Queue
                 ),
             )
 
-        fut = self._exec.submit(
-            _submit_and_poll_function,
-            self.execid,
-            self.execdir,
-            subid,
-            self.poll_interval,
-            self.job_timeout,
-            func,
-            args,
-            kwargs,
+        sub = subprocess.run(
+            "condor_submit %s" % condorfile,
+            shell=True,
+            check=True,
+            capture_output=True,
         )
+
+        cjob = None
+        for line in sub.stdout.decode("utf-8").splitlines():
+            line = line.strip()
+            if "submitted to cluster" in line:
+                line = line.split(" ")
+                cjob = line[5] + "0"
+                break
+
+        assert cjob is not None
+        ALL_CONDOR_JOBS[cjob] = None
+
+        fut = Future()
+        fut.set_running_or_notify_cancel()
         fut.execid = self.execid
         fut.subid = subid
+        self._nanny_subids[self._nanny_ind][subid] = (cjob, fut)
+
+        self._num_jobs += 1
+
+        self._nanny_ind += 1
+        self._nanny_ind = self._nanny_ind % self._num_nannies
 
         return fut
