@@ -145,62 +145,62 @@ def _attempt_result(exec, nanny_id, cjob, subids, status_code):
             break
     if subid is not None and status_code in ["4", "3", "5", "7"]:
         print("%d: subid|status:" % nanny_id, subid, status_code, flush=True)
-        # outfile = os.path.abspath(
-        #     os.path.join(exec.execdir, subid, "output.pkl"))
-        # infile = os.path.abspath(
-        #     os.path.join(exec.execdir, subid, "input.pkl"))
-        #
-        # del ALL_CONDOR_JOBS[cjob]
-        # subprocess.run(
-        #     "condor_rm %s; condor_rm -forcex %s" % (cjob, cjob),
-        #     shell=True,
-        #     check=True,
-        #     capture_output=True,
-        # )
-        #
-        # if not os.path.exists(outfile):
-        #     print(
-        #         "nofile subid|status|file:", subid, status_code, outfile,
-        #         flush=True,
-        #     )
-        #
-        # if os.path.exists(outfile):
-        #     try:
-        #         res = joblib.load(outfile)
-        #     except Exception as e:
-        #         res = e
-        # elif status_code in ["3", "5", "7"]:
-        #     res = RuntimeError(
-        #         "Condor job %s: status %s" % (
-        #             subid, STATUS_DICT[status_code]
-        #         )
-        #     )
-        # else:
-        #     res = RuntimeError(
-        #         "Condor job %s: no status or job output found!" % subid)
-        #
-        # print("subid:", subid, "made res", flush=True)
-        #
-        # subprocess.run(
-        #     "rm -f %s %s" % (infile, outfile),
-        #     shell=True,
-        #     check=True,
-        # )
-        # print("subid:", subid, "removed files", flush=True)
-        #
-        # fut = exec._nanny_subids[nanny_id][subid][1]
-        # if isinstance(res, Exception):
-        #     fut.set_exception(res)
-        # else:
-        #     fut.set_result(res)
-        #
-        # print("subid:", subid, "set future res", flush=True)
-        #
+        outfile = os.path.abspath(
+            os.path.join(exec.execdir, subid, "output.pkl"))
+        infile = os.path.abspath(
+            os.path.join(exec.execdir, subid, "input.pkl"))
+
+        del ALL_CONDOR_JOBS[cjob]
+        subprocess.run(
+            "condor_rm %s; condor_rm -forcex %s" % (cjob, cjob),
+            shell=True,
+            check=True,
+            capture_output=True,
+        )
+
+        if not os.path.exists(outfile):
+            print(
+                "nofile subid|status|file:", subid, status_code, outfile,
+                flush=True,
+            )
+
+        if os.path.exists(outfile):
+            try:
+                res = joblib.load(outfile)
+            except Exception as e:
+                res = e
+        elif status_code in ["3", "5", "7"]:
+            res = RuntimeError(
+                "Condor job %s: status %s" % (
+                    subid, STATUS_DICT[status_code]
+                )
+            )
+        else:
+            res = RuntimeError(
+                "Condor job %s: no status or job output found!" % subid)
+
+        print("subid:", subid, "made res", flush=True)
+
+        subprocess.run(
+            "rm -f %s %s" % (infile, outfile),
+            shell=True,
+            check=True,
+        )
+        print("subid:", subid, "removed files", flush=True)
+
+        fut = exec._nanny_subids[nanny_id][subid][1]
+        if isinstance(res, Exception):
+            fut.set_exception(res)
+        else:
+            fut.set_result(res)
+
+        print("subid:", subid, "set future res", flush=True)
+
         exec._nanny_subids[nanny_id][subid] = (None, None, None)
-        # with ACTIVE_THREAD_LOCK:
-        #     exec._num_jobs -= 1
-        #
-        # print("subid:", subid, "cleaned up the job", flush=True)
+        with ACTIVE_THREAD_LOCK:
+            exec._num_jobs -= 1
+
+        print("subid:", subid, "cleaned up the job", flush=True)
         didit = True
 
     return didit
