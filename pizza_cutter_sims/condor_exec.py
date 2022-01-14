@@ -49,42 +49,8 @@ def _submit_and_poll_function(
     execid, execdir, id, poll_interval, max_poll_time, func, args, kwargs
 ):
     infile = os.path.abspath(os.path.join(execdir, id, "input.pkl"))
-    outfile = os.path.abspath(os.path.join(execdir, id, "output.pkl"))
-    logfile = os.path.abspath(os.path.join(execdir, id, "log.oe"))
     condorfile = os.path.join(execdir, id, "condor.sub")
-
-    os.makedirs(os.path.join(execdir, id), exist_ok=True)
-
-    ##############################
-    # dump the file
-    with open(infile, "wb") as fp:
-        cloudpickle.dump(joblib.delayed(func)(*args, **kwargs), fp)
-
-    ##############################
-    # submit the condor job
-    with open(condorfile, "w") as fp:
-        fp.write(
-            """\
-Universe = vanilla
-Notification = Never
-# Run this exe with these args
-Executable = %s
-# Image_Size =  2500000
-request_memory = 2G
-kill_sig = SIGINT
-+Experiment = "astro"
-
-+job_name = "%s"
-Arguments = %s %s %s
-Queue
-""" % (
-                os.path.join(execdir, "run.sh"),
-                "job-%s-%s" % (execid, id),
-                infile,
-                outfile,
-                logfile,
-            ),
-        )
+    outfile = os.path.abspath(os.path.join(execdir, id, "output.pkl"))
 
     sub = subprocess.run(
         "condor_submit %s" % condorfile,
@@ -212,6 +178,45 @@ mv ${tmpdir}/$(basename $3) $3
 
     def submit(self, func, *args, **kwargs):
         subid = uuid.uuid4().hex
+
+        infile = os.path.abspath(os.path.join(self.execdir, subid, "input.pkl"))
+        condorfile = os.path.join(self.execdir, subid, "condor.sub")
+        outfile = os.path.abspath(os.path.join(self.execdir, subid, "output.pkl"))
+        logfile = os.path.abspath(os.path.join(self.execdir, subid, "log.oe"))
+
+        os.makedirs(os.path.join(self.execdir, subid), exist_ok=True)
+
+        ##############################
+        # dump the file
+        with open(infile, "wb") as fp:
+            cloudpickle.dump(joblib.delayed(func)(*args, **kwargs), fp)
+
+        ##############################
+        # submit the condor job
+        with open(condorfile, "w") as fp:
+            fp.write(
+                """\
+Universe = vanilla
+Notification = Never
+# Run this exe with these args
+Executable = %s
+# Image_Size =  2500000
+request_memory = 2G
+kill_sig = SIGINT
++Experiment = "astro"
+
++job_name = "%s"
+Arguments = %s %s %s
+Queue
+""" % (
+                    os.path.join(self.execdir, "run.sh"),
+                    "job-%s-%s" % (self.execid, subid),
+                    infile,
+                    outfile,
+                    logfile,
+                ),
+            )
+
         fut = self._exec.submit(
             _submit_and_poll_function,
             self.execid,
@@ -231,4 +236,5 @@ mv ${tmpdir}/$(basename $3) $3
         )
         fut.execid = self.execid
         fut.subid = subid
+
         return fut
