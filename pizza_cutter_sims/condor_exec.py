@@ -64,6 +64,36 @@ def _get_job_status(cjob):
     return status
 
 
+def _get_all_job_statuses_call(cjobs):
+    status = {cjob: None for cjob in cjobs}
+    res = subprocess.run(
+        "condor_q %s -af:jr JobStatus" % " ".join(cjobs),
+        shell=True,
+        capture_output=True,
+    )
+    if res.returncode == 0:
+        for line in res.stdout.decode("utf-8").splitlines():
+            line = line.strip().split(" ")
+            if line[0] in cjobs:
+                status[line[0]] = line[1]
+    return status
+
+
+def _get_all_job_statuses(cjobs):
+    status = {cjob: None for cjob in cjobs}
+    jobs_to_check = []
+    for cjob in cjobs:
+        jobs_to_check.append(cjob)
+        if len(jobs_to_check) == 100:
+            status.update(_get_all_job_statuses_call(jobs_to_check))
+            jobs_to_check = []
+
+    if jobs_to_check:
+        status.update(_get_all_job_statuses_call(jobs_to_check))
+
+    return status
+
+
 def _nanny_function(
     exec, nanny_id
 ):
@@ -72,6 +102,12 @@ def _nanny_function(
             return
 
         subids = list(exec._nanny_subids[nanny_id])
+        statuses = _get_all_job_statuses([
+            exec._nanny_subids[nanny_id][subid][0]
+            for subid in subids
+            if exec._nanny_subids[nanny_id][subid][0] is not None
+        ])
+
         n_submitted = 0
         if DEBUG:
             print("%d: looping for %d subids" % (nanny_id, len(subids)), flush=True)
@@ -113,7 +149,7 @@ def _nanny_function(
                 else:
                     continue
 
-            status_code = _get_job_status(cjob)
+            status_code = statuses[subid]
             if status_code in ["4", "3", "5", "7"]:
                 outfile = os.path.abspath(
                     os.path.join(exec.execdir, subid, "output.pkl"))
