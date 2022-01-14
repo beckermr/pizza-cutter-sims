@@ -5,7 +5,6 @@ import subprocess
 import cloudpickle
 import joblib
 import atexit
-import numpy as np
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -147,7 +146,7 @@ mv ${tmpdir}/$(basename $3) $3
 """
 
     def __init__(
-        self, max_workers=10000, poll_interval=60, conda_env="pizza-cutter-sims",
+        self, max_workers=10000, poll_interval=600, conda_env="pizza-cutter-sims",
         verbose=None, job_timeout=7200,
     ):
         self.max_workers = max_workers
@@ -222,13 +221,7 @@ Queue
             self.execid,
             self.execdir,
             subid,
-            min(
-                self.poll_interval * max(
-                    1,
-                    np.power(len(ALL_CONDOR_JOBS)/100, 1.5)
-                ),
-                300
-            ),
+            self.poll_interval,
             self.job_timeout,
             func,
             args,
