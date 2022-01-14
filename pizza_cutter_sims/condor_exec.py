@@ -61,6 +61,7 @@ def _nanny_function(
             job_data = exec._nanny_subids[nanny_id][subid][2]
 
             if cjob is None and job_data is not None:
+                print("attempting to submit %s" % subid, flush=True)
                 with ACTIVE_THREAD_LOCK:
                     if exec._num_jobs < exec.max_workers:
                         exec._num_jobs += 1
@@ -69,6 +70,7 @@ def _nanny_function(
                         submit_job = False
 
                 if submit_job:
+                    print("submitting %s" % subid, flush=True)
                     cjob = exec._submit_condor_job(
                         exec, subid, nanny_id, fut, job_data
                     )
