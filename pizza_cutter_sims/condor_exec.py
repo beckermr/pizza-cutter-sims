@@ -382,7 +382,12 @@ class CondorExecutor():
         self._num_jobs = 0
         self._nanny_ind = 0
         self._nanny_futs = [
-            self._exec.submit(_nanny_function, self, i, self._num_nannies)
+            self._exec.submit(
+                _nanny_function,
+                self,
+                i,
+                max(1, self._num_nannies/10),
+            )
             for i in range(self._num_nannies)
         ]
         return self
