@@ -190,6 +190,7 @@ def generate_sim(
         _psf_config, _psf_obj = gen_psf(
             rng=rng,
             psf_config=psf_config,
+            gal_config=gal_config,
             se_image_shape=se_image_shape,
             se_wcs=wcss[se_ind],
         )
@@ -201,7 +202,7 @@ def generate_sim(
         -0.5 * coadd_config["central_size"] * coadd_config["scale"],
         0.5 * coadd_config["central_size"] * coadd_config["scale"],
     )
-    gals, upos, vpos, img_noise = gen_gals(
+    gals, upos, vpos, img_noise, img_noise_scale = gen_gals(
         rng=gal_rng,
         layout_config=layout_config,
         gal_config=gal_config,
@@ -225,6 +226,14 @@ def generate_sim(
     for se_ind in range(len(src_info)):
         _psf = psfs[se_ind]
         _wcs = wcss[se_ind]
+        if img_noise_scale is not None:
+            _img_noise = img_noise / img_noise_scale**2 * _wcs.pixelArea()
+        else:
+            _img_noise = img_noise
+        area = _wcs.pixelArea() * se_image_shape**2
+
+        # keep overall S/N constant
+        _img_noise *= np.sqrt(len(src_info))
 
         image = galsim.ImageD(bnds, dtype=np.float32, init_value=0)
 
@@ -246,8 +255,8 @@ def generate_sim(
 
         bkg = np.zeros_like(image)
         weight = np.zeros_like(image)
-        weight[:, :] = 1.0 / img_noise / img_noise
-        image += (rng.normal(size=image.shape) * img_noise)
+        weight[:, :] = 1.0 / _img_noise / _img_noise
+        image += (rng.normal(size=image.shape) * _img_noise)
         image += bkg
 
         msk = np.zeros(image.shape, dtype=np.int32)
@@ -263,7 +272,7 @@ def generate_sim(
 
             _msk = generate_bad_columns(
                 shape=(se_image_shape, se_image_shape),
-                rng=bad_col_rng,
+                rng=bad_col_rng, area=area,
                 **msk_config["bad_columns"],
             )
             msk[_msk] |= SIM_BMASK_BADCOLS
@@ -275,7 +284,7 @@ def generate_sim(
 
             _msk = generate_cosmic_rays(
                 shape=(se_image_shape, se_image_shape),
-                rng=cray_rng,
+                rng=cray_rng, area=area,
                 **msk_config["cosmic_rays"],
             )
             msk[_msk] |= SIM_BMASK_COSMICS
@@ -287,7 +296,7 @@ def generate_sim(
 
             _msk = generate_streaks(
                 shape=(se_image_shape, se_image_shape),
-                rng=streak_rng,
+                rng=streak_rng, area=area,
                 **msk_config["streaks"],
             )
             msk[_msk] |= SIM_BMASK_STREAKS

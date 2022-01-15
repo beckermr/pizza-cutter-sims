@@ -64,6 +64,7 @@ gal:
 
 star:
   dens_factor: 1
+  rad_dist: "uniform"
   interp:
     skip: True
     # these control how the interpolation is applied for star holes

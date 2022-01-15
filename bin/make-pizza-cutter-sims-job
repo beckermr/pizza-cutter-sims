@@ -36,8 +36,22 @@ run-pizza-cutter-sims \\
     --n-sims={n_sims} \\
     --backend=loky \\
     --output=data_{job_name}.fits \\
-    &> log_{job_name}_bash.oe
+    &> log_{job_name}.oe
 """
+
+BNL_TEMPLATE = """\
+#!/bin/bash
+
+run-pizza-cutter-sims \\
+    --config={config} \\
+    --seed={seed} \\
+    --n-sims={n_sims} \\
+    --backend=condor \\
+    --output=data_{job_name}.fits \\
+    --n-pack={n_pack} \\
+    &> log_{job_name}.oe
+"""
+
 
 PHOENIX_TEMPLATE = """\
 #!/bin/bash
@@ -121,6 +135,15 @@ def main(config, seed, n_sims, system, hours, n_jobs):
         n_sims = n_sims or 10_000
         ext = ".sh"
         n_jobs = n_jobs or 100
+    elif system == "bnl":
+        n_sims = n_sims or 100_000
+        ext = ".sh"
+        if n_sims < 100_000:
+            n_pack = 10
+        elif n_sims < 1_000_000:
+            n_pack = 100
+        else:
+            n_pack = 1000
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
@@ -169,6 +192,14 @@ def main(config, seed, n_sims, system, hours, n_jobs):
             workdir=os.path.abspath(os.path.dirname(config)),
         )
         job_name += "_array%d" % seed
+    elif system == "bnl":
+        cmd = BNL_TEMPLATE.format(
+            job_name=job_name,
+            config=config,
+            seed=seed,
+            n_sims=n_sims,
+            n_pack=n_pack,
+        )
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 

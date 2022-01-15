@@ -4,6 +4,7 @@ import numpy as np
 
 from .gsutils import build_gsobject
 from .ps_psf import PowerSpectrumPSF
+from . import gals_wldeblend
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class GalsimPSF(object):
         return self.gs_object == other.gs_object
 
 
-def gen_psf(*, rng, psf_config, se_image_shape, se_wcs):
+def gen_psf(*, rng, psf_config, gal_config, se_image_shape, se_wcs):
     """Generate the PSF for the SE image.
 
     Parameters
@@ -48,6 +49,8 @@ def gen_psf(*, rng, psf_config, se_image_shape, se_wcs):
         An RNG instance to use.
     psf_config : dict
         A dictionary of the PSF config information.
+    gal_config : dict
+        A dictionary of the galaxy config information.
     se_image_shape : int
         The shape of the SE image.
     se_wcs : galsim WCS object
@@ -107,8 +110,54 @@ def gen_psf(*, rng, psf_config, se_image_shape, se_wcs):
             fwhm=psf_config["fwhm"],
         )
         gs_config = psf_obj.getPSFConfig(se_wcs.origin)
-        LOGGER.debug("psf config: %s", gs_config)
-        LOGGER.debug("galsim psf: %s", psf_obj.getPSF(se_wcs.origin))
+        LOGGER.debug("ps psf config: %s", gs_config)
+        LOGGER.debug("ps galsim psf: %s", psf_obj.getPSF(se_wcs.origin))
+        return gs_config, psf_obj
+    elif psf_config["type"] == "wldeblend":
+        data = gals_wldeblend.init_wldeblend(survey_bands=gal_config["type"])
+        gs_config = gals_wldeblend.get_psf_config_wldeblend(data=data)
+
+        g1 = 1.1
+        g2 = 1.1
+        while np.abs(g1) > 1 or np.abs(g2) > 1 or np.abs(g1*g1 + g2*g2) > 1:
+            g1 = (
+                psf_config["shear"][0] + rng.normal() * psf_config["shear_std"]
+            )
+            g2 = (
+                psf_config["shear"][1] + rng.normal() * psf_config["shear_std"]
+            )
+        width = gs_config["fwhm"] * (
+            1.0 + psf_config["fwhm_frac_std"] * rng.normal()
+        )
+
+        gs_config["fwhm"] = width
+        gs_config["shear"] = {
+            "type": "G1G2",
+            "g1": g1,
+            "g2": g2,
+        }
+        res = gs_config, GalsimPSF(
+            build_gsobject(config=gs_config, kind='psf')
+        )
+        LOGGER.debug("wldeblend psf config: %s", res[0])
+        LOGGER.debug("wldeblend galsim psf: %s", res[1].gs_object)
+        return res
+    elif psf_config["type"] == "wldeblend-ps":
+        data = gals_wldeblend.init_wldeblend(survey_bands=gal_config["type"])
+        gs_config = gals_wldeblend.get_psf_config_wldeblend(data=data)
+
+        psf_obj = PowerSpectrumPSF(
+            rng=rng,
+            im_width=se_image_shape,
+            buff=20,
+            trunc=1,
+            scale=np.sqrt(se_wcs.pixelArea(image_pos=se_wcs.origin)),
+            variation_factor=psf_config["variation_factor"],
+            fwhm=gs_config["fwhm"],
+        )
+        gs_config = psf_obj.getPSFConfig(se_wcs.origin)
+        LOGGER.debug("wldeblend-ps psf config: %s", gs_config)
+        LOGGER.debug("wldeblend-ps galsim psf: %s", psf_obj.getPSF(se_wcs.origin))
         return gs_config, psf_obj
     else:
         raise ValueError("PSF type '%s' not supported!" % psf_config["type"])

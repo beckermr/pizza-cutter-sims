@@ -17,7 +17,7 @@ def test_gals_gen_gals_grid():
         "type": "exp-bright",
         "noise": 10,
     }
-    gals, upos, vpos, noise = gen_gals(
+    gals, upos, vpos, noise, noise_scale = gen_gals(
         rng=rng,
         layout_config=layout_config,
         pos_bounds=pos_bounds,
@@ -34,6 +34,7 @@ def test_gals_gen_gals_grid():
         (vpos >= -10) &
         (upos <= 10)
     )
+    assert noise_scale is None
 
 
 def test_gals_gen_gals_random():
@@ -48,7 +49,7 @@ def test_gals_gen_gals_random():
         "type": "exp-bright",
         "noise": 10,
     }
-    gals, upos, vpos, noise = gen_gals(
+    gals, upos, vpos, noise, noise_scale = gen_gals(
         rng=rng,
         layout_config=layout_config,
         pos_bounds=pos_bounds,
@@ -64,6 +65,7 @@ def test_gals_gen_gals_random():
         (vpos >= -10) &
         (upos <= 10)
     )
+    assert noise_scale is None
 
 
 def test_gals_gen_gals_raises():
@@ -75,3 +77,63 @@ def test_gals_gen_gals_raises():
             gal_config={"type": "blah"},
             pos_bounds=(-10, 10),
         )
+
+
+def test_gals_gen_gals_wldeblend_des():
+    rng = np.random.RandomState(seed=42)
+    layout_config = {
+        "type": "random",
+        "ngal_per_arcmin2": 60,
+        "dither_scale": 0.263,
+    }
+    pos_bounds = (-10, 10)
+    gal_config = {
+        "type": "des-riz",
+        "noise": 10,
+    }
+    gals, upos, vpos, noise, noise_scale = gen_gals(
+        rng=rng,
+        layout_config=layout_config,
+        pos_bounds=pos_bounds,
+        gal_config=gal_config,
+    )
+    assert len(gals) == upos.shape[0]
+    assert len(gals) == vpos.shape[0]
+    assert all(["galsim.Sum" in repr(g) for g in gals])
+    assert np.all(
+        (upos >= -10) &
+        (upos <= 10) &
+        (vpos >= -10) &
+        (upos <= 10)
+    )
+    assert noise_scale == 0.263
+
+
+def test_gals_gen_gals_wldeblend_lsst():
+    rng = np.random.RandomState(seed=42)
+    layout_config = {
+        "type": "random",
+        "ngal_per_arcmin2": 60,
+        "dither_scale": 0.263,
+    }
+    pos_bounds = (-10, 10)
+    gal_config = {
+        "type": "lsst-riz",
+        "noise": 10,
+    }
+    gals, upos, vpos, noise, noise_scale = gen_gals(
+        rng=rng,
+        layout_config=layout_config,
+        pos_bounds=pos_bounds,
+        gal_config=gal_config,
+    )
+    assert len(gals) == upos.shape[0]
+    assert len(gals) == vpos.shape[0]
+    assert all(["galsim.Sum" in repr(g) for g in gals])
+    assert np.all(
+        (upos >= -10) &
+        (upos <= 10) &
+        (vpos >= -10) &
+        (upos <= 10)
+    )
+    assert noise_scale == 0.2
