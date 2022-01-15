@@ -294,27 +294,39 @@ def _nanny_function(
                 break
 
             if len(subids) > 0:
+                n_to_submit = sum(
+                    1
+                    for subid in subids
+                    if (
+                        exec._nanny_subids[nanny_id][subid][0] is None
+                        and
+                        exec._nanny_subids[nanny_id][subid][2] is not None
+                    )
+                )
+                if n_to_submit > 0:
+                    n_submitted = 0
+                    for subid in subids:
+                        if _attempt_submit(exec, nanny_id, subid):
+                            n_submitted += 1
+                        if n_submitted >= 100:
+                            break
+                elif poll_delay > 0:
+                    time.sleep(poll_delay)
+
                 statuses = _get_all_job_statuses([
                     exec._nanny_subids[nanny_id][subid][0]
                     for subid in subids
                     if exec._nanny_subids[nanny_id][subid][0] is not None
                 ])
-
-                n_submitted = 0
-                for subid in subids:
-                    if _attempt_submit(exec, nanny_id, subid):
-                        n_submitted += 1
-                    if n_submitted >= 100:
-                        break
-
-                n_submitted = 0
+                n_checked = 0
                 for cjob, status_code in statuses.items():
                     if _attempt_result(exec, nanny_id, cjob, subids, status_code):
-                        n_submitted += 1
-                    if n_submitted >= 100:
+                        n_checked += 1
+                    if n_checked >= 100:
                         break
 
-            time.sleep(poll_delay)
+            elif poll_delay > 0:
+                time.sleep(poll_delay)
 
         subids = [
             k for k in list(exec._nanny_subids[nanny_id])
@@ -370,7 +382,7 @@ class CondorExecutor():
         self._num_jobs = 0
         self._nanny_ind = 0
         self._nanny_futs = [
-            self._exec.submit(_nanny_function, self, i, 2*self._num_nannies)
+            self._exec.submit(_nanny_function, self, i, self._num_nannies)
             for i in range(self._num_nannies)
         ]
         return self
