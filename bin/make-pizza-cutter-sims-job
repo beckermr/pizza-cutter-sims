@@ -48,7 +48,7 @@ run-pizza-cutter-sims \\
     --n-sims={n_sims} \\
     --backend=condor \\
     --output=data_{job_name}.fits \\
-    -n-pack={n_pack} \\
+    --n-pack={n_pack} \\
     &> log_{job_name}.oe
 """
 
