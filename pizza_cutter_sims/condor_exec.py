@@ -27,6 +27,36 @@ STATUS_DICT = {
     "7": "Suspended",
 }
 
+WORKER_INIT = """\
+#!/bin/bash
+
+source ~/.bashrc
+
+export OMP_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+
+if [[ -n $_CONDOR_SCRATCH_DIR ]]; then
+    # the condor system creates a scratch directory for us,
+    # and cleans up afterward
+    tmpdir=$_CONDOR_SCRATCH_DIR
+    export TMPDIR=$tmpdir
+else
+    # otherwise use the TMPDIR
+    tmpdir='.'
+    mkdir -p $tmpdir
+fi
+
+source activate %s
+
+mkdir -p $(dirname $2)
+mkdir -p $(dirname $3)
+
+run-pickled-task $1 $2 $3 &> $3
+"""
+
 
 def _kill_condor_jobs():
     chunksize = 100
@@ -84,6 +114,77 @@ def _get_all_job_statuses(cjobs):
     return status
 
 
+def _submit_condor_job(exec, subid, nanny_id, fut, job_data):
+    cjob = None
+
+    if not fut.cancelled():
+        infile = os.path.join(exec.execdir, subid, "input.pkl")
+        condorfile = os.path.join(exec.execdir, subid, "condor.sub")
+        outfile = os.path.join(exec.execdir, subid, "output.pkl")
+        logfile = os.path.join(exec.execdir, subid, "log.oe")
+
+        os.makedirs(os.path.join(exec.execdir, subid), exist_ok=True)
+
+        ##############################
+        # dump the file
+        with open(infile, "wb") as fp:
+            cloudpickle.dump(job_data, fp)
+
+        ##############################
+        # submit the condor job
+        with open(condorfile, "w") as fp:
+            fp.write(
+                """\
+Universe       = vanilla
+Notification   = Never
+# this executable must have u+x bits
+Executable     = %s
+request_memory = 2G
+kill_sig       = SIGINT
+leave_in_queue = TRUE
++Experiment    = "astro"
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+preserve_relative_paths = TRUE
+transfer_input_files = %s
+
++job_name = "%s"
+transfer_output_files = %s,%s
+Arguments = %s %s %s
+Queue
+""" % (
+                    os.path.join(exec.execdir, "run.sh"),
+                    infile,
+                    "job-%s-%s" % (exec.execid, subid),
+                    outfile,
+                    logfile,
+                    infile,
+                    outfile,
+                    logfile,
+                ),
+            )
+
+        sub = subprocess.run(
+            "condor_submit %s" % condorfile,
+            shell=True,
+            check=True,
+            capture_output=True,
+        )
+
+        cjob = None
+        for line in sub.stdout.decode("utf-8").splitlines():
+            line = line.strip()
+            if "submitted to cluster" in line:
+                line = line.split(" ")
+                cjob = line[5] + "0"
+                break
+
+        assert cjob is not None
+        ALL_CONDOR_JOBS[cjob] = None
+
+    return cjob
+
+
 def _attempt_submit(exec, nanny_id, subid):
     submitted = False
     cjob = exec._nanny_subids[nanny_id][subid][0]
@@ -100,7 +201,7 @@ def _attempt_submit(exec, nanny_id, subid):
                 submit_job = False
 
         if submit_job:
-            cjob = exec._submit_condor_job(
+            cjob = _submit_condor_job(
                 exec, subid, nanny_id, fut, job_data
             )
 
@@ -178,7 +279,7 @@ def _attempt_result(exec, nanny_id, cjob, subids, status_code):
 
 
 def _nanny_function(
-    exec, nanny_id, poll_delay=10,
+    exec, nanny_id, poll_delay,
 ):
     LOGGER.info("nanny %d started for exec %s", nanny_id, exec.execid)
 
@@ -231,39 +332,10 @@ def _nanny_function(
 
 
 class CondorExecutor():
-    _worker_init = """\
-#!/bin/bash
-
-source ~/.bashrc
-
-export OMP_NUM_THREADS=1
-export OPENBLAS_NUM_THREADS=1
-export MKL_NUM_THREADS=1
-export VECLIB_MAXIMUM_THREADS=1
-export NUMEXPR_NUM_THREADS=1
-
-if [[ -n $_CONDOR_SCRATCH_DIR ]]; then
-    # the condor system creates a scratch directory for us,
-    # and cleans up afterward
-    tmpdir=$_CONDOR_SCRATCH_DIR
-    export TMPDIR=$tmpdir
-else
-    # otherwise use the TMPDIR
-    tmpdir='.'
-    mkdir -p $tmpdir
-fi
-
-source activate %s
-
-mkdir -p $(dirname $2)
-mkdir -p $(dirname $3)
-
-run-pickled-task $1 $2 $3 &> $3
-"""
 
     def __init__(
         self, max_workers=10000, conda_env="pizza-cutter-sims",
-        verbose=None,
+        verbose=0,
     ):
         self.max_workers = max_workers
         self.execid = uuid.uuid4().hex
@@ -271,20 +343,22 @@ run-pickled-task $1 $2 $3 &> $3
         self.conda_env = conda_env
         self._exec = None
         self._num_nannies = 10
+        self.verbose = verbose
 
     def __enter__(self):
         os.makedirs(self.execdir, exist_ok=True)
-        print(
-            "starting condor executor: "
-            "exec dir %s - max workers %s" % (
-                self.execdir,
-                self.max_workers,
-            ),
-            flush=True,
-        )
+        if self.verbose > 0:
+            print(
+                "starting condor executor: "
+                "exec dir %s - max workers %s" % (
+                    self.execdir,
+                    self.max_workers,
+                ),
+                flush=True,
+            )
 
         with open(os.path.join(self.execdir, "run.sh"), "w") as fp:
-            fp.write(self._worker_init % self.conda_env)
+            fp.write(WORKER_INIT % self.conda_env)
         subprocess.run(
             "chmod u+x " + os.path.join(self.execdir, "run.sh"),
             shell=True,
@@ -296,7 +370,7 @@ run-pickled-task $1 $2 $3 &> $3
         self._num_jobs = 0
         self._nanny_ind = 0
         self._nanny_futs = [
-            self._exec.submit(_nanny_function, self, i)
+            self._exec.submit(_nanny_function, self, i, 2*self._num_nannies)
             for i in range(self._num_nannies)
         ]
         return self
@@ -305,77 +379,6 @@ run-pickled-task $1 $2 $3 &> $3
         self._done = True
         self._exec.shutdown()
         self._exec = None
-
-    @staticmethod
-    def _submit_condor_job(exec, subid, nanny_id, fut, job_data):
-        cjob = None
-
-        if not fut.cancelled():
-            infile = os.path.join(exec.execdir, subid, "input.pkl")
-            condorfile = os.path.join(exec.execdir, subid, "condor.sub")
-            outfile = os.path.join(exec.execdir, subid, "output.pkl")
-            logfile = os.path.join(exec.execdir, subid, "log.oe")
-
-            os.makedirs(os.path.join(exec.execdir, subid), exist_ok=True)
-
-            ##############################
-            # dump the file
-            with open(infile, "wb") as fp:
-                cloudpickle.dump(job_data, fp)
-
-            ##############################
-            # submit the condor job
-            with open(condorfile, "w") as fp:
-                fp.write(
-                    """\
-Universe       = vanilla
-Notification   = Never
-# this executable must have u+x bits
-Executable     = %s
-request_memory = 2G
-kill_sig       = SIGINT
-leave_in_queue = TRUE
-+Experiment    = "astro"
-should_transfer_files = YES
-when_to_transfer_output = ON_EXIT
-preserve_relative_paths = TRUE
-transfer_input_files = %s
-
-+job_name = "%s"
-transfer_output_files = %s,%s
-Arguments = %s %s %s
-Queue
-    """ % (
-                        os.path.join(exec.execdir, "run.sh"),
-                        infile,
-                        "job-%s-%s" % (exec.execid, subid),
-                        outfile,
-                        logfile,
-                        infile,
-                        outfile,
-                        logfile,
-                    ),
-                )
-
-            sub = subprocess.run(
-                "condor_submit %s" % condorfile,
-                shell=True,
-                check=True,
-                capture_output=True,
-            )
-
-            cjob = None
-            for line in sub.stdout.decode("utf-8").splitlines():
-                line = line.strip()
-                if "submitted to cluster" in line:
-                    line = line.split(" ")
-                    cjob = line[5] + "0"
-                    break
-
-            assert cjob is not None
-            ALL_CONDOR_JOBS[cjob] = None
-
-        return cjob
 
     def submit(self, func, *args, **kwargs):
         subid = uuid.uuid4().hex
