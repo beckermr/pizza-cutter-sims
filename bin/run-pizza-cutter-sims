@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import sys
-import time
 import copy
 import logging
 import concurrent.futures
@@ -40,7 +39,7 @@ def _run_sets_of_pairs(all_args):
             return False
 
         try:
-            kwargs, num, backend, start_time = args
+            kwargs, num = args
 
             pres, mres = run_end2end_pair_with_shear(**kwargs)
 
@@ -91,12 +90,6 @@ def _run_sets_of_pairs(all_args):
                     datap.append(tuple(list(pgm) + [s2n_cut, -1, mfrac_cut]))
                     datam.append(tuple(list(mgm) + [s2n_cut, -1, mfrac_cut]))
 
-            if backend == "mpi":
-                print(
-                    "[% 10ds] did %04d" % (time.time() - start_time, num+1),
-                    flush=True,
-                )
-
             return np.array(datap, dtype=dtype), np.array(datam, dtype=dtype)
         except KeyError:
             raise
@@ -110,7 +103,7 @@ def _run_sets_of_pairs(all_args):
     return [_run_pair(arg) for arg in all_args]
 
 
-def _measure_m_c(outputs, cfg, write=None):
+def _measure_m_c(outputs, cfg):
     pdata, mdata = zip(*outputs)
     pdata, mdata = cut_nones(pdata, mdata)
     if len(pdata) > 0 and len(mdata) > 0:
@@ -137,9 +130,6 @@ def _measure_m_c(outputs, cfg, write=None):
             for i in range(pdata[pmsk].shape[0])
         ]
 
-        if write is None:
-            print("\n", flush=True, end="")
-
         m, msd, c, csd = estimate_m_and_c(
             pres,
             mres,
@@ -158,10 +148,7 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
                 c=c/1e-5,
                 csd=csd/1e-5 * 3,
         )
-        if write is None:
-            print(msg, flush=True)
-        else:
-            write(msg)
+        print(msg, flush=True)
 
         return pdata, mdata
     else:
@@ -180,10 +167,10 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
         'warning, info, or debug]')
 )
 @click.option(
-    '--backend', default='sequential', type=str,
+    '--backend', default='local', type=str,
     help=(
-        "parallel backend to use (one of 'sequential', "
-        "'loky', 'multiprocessing', 'condor', or 'mpi')"
+        "parallel backend to use (one of 'local', "
+        "'loky', 'condor', or 'mpi')"
     )
 )
 @click.option(
@@ -201,9 +188,7 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
 def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, n_pack):
     """Run simulation(s) and analyze them with pizza cutter coadding and metadetect."""
 
-    start_time = time.time()
-
-    if backend == "sequential" or backend == "local":
+    if backend == "local":
         logging.basicConfig(stream=sys.stdout)
         for code in ["ngmix", "metadetect", "pizza_cutter", "pizza_cutter_sims"]:
             logging.getLogger(code).setLevel(
@@ -252,8 +237,6 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                     swap12=cfg["shear"]["swap12"],
                 ),
                 i,
-                backend,
-                start_time,
             ))
     else:
         args = []
@@ -280,13 +263,20 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
     if backend == "local":
         if rank == 0:
             outputs = []
-            for chunk in range(n_chunks):
+            for chunk in PBar(
+                range(n_chunks),
+                total=n_chunks, n_bars=79, desc='running jobs'
+            ):
                 start = chunk * n_pack
                 end = min(start + n_pack, len(args))
                 outputs += _run_sets_of_pairs(args[start:end])
 
                 n_outputs = len(outputs)
-                if n_outputs % n_report == 0 and n_outputs > 0:
+                if (
+                    chunk % n_report_chunks == n_report_chunks-1
+                    and n_outputs > 0
+                ):
+                    print("\n", end="", flush=True)
                     res = _measure_m_c(outputs, cfg)
                     if output is not None and res is not None:
                         with fitsio.FITS(output, 'rw', clobber=True) as fits:
@@ -298,7 +288,9 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
             n_workers=n_workers,
             verbose=100,
         ) as pool:
-            if hasattr(pool, "submit"):
+            if pool is not None and rank == 0:
+                ############################
+                # submit all of the jobs
                 futs = []
                 for chunk in PBar(
                     range(n_chunks), total=n_chunks, desc="submitting jobs"
@@ -307,6 +299,8 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                     end = min(start + n_pack, len(args))
                     futs.append(pool.submit(_run_sets_of_pairs, args[start:end]))
 
+                ############################
+                # collect outputs
                 outputs = []
                 chunk = 0
                 for chunk, fut in PBar(
@@ -332,44 +326,13 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                     if (
                         chunk % n_report_chunks == n_report_chunks-1
                         and n_outputs > 0
-                        and rank == 0
                     ):
-                        print("\n", flush=True, end="")
+                        print("\n", end="", flush=True)
                         res = _measure_m_c(outputs, cfg)
                         if output is not None and res is not None:
                             with fitsio.FITS(output, 'rw', clobber=True) as fits:
                                 fits.write(res[0], extname='plus')
                                 fits.write(res[1], extname='minus')
-
-            else:
-                outputs = []
-                curr_args = []
-                for chunk in PBar(range(n_chunks), n_bars=79, desc='running chunks'):
-                    start = chunk * n_pack
-                    end = min(start + n_pack, len(args))
-                    curr_args.append(args[start:end])
-
-                    if (
-                        (
-                            chunk % n_report_chunks == n_report_chunks-1
-                            and chunk > 0
-                        )
-                        or chunk == n_chunks-1
-                    ):
-                        if backend in ["dask", "loky"]:
-                            print("\n", flush=True, end="")
-
-                        for out in pool.map(_run_sets_of_pairs, curr_args):
-                            outputs += out
-
-                        curr_args = []
-
-                        if rank == 0 and len(outputs) > 0:
-                            res = _measure_m_c(outputs, cfg)
-                            if output is not None and res is not None:
-                                with fitsio.FITS(output, 'rw', clobber=True) as fits:
-                                    fits.write(res[0], extname='plus')
-                                    fits.write(res[1], extname='minus')
 
     if rank == 0:
         res = _measure_m_c(outputs, cfg)

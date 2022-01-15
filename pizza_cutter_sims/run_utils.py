@@ -1,18 +1,13 @@
-import logging
 import multiprocessing
 import contextlib
-import os
 import time
 from contextlib import contextmanager
 import sys
 
-import dask
-from dask.distributed import Client
-import joblib
+import loky
 
 import numpy as np
 import tqdm
-import schwimmbad
 
 # from .parsl import ParslCondorPool
 from .condor_exec import CondorExecutor
@@ -60,15 +55,15 @@ def get_n_workers(backend, n_workers=None):
     n_workers : int
         The number of workers
     """
-    if backend in ["mp", "multiprocessing", "loky", "dask"]:
+    if backend == "loky":
         return n_workers or multiprocessing.cpu_count()
     elif backend == "mpi":
         from mpi4py import MPI
         return MPI.COMM_WORLD.Get_size()
-    elif backend == "sequential" or backend == "local":
+    elif backend == "local":
         return 1
     elif backend == "condor":
-        return 1000
+        return 10000
     else:
         raise RuntimeError("backend '%s' not recognized!" % backend)
 
@@ -80,7 +75,7 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
     Parameters
     ----------
     backend : str
-        One of 'condor', 'sequential', 'dask', 'multiprocessing', 'loky', or 'mpi'.
+        One of 'condor', 'loky', or 'mpi'.
     n_workers : int, optional
         The number of workers to use. Defaults to 1 for the 'sequential' backend,
         the cpu count for the 'loky' backend, and the size of the default global
@@ -88,63 +83,30 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
     **kwargs : extra keyword arguments
         These are passed to ParslCondorPool.
     """
-    if backend == "mp":
-        backend = "multiprocessing"
+
+    local_env_overrides = {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+    }
 
     if backend == "condor":
         with CondorExecutor(verbose=verbose, max_workers=n_workers, **kwargs) as pool:
             yield pool
-    else:
+    elif backend == "loky":
         _n_workers = get_n_workers(backend, n_workers=n_workers)
-
-        try:
-            if "dask" in backend:
-                env = {
-                    "OMP_NUM_THREADS": "1",
-                    "OPENBLAS_NUM_THREADS": "1",
-                    "MKL_NUM_THREADS": "1",
-                    "VECLIB_MAXIMUM_THREADS": "1",
-                    "NUMEXPR_NUM_THREADS": "1",
-                }
-                env.update(os.environ)
-                with dask.config.set({"distributed.worker.daemon": False}):
-                    with Client(
-                        processes=True,
-                        n_workers=_n_workers,
-                        threads_per_worker=1,
-                        env=env,
-                        silence_logs=logging.ERROR,
-                    ) as client:
-                        with joblib.parallel_backend('dask', n_jobs=_n_workers):
-                            yield schwimmbad.JoblibPool(
-                                n_jobs=_n_workers,
-                                verbose=verbose,
-                                max_nbytes=0,
-                            )
-            else:
-                if backend == "sequential":
-                    pool = schwimmbad.JoblibPool(
-                        _n_workers,
-                        backend=backend,
-                        verbose=verbose,
-                    )
-                else:
-                    if backend in ["mpi", "multiprocessing"]:
-                        pool = schwimmbad.choose_pool(
-                            mpi=backend == "mpi",
-                            processes=_n_workers,
-                        )
-                    else:
-                        pool = schwimmbad.JoblibPool(
-                            _n_workers,
-                            backend=backend,
-                            verbose=verbose,
-                            max_nbytes=0,
-                        )
-                yield pool
-        finally:
-            if "pool" in locals():
-                pool.close()
+        yield loky.get_reusable_executor(
+            max_workers=_n_workers,
+            env=local_env_overrides,
+        )
+    elif backend == "mpi":
+        from mpi4py.futures import MPICommExecutor
+        with MPICommExecutor(env=local_env_overrides) as pool:
+            yield pool
+    else:
+        raise RuntimeError("backend '%s' not recognized!" % backend)
 
 
 def cut_nones(presults, mresults):
