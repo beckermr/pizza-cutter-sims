@@ -10,7 +10,7 @@ import numpy as np
 import tqdm
 
 # from .parsl import ParslCondorPool
-from .condor_exec import CondorExecutor
+from mattspy import BNLCondorExecutor, SLACLSFExecutor
 
 GLOBAL_START_TIME = time.time()
 
@@ -75,7 +75,7 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
     Parameters
     ----------
     backend : str
-        One of 'condor', 'loky', or 'mpi'.
+        One of 'condor', 'lsf', 'loky', or 'mpi'.
     n_workers : int, optional
         The number of workers to use. Defaults to 1 for the 'sequential' backend,
         the cpu count for the 'loky' backend, and the size of the default global
@@ -93,7 +93,14 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
     }
 
     if backend == "condor":
-        with CondorExecutor(verbose=verbose, max_workers=n_workers, **kwargs) as pool:
+        with BNLCondorExecutor(
+            verbose=verbose, max_workers=n_workers, **kwargs
+        ) as pool:
+            yield pool
+    elif backend == "lsf":
+        with SLACLSFExecutor(
+            verbose=verbose, max_workers=n_workers, **kwargs
+        ) as pool:
             yield pool
     elif backend == "loky":
         _n_workers = get_n_workers(backend, n_workers=n_workers)

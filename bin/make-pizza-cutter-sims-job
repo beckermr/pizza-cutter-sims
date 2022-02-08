@@ -53,6 +53,20 @@ run-pizza-cutter-sims \\
 """
 
 
+SLAC_TEMPLATE = """\
+#!/bin/bash
+
+run-pizza-cutter-sims \\
+    --config={config} \\
+    --seed={seed} \\
+    --n-sims={n_sims} \\
+    --backend=lsf \\
+    --output=data_{job_name}.fits \\
+    --n-pack={n_pack} \\
+    &> log_{job_name}.oe
+"""
+
+
 PHOENIX_TEMPLATE = """\
 #!/bin/bash
 #SBATCH --job-name={job_name}
@@ -144,6 +158,15 @@ def main(config, seed, n_sims, system, hours, n_jobs):
             n_pack = 100
         else:
             n_pack = 1000
+    elif system == "slac":
+        n_sims = n_sims or 100_000
+        ext = ".sh"
+        if n_sims < 100_000:
+            n_pack = 10
+        elif n_sims < 1_000_000:
+            n_pack = 100
+        else:
+            n_pack = 1000
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
@@ -194,6 +217,14 @@ def main(config, seed, n_sims, system, hours, n_jobs):
         job_name += "_array%d" % seed
     elif system == "bnl":
         cmd = BNL_TEMPLATE.format(
+            job_name=job_name,
+            config=config,
+            seed=seed,
+            n_sims=n_sims,
+            n_pack=n_pack,
+        )
+    elif system == "slac":
+        cmd = SLAC_TEMPLATE.format(
             job_name=job_name,
             config=config,
             seed=seed,

@@ -170,7 +170,7 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
     '--backend', default='local', type=str,
     help=(
         "parallel backend to use (one of 'local', "
-        "'loky', 'condor', or 'mpi')"
+        "'loky', 'condor', 'lsf', or 'mpi')"
     )
 )
 @click.option(

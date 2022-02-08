@@ -31,3 +31,4 @@ scipy
 sep
 setuptools
 tqdm
+mattspy
