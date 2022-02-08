@@ -257,8 +257,20 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
     if n_workers is None:
         if backend == "condor":
             n_workers = min(10000, n_chunks)
+        elif backend == "lsf":
+            n_workers = min(10000, n_chunks)
         else:
             n_workers = min(n_report_chunks, get_n_workers(backend))
+
+    print(
+        "running %d sims w/ %d chunks reporting every %d chunks on %d workers" % (
+            n_sims,
+            n_chunks,
+            n_report_chunks,
+            n_workers,
+        ),
+        flush=True,
+    )
 
     if backend == "local":
         if rank == 0:
