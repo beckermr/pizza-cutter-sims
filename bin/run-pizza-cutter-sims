@@ -285,7 +285,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
 
                 n_outputs = len(outputs)
                 if (
-                    chunk % n_report_chunks == n_report_chunks-1
+                    (chunk+1) % n_report_chunks == 0
                     and n_outputs > 0
                 ):
                     print("\n", end="", flush=True)
@@ -336,7 +336,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
 
                     n_outputs = len(outputs)
                     if (
-                        chunk % n_report_chunks == n_report_chunks-1
+                        (chunk+1) % n_report_chunks == 0
                         and n_outputs > 0
                     ):
                         print("\n", end="", flush=True)
