@@ -155,6 +155,31 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
         return None
 
 
+def _gen_args(
+    start, end, cfg,
+    sim_rng_seeds, gal_rng_seeds, star_rng_seeds, coadd_rng_seeds, mdet_rng_seeds
+):
+
+    def _gen():
+        for i in range(start, end):
+            yield (
+                dict(
+                    rng_seed=sim_rng_seeds[i],
+                    gal_rng_seed=gal_rng_seeds[i],
+                    star_rng_seed=star_rng_seeds[i],
+                    coadd_rng_seed=coadd_rng_seeds[i],
+                    mdet_rng_seed=mdet_rng_seeds[i],
+                    cfg=copy.deepcopy(cfg),
+                    g1=cfg["shear"]["g"],
+                    g2=0,
+                    swap12=cfg["shear"]["swap12"],
+                ),
+                i,
+            )
+
+    return _gen
+
+
 @click.command()
 @click.option('--config', type=str, default="config.yaml", help='config file')
 @click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
@@ -212,37 +237,8 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         mdet_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
         star_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
 
-        args = []
-        for i, (
-            rng_seed, gal_rng_seed, star_rng_seed,
-            coadd_rng_seed, mdet_rng_seed
-        ) in PBar(
-            enumerate(zip(
-                sim_rng_seeds, gal_rng_seeds, star_rng_seeds,
-                coadd_rng_seeds, mdet_rng_seeds,
-            )),
-            total=len(sim_rng_seeds),
-            desc="making sims",
-        ):
-            args.append((
-                dict(
-                    rng_seed=rng_seed,
-                    gal_rng_seed=gal_rng_seed,
-                    star_rng_seed=star_rng_seed,
-                    coadd_rng_seed=coadd_rng_seed,
-                    mdet_rng_seed=mdet_rng_seed,
-                    cfg=copy.deepcopy(cfg),
-                    g1=cfg["shear"]["g"],
-                    g2=0,
-                    swap12=cfg["shear"]["swap12"],
-                ),
-                i,
-            ))
-    else:
-        args = []
-
     if n_report is None:
-        n_report = max(len(args) // 100, 100)
+        n_report = max(n_sims // 100, 100)
 
     n_chunks = n_sims // n_pack
     if n_chunks * n_pack < n_sims:
@@ -280,8 +276,18 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                 total=n_chunks, n_bars=79, desc='running jobs'
             ):
                 start = chunk * n_pack
-                end = min(start + n_pack, len(args))
-                outputs += _run_sets_of_pairs(args[start:end])
+                end = min(start + n_pack, n_sims)
+                _agen = _gen_args(
+                    start,
+                    end,
+                    cfg,
+                    sim_rng_seeds,
+                    gal_rng_seeds,
+                    star_rng_seeds,
+                    coadd_rng_seeds,
+                    mdet_rng_seeds,
+                )
+                outputs += _run_sets_of_pairs([a for a in _agen()])
 
                 n_outputs = len(outputs)
                 if (
@@ -308,8 +314,19 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                     range(n_chunks), total=n_chunks, desc="submitting jobs"
                 ):
                     start = chunk * n_pack
-                    end = min(start + n_pack, len(args))
-                    futs.append(pool.submit(_run_sets_of_pairs, args[start:end]))
+                    end = min(start + n_pack, n_sims)
+                    _agen = _gen_args(
+                        start,
+                        end,
+                        cfg,
+                        sim_rng_seeds,
+                        gal_rng_seeds,
+                        star_rng_seeds,
+                        coadd_rng_seeds,
+                        mdet_rng_seeds,
+                    )
+                    _args = [a for a in _agen()]
+                    futs.append(pool.submit(_run_sets_of_pairs, _args))
 
                 ############################
                 # collect outputs
