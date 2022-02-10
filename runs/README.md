@@ -42,6 +42,7 @@ gals key:
  - g = gals in grid
  - r = gals positioned randomly
  - d = DES-like objects
+ - l = LSST-like objects
  - h = gals in hexagonal grid w/ rotations
  - s = glass-like galaxy layout
 

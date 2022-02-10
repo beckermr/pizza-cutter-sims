@@ -1,0 +1,107 @@
+shear:
+  scene: True
+
+  # these keys are used to build paired sims w/ noise cancellation
+  g: 0.02
+  swap12: False
+
+  # set these to run a sim directly
+  g1: 0.02
+  g2: 0.00
+
+msk:
+  cosmic_rays: False
+  bad_columns: False
+  streaks: False
+
+coadd:
+  central_size: 225
+  buffer_size: 25
+  scale: 0.263
+
+se:
+  n_images: 1
+  wcs_config:
+    position_angle_range: [0, 360]
+    dither_scale: 3
+    scale: 0.263
+    scale_frac_std: 0.05
+    shear_std: 0.001
+
+psf:
+  type: galsim.Gaussian
+  fwhm: 0.9
+  fwhm_frac_std: 0.1
+  shear_std: 0.01
+  shear: [0, 0]
+
+layout:
+  type: hex
+  ngal_per_side: 10
+  ngal_per_arcmin2: 60
+  dither_scale: 0.263
+
+gal:
+  type: exp-dim
+
+star:
+  dens_factor: 0
+  rad_dist: "uniform"
+  interp:
+    skip: True
+  apodize:
+    skip: True
+  mask_expand_rad: 0
+
+pizza_cutter:
+  skip: False
+  single_epoch_config:
+    # pixel spacing for building various WCS interpolants
+    se_wcs_interp_delta: 10
+    coadd_wcs_interp_delta: 25
+
+    frac_buffer: 1.42
+    reject_outliers: False
+    symmetrize_masking: True
+    copy_masked_edges: True
+    max_masked_fraction: 0.1
+    max_unmasked_trail_fraction: 0.02
+    edge_buffer: 8
+    mask_tape_bumps: False
+
+    spline_interp_flags:
+      - 7
+    noise_interp_flags:
+      - 0
+
+    # always zero
+    bad_image_flags:
+      - 0
+
+metadetect:
+  model: wmom
+
+  metacal:
+    psf: fitgauss
+    types: [noshear, 1p, 1m, 2p, 2m]
+    use_noise_image: True
+
+  sx: null
+
+  nodet_flags: 33554432  # 2**25 is GAIA stars
+
+  bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS of pizza cutter
+
+  mfrac_fwhm: 1.2  # arcsec
+  mask_region: 1
+
+  weight:
+    fwhm: 1.2  # arcsec
+
+  meds:
+    box_padding: 2
+    box_type: iso_radius
+    max_box_size: 48
+    min_box_size: 48
+    rad_fac: 2
+    rad_min: 4
