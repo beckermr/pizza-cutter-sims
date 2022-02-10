@@ -170,7 +170,7 @@ noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
     '--backend', default='local', type=str,
     help=(
         "parallel backend to use (one of 'local', "
-        "'loky', 'condor', or 'mpi')"
+        "'loky', 'condor', 'lsf', or 'mpi')"
     )
 )
 @click.option(
@@ -257,8 +257,20 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
     if n_workers is None:
         if backend == "condor":
             n_workers = min(10000, n_chunks)
+        elif backend == "lsf":
+            n_workers = min(10000, n_chunks)
         else:
             n_workers = min(n_report_chunks, get_n_workers(backend))
+
+    print(
+        "running %d sims w/ %d chunks reporting every %d chunks on %d workers" % (
+            n_sims,
+            n_chunks,
+            n_report_chunks,
+            n_workers,
+        ),
+        flush=True,
+    )
 
     if backend == "local":
         if rank == 0:
@@ -273,7 +285,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
 
                 n_outputs = len(outputs)
                 if (
-                    chunk % n_report_chunks == n_report_chunks-1
+                    (chunk+1) % n_report_chunks == 0
                     and n_outputs > 0
                 ):
                     print("\n", end="", flush=True)
@@ -324,7 +336,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
 
                     n_outputs = len(outputs)
                     if (
-                        chunk % n_report_chunks == n_report_chunks-1
+                        (chunk+1) % n_report_chunks == 0
                         and n_outputs > 0
                     ):
                         print("\n", end="", flush=True)
