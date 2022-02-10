@@ -57,7 +57,7 @@ def _run_sets_of_pairs(all_args):
             datap = []
             datam = []
             for ormask_cut in [True, False]:
-                for s2n_cut in [10, 15, 20]:
+                for s2n_cut in [7, 8, 9, 10, 15, 20]:
                     pgm = measure_shear_metadetect(
                         pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
                         ormask_cut=ormask_cut, mfrac_cut=None,
