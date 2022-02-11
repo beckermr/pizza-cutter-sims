@@ -349,7 +349,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                             if isinstance(e,  concurrent.futures.TimeoutError):
                                 continue
                             else:
-                                print(e)
+                                print("\n" + str(e), flush=True)
                                 res = []
                                 ok = True
                         if ok:
