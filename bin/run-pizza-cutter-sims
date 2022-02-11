@@ -307,50 +307,55 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
             verbose=100,
         ) as pool:
             if pool is not None and rank == 0:
-                ############################
-                # submit all of the jobs
-                futs = []
-                for chunk in PBar(
-                    range(n_chunks), total=n_chunks, desc="submitting jobs"
-                ):
-                    start = chunk * n_pack
-                    end = min(start + n_pack, n_sims)
-                    _agen = _gen_args(
-                        start,
-                        end,
-                        cfg,
-                        sim_rng_seeds,
-                        gal_rng_seeds,
-                        star_rng_seeds,
-                        coadd_rng_seeds,
-                        mdet_rng_seeds,
-                    )
-                    _args = [a for a in _agen()]
-                    futs.append(pool.submit(_run_sets_of_pairs, _args))
-
-                ############################
-                # collect outputs
+                run_futs = set()
+                done_futs = set()
                 outputs = []
-                chunk = 0
-                for chunk, fut in PBar(
-                    enumerate(concurrent.futures.as_completed(futs)),
-                    total=len(futs), n_bars=79, desc='running jobs'
+                curr_chunk = 0
+                for chunk in PBar(
+                    range(n_chunks), total=n_chunks, desc="running jobs"
                 ):
-                    ok = False
-                    try:
-                        res = fut.result()
-                        ok = True
-                    except Exception as e:
-                        if isinstance(e,  concurrent.futures.TimeoutError):
-                            continue
-                        else:
-                            print(e)
-                            res = []
+                    # submit while we can
+                    while len(run_futs) < n_workers and curr_chunk < n_chunks:
+                        start = curr_chunk * n_pack
+                        end = min(start + n_pack, n_sims)
+                        _agen = _gen_args(
+                            start,
+                            end,
+                            cfg,
+                            sim_rng_seeds,
+                            gal_rng_seeds,
+                            star_rng_seeds,
+                            coadd_rng_seeds,
+                            mdet_rng_seeds,
+                        )
+                        _args = [a for a in _agen()]
+                        run_futs.add(pool.submit(_run_sets_of_pairs, _args))
+                        curr_chunk += 1
+
+                    # if we do not have results, wait, otherwise collect
+                    if len(done_futs) == 0:
+                        _done_futs, run_futs = concurrent.futures.wait(
+                            run_futs,
+                            return_when=concurrent.futures.FIRST_COMPLETED,
+                        )
+                        done_futs |= _done_futs
+                    else:
+                        fut = done_futs.pop()
+                        ok = False
+                        try:
+                            res = fut.result()
                             ok = True
+                        except Exception as e:
+                            if isinstance(e,  concurrent.futures.TimeoutError):
+                                continue
+                            else:
+                                print(e)
+                                res = []
+                                ok = True
+                        if ok:
+                            outputs += res
 
-                    if ok:
-                        outputs += res
-
+                    # report m,c
                     n_outputs = len(outputs)
                     if (
                         (chunk+1) % n_report_chunks == 0
