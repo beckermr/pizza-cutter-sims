@@ -152,18 +152,18 @@ def main(config, seed, n_sims, system, hours, n_jobs):
     elif system == "bnl":
         n_sims = n_sims or 100_000
         ext = ".sh"
-        if n_sims <= 100_000:
+        if n_sims < 100_000:
             n_pack = 10
-        elif n_sims <= 1_000_000:
+        elif n_sims < 1_000_000:
             n_pack = 100
         else:
             n_pack = 1000
     elif system == "slac":
         n_sims = n_sims or 100_000
         ext = ".sh"
-        if n_sims <= 100_000:
+        if n_sims < 100_000:
             n_pack = 10
-        elif n_sims <= 1_000_000:
+        elif n_sims < 1_000_000:
             n_pack = 100
         else:
             n_pack = 1000
