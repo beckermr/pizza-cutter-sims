@@ -338,7 +338,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                         run_futs.add(pool.submit(_run_sets_of_pairs, _args))
                         curr_chunk += 1
 
-                    # if we do not have results, wait, otherwise collect
+                    # if we do not have results, wait
                     if len(done_futs) == 0:
                         _done_futs, run_futs = concurrent.futures.wait(
                             run_futs,
@@ -346,22 +346,23 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                         )
                         done_futs |= _done_futs
                         del _done_futs
-                    else:
-                        fut = done_futs.pop()
-                        ok = False
-                        try:
-                            res = fut.result()
+
+                    # otherwise collect
+                    fut = done_futs.pop()
+                    ok = False
+                    try:
+                        res = fut.result()
+                        ok = True
+                    except Exception as e:
+                        if isinstance(e,  concurrent.futures.TimeoutError):
+                            continue
+                        else:
+                            print("\n" + str(e), flush=True)
+                            res = []
                             ok = True
-                        except Exception as e:
-                            if isinstance(e,  concurrent.futures.TimeoutError):
-                                continue
-                            else:
-                                print("\n" + str(e), flush=True)
-                                res = []
-                                ok = True
-                        del fut
-                        if ok:
-                            outputs += res
+                    del fut
+                    if ok:
+                        outputs += res
 
                     # report m,c
                     n_outputs = len(outputs)
