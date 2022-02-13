@@ -345,6 +345,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                             return_when=concurrent.futures.FIRST_COMPLETED,
                         )
                         done_futs |= _done_futs
+                        del _done_futs
                     else:
                         fut = done_futs.pop()
                         ok = False
@@ -358,6 +359,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                                 print("\n" + str(e), flush=True)
                                 res = []
                                 ok = True
+                        del fut
                         if ok:
                             outputs += res
 
