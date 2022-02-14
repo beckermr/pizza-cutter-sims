@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import tqdm
 
-from mattspy import SLACLSFYield, LokyYield
+from mattspy import SLACLSFParallel, LokyParallel
 
 GLOBAL_START_TIME = time.time()
 
@@ -80,7 +80,7 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
         the cpu count for the 'loky' backend, and the size of the default global
         communicator for the 'mpi' backend.
     **kwargs : extra keyword arguments
-        These are passed to ParslCondorPool.
+        Passed to the backend.
     """
 
     local_env_overrides = {
@@ -92,15 +92,17 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
     }
 
     if backend == "lsf":
-        with SLACLSFYield(
-            verbose=verbose, max_workers=n_workers, **kwargs
+        with SLACLSFParallel(
+            verbose=verbose, n_jobs=n_workers, **kwargs
         ) as pool:
             yield pool
     elif backend == "loky":
         _n_workers = get_n_workers(backend, n_workers=n_workers)
-        with LokyYield(
-            max_workers=_n_workers,
+        with LokyParallel(
+            n_jobs=_n_workers,
             env=local_env_overrides,
+            verbose=verbose,
+            **kwargs,
         ) as pool:
             yield pool
     else:

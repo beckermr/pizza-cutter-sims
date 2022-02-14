@@ -330,10 +330,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                             fits.write(res[0], extname='plus')
                             fits.write(res[1], extname='minus')
     else:
-        if backend in ["condor", "lsf"]:
-            kwargs = {"debug": True}
-        else:
-            kwargs = {}
+        kwargs = {}
 
         with backend_pool(
             backend,

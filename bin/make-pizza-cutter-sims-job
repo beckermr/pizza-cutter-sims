@@ -166,7 +166,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
         elif n_sims < 1_000_000:
             n_pack = 100
         else:
-            n_pack = 100
+            n_pack = 250
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
