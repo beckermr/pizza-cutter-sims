@@ -4,13 +4,10 @@ import time
 from contextlib import contextmanager
 import sys
 
-import loky
-
 import numpy as np
 import tqdm
 
-# from .parsl import ParslCondorPool
-from mattspy import BNLCondorExecutor, SLACLSFExecutor
+from mattspy import SLACLSFYield, LokyYield
 
 GLOBAL_START_TIME = time.time()
 
@@ -65,7 +62,7 @@ def get_n_workers(backend, n_workers=None):
     elif backend == "condor":
         return 10000
     elif backend == "lsf":
-        return 10000
+        return 3000
     else:
         raise RuntimeError("backend '%s' not recognized!" % backend)
 
@@ -94,25 +91,17 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
         "NUMEXPR_NUM_THREADS": "1",
     }
 
-    if backend == "condor":
-        with BNLCondorExecutor(
-            verbose=verbose, max_workers=n_workers, **kwargs
-        ) as pool:
-            yield pool
-    elif backend == "lsf":
-        with SLACLSFExecutor(
+    if backend == "lsf":
+        with SLACLSFYield(
             verbose=verbose, max_workers=n_workers, **kwargs
         ) as pool:
             yield pool
     elif backend == "loky":
         _n_workers = get_n_workers(backend, n_workers=n_workers)
-        yield loky.get_reusable_executor(
+        with LokyYield(
             max_workers=_n_workers,
             env=local_env_overrides,
-        )
-    elif backend == "mpi":
-        from mpi4py.futures import MPICommExecutor
-        with MPICommExecutor(env=local_env_overrides) as pool:
+        ) as pool:
             yield pool
     else:
         raise RuntimeError("backend '%s' not recognized!" % backend)

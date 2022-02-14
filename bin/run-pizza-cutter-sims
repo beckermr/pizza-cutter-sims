@@ -2,7 +2,7 @@
 import sys
 import copy
 import logging
-import concurrent.futures
+import joblib
 
 import click
 import yaml
@@ -180,6 +180,35 @@ def _gen_args(
     return _gen
 
 
+def _gen_chunks(
+    n_chunks,
+    n_pack,
+    n_sims,
+    cfg,
+    sim_rng_seeds,
+    gal_rng_seeds,
+    star_rng_seeds,
+    coadd_rng_seeds,
+    mdet_rng_seeds,
+):
+    def _gen():
+        for chunk in range(n_chunks):
+            start = chunk * n_pack
+            end = min(start + n_pack, n_sims)
+            _agen = _gen_args(
+                start,
+                end,
+                cfg,
+                sim_rng_seeds,
+                gal_rng_seeds,
+                star_rng_seeds,
+                coadd_rng_seeds,
+                mdet_rng_seeds,
+            )
+            yield joblib.delayed(_run_sets_of_pairs)([a for a in _agen()])
+    return _gen
+
+
 @click.command()
 @click.option('--config', type=str, default="config.yaml", help='config file')
 @click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
@@ -313,55 +342,28 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
             **kwargs,
         ) as pool:
             if pool is not None and rank == 0:
-                run_futs = set()
-                done_futs = set()
+                _gen = _gen_chunks(
+                    n_chunks,
+                    n_pack,
+                    n_sims,
+                    cfg,
+                    sim_rng_seeds,
+                    gal_rng_seeds,
+                    star_rng_seeds,
+                    coadd_rng_seeds,
+                    mdet_rng_seeds,
+                )
+
                 outputs = []
-                curr_chunk = 0
-                for chunk in PBar(
-                    range(n_chunks), total=n_chunks, desc="running jobs"
+                chunk = 0
+                for res in PBar(
+                    pool(_gen()),
+                    total=n_chunks,
+                    desc="running jobs",
                 ):
-                    # submit while we can
-                    while len(run_futs) < n_workers and curr_chunk < n_chunks:
-                        start = curr_chunk * n_pack
-                        end = min(start + n_pack, n_sims)
-                        _agen = _gen_args(
-                            start,
-                            end,
-                            cfg,
-                            sim_rng_seeds,
-                            gal_rng_seeds,
-                            star_rng_seeds,
-                            coadd_rng_seeds,
-                            mdet_rng_seeds,
-                        )
-                        _args = [a for a in _agen()]
-                        run_futs.add(pool.submit(_run_sets_of_pairs, _args))
-                        curr_chunk += 1
-
-                    # if we do not have results, wait
-                    if len(done_futs) == 0:
-                        _done_futs, run_futs = concurrent.futures.wait(
-                            run_futs,
-                            return_when=concurrent.futures.FIRST_COMPLETED,
-                        )
-                        done_futs |= _done_futs
-                        del _done_futs
-
-                    # otherwise collect
-                    fut = done_futs.pop()
-                    ok = False
-                    try:
-                        res = fut.result()
-                        ok = True
-                    except Exception as e:
-                        if isinstance(e,  concurrent.futures.TimeoutError):
-                            continue
-                        else:
-                            print("\n" + str(e), flush=True)
-                            res = []
-                            ok = True
-                    del fut
-                    if ok:
+                    if isinstance(res, Exception):
+                        print(f"failure: {repr(res)}", flush=True)
+                    else:
                         outputs += res
 
                     # report m,c
@@ -376,6 +378,8 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                             with fitsio.FITS(output, 'rw', clobber=True) as fits:
                                 fits.write(res[0], extname='plus')
                                 fits.write(res[1], extname='minus')
+
+                    chunk += 1
 
     if rank == 0:
         res = _measure_m_c(outputs, cfg)
