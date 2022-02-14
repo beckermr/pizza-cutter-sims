@@ -20,6 +20,7 @@ from pizza_cutter_sims.run_utils import (
     backend_pool,
     cut_nones,
     get_n_workers,
+    timer,
 )
 
 
@@ -75,7 +76,7 @@ def _run_sets_of_pairs(all_args):
                         tuple(list(mgm) + [s2n_cut, 0 if ormask_cut else 1, -1]))
 
             for mfrac_cut in [0, 1, 2, 5, 8, 10, 20, 50, 80, 100]:
-                for s2n_cut in [10, 15, 20]:
+                for s2n_cut in [7, 8, 9, 10, 15, 20]:
                     pgm = measure_shear_metadetect(
                         pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
                         ormask_cut=False, mfrac_cut=mfrac_cut/100,
@@ -104,45 +105,36 @@ def _run_sets_of_pairs(all_args):
 
 
 def _measure_m_c(outputs, cfg):
-    pdata, mdata = zip(*outputs)
-    pdata, mdata = cut_nones(pdata, mdata)
+    with timer("zipping and cutting Nones"):
+        pdata, mdata = zip(*outputs)
+        pdata, mdata = cut_nones(pdata, mdata)
+
     if len(pdata) > 0 and len(mdata) > 0:
-        pdata = combine_arrlist(list(pdata))
-        mdata = combine_arrlist(list(mdata))
+        with timer("building arrays and making cuts"):
+            pdata = combine_arrlist(list(pdata))
+            mdata = combine_arrlist(list(mdata))
 
-        pmsk = (pdata["s2n_cut"] == 10) & (pdata["ormask_cut"] == 0)
-        _pdata = pdata[pmsk]
-        _mdata = mdata[pmsk]
-
-        pres = [
-            (
-                _pdata["g1p"][i], _pdata["g1m"][i], _pdata["g1"][i],
-                _pdata["g2p"][i], _pdata["g2m"][i], _pdata["g2"][i],
+            pmsk = (
+                (pdata["s2n_cut"] == 10)
+                & (pdata["ormask_cut"] == -1)
+                & (pdata["mfrac_cut"] == 10)
             )
-            for i in range(pdata[pmsk].shape[0])
-        ]
-
-        mres = [
-            (
-                _mdata["g1p"][i], _mdata["g1m"][i], _mdata["g1"][i],
-                _mdata["g2p"][i], _mdata["g2m"][i], _mdata["g2"][i],
-            )
-            for i in range(pdata[pmsk].shape[0])
-        ]
+            _pdata = pdata[pmsk]
+            _mdata = mdata[pmsk]
 
         m, msd, c, csd = estimate_m_and_c(
-            pres,
-            mres,
+            _pdata,
+            _mdata,
             cfg["shear"]["g"],
             swap12=cfg["shear"]["swap12"],
-            jackknife=200 if len(pres) >= 200 else None,
+            jackknife=200 if len(_pdata) >= 200 else None,
         )
 
         msg = """\
 # of sims: {n_sims}
 noise cancel m   : {m: f} +/- {msd: f} [1e-3, 3-sigma]
 noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
-                n_sims=len(pres),
+                n_sims=len(_pdata),
                 m=m/1e-3,
                 msd=msd/1e-3 * 3,
                 c=c/1e-5,
