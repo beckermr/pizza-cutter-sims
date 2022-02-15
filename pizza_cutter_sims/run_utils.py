@@ -180,25 +180,36 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
 
         loc += n_per
 
-    mbar = np.mean(y1[:n] * wgts[:n]) / np.mean(x1[:n] * wgts[:n]) - 1
-    cbar = np.mean(y2[:n] * wgts[:n]) / np.mean(x2[:n] * wgts[:n])
-    mvals = np.zeros(jackknife)
-    cvals = np.zeros(jackknife)
+    mhat = np.mean(y1[:n] * wgts[:n]) / np.mean(x1[:n] * wgts[:n]) - 1
+    chat = np.mean(y2[:n] * wgts[:n]) / np.mean(x2[:n] * wgts[:n])
+    mhatj = np.zeros(jackknife)
+    chatj = np.zeros(jackknife)
     for i in range(jackknife):
         _wgts = np.delete(wgtsj, i)
-        mvals[i] = (
+        mhatj[i] = (
             np.sum(np.delete(y1j, i) * _wgts) / np.sum(np.delete(x1j, i) * _wgts)
             - 1
         )
-        cvals[i] = (
+        chatj[i] = (
             np.sum(np.delete(y2j, i) * _wgts) / np.sum(np.delete(x2j, i) * _wgts)
         )
 
+    tot_wgt = np.sum(wgtsj)
+    mbar = jackknife * mhat - np.sum((1.0 - wgtsj/tot_wgt) * mhatj)
+    cbar = jackknife * chat - np.sum((1.0 - wgtsj/tot_wgt) * chatj)
+
+    hj = tot_wgt / wgtsj
+    mtildej = hj * mhat - (hj - 1) * mhatj
+    ctildej = hj * chat - (hj - 1) * chatj
+
+    mvarj = np.sum((mtildej - mbar)**2 / (hj-1)) / jackknife
+    cvarj = np.sum((ctildej - cbar)**2 / (hj-1)) / jackknife
+
     return (
         mbar,
-        np.sqrt((n - n_per) / n * np.sum((mvals-mbar)**2)),
+        np.sqrt(mvarj),
         cbar,
-        np.sqrt((n - n_per) / n * np.sum((cvals-cbar)**2)),
+        np.sqrt(cvarj),
     )
 
 
