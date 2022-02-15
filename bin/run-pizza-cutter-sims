@@ -138,17 +138,25 @@ def _measure_m_c(pdata, mdata, n_curr, outputs, cfg):
                 n = pres[i].shape[0]
                 pdata[n_curr:n_curr+n] = pres[i]
                 mdata[n_curr:n_curr+n] = mres[i]
+
+                for col in ["s2n_cut", "ormask_cut", "mfrac_cut"]:
+                    assert np.allclose(
+                        pdata[col][n_curr:n_curr+n],
+                        mdata[col][n_curr:n_curr+n],
+                    )
                 n_curr += n
 
     if n_curr > 0:
         with timer("making cuts"):
+            _pdata = pdata[:n_curr]
+            _mdata = mdata[:n_curr]
             pmsk = (
-                (pdata["s2n_cut"][:n_curr] == 10)
-                & (pdata["ormask_cut"][:n_curr] == -1)
-                & (pdata["mfrac_cut"][:n_curr] == 10)
+                (_pdata["s2n_cut"] == 10)
+                & (_pdata["ormask_cut"] == -1)
+                & (_pdata["mfrac_cut"] == 10)
             )
-            _pdata = pdata[:n_curr][pmsk]
-            _mdata = mdata[:n_curr][pmsk]
+            _pdata = _pdata[pmsk]
+            _mdata = _mdata[pmsk]
 
         m, msd, c, csd = estimate_m_and_c(
             _pdata,
