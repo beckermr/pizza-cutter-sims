@@ -180,6 +180,7 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
 
         loc += n_per
 
+    # weighted jackknife from Busing et al. 1999, Statistics and Computing, 9, 3-8
     mhat = np.mean(y1[:n] * wgts[:n]) / np.mean(x1[:n] * wgts[:n]) - 1
     chat = np.mean(y2[:n] * wgts[:n]) / np.mean(x2[:n] * wgts[:n])
     mhatj = np.zeros(jackknife)
