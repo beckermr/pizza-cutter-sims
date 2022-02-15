@@ -93,6 +93,7 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cuts):
                 cfg["shear"]["g"],
                 swap12=cfg["shear"]["swap12"],
                 jackknife=jackknife,
+                weights=pdata["weight"][pmsk],
             )
 
             print("""\
