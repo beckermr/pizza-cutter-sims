@@ -398,13 +398,15 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
 
                 outputs = []
                 chunk = 0
-                for res in PBar(
+                for pr in PBar(
                     pool(_gen()),
                     total=n_chunks,
                     desc="running jobs",
                 ):
-                    if isinstance(res, Exception):
-                        print(f"failure: {repr(res)}", flush=True)
+                    try:
+                        res = pr.result()
+                    except Exception as e:
+                        print(f"failure: {repr(e)}", flush=True)
                     else:
                         outputs += res
 
