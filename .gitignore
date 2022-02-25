@@ -130,3 +130,5 @@ dmypy.json
 
 */dask-worker-space
 *.png
+**/lsf-yield/
+**/condor-yield/

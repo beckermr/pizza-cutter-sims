@@ -95,8 +95,8 @@ def gen_stars(
     area = (pos_bounds[1] - pos_bounds[0])/60
     area = area**2
     num = rng.poisson(lam=area*GAIA_STAR_DENS_PER_ARCMIN2 * dens_factor)
+    LOGGER.debug("generating %d stars", num)
     if num > 0:
-        LOGGER.debug("generating %d stars", num)
         _, rad = gen_gaia_mag_rad(rng=rng, num=num, rad_dist=rad_dist)
         upos = rng.uniform(low=pos_bounds[0], high=pos_bounds[1], size=num)
         vpos = rng.uniform(low=pos_bounds[0], high=pos_bounds[1], size=num)

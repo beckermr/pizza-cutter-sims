@@ -18,6 +18,7 @@ from pizza_cutter_sims.pizza_cutter import (
 )
 from pizza_cutter_sims.sim import generate_sim
 from pizza_cutter_sims.mdet import make_mbobs_from_coadd_data
+from pizza_cutter_sims.stars import mask_stars
 
 
 @click.command()
@@ -85,6 +86,15 @@ def main(config, seed, output):
     mbobs = make_mbobs_from_coadd_data(
         wcs=data["coadd_wcs"],
         cdata=cdata,
+    )
+
+    mask_stars(
+        rng=star_rng,
+        mbobs=mbobs,
+        stars=data["stars"],
+        interp_cfg=cfg["star"]["interp"],
+        apodize_cfg=cfg["star"]["apodize"],
+        mask_expand_rad=cfg["star"]["mask_expand_rad"],
     )
 
     fig, axs = pplt.subplots(
