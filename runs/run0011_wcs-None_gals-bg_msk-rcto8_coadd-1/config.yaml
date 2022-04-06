@@ -147,3 +147,5 @@ metadetect:
   noise_interp_flags: 0
   imperfect_flags: 0
   ormask_region: 8
+  color_dep_psf:
+    skip: true

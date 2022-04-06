@@ -132,3 +132,5 @@ metadetect:
   maskflags: 33554432  # 2**25 = BMASK_GAIA_STAR from pizza cutter
   # check for an edge hit
   bmask_flags: 1610612736  # 2**29 || 2**30
+  color_dep_psf:
+    skip: true

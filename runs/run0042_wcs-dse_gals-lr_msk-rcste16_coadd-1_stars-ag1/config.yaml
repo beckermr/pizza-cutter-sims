@@ -27,8 +27,7 @@ se:
     shear_std: 0.001
 
 psf:
-  type: galsim.Gaussian
-  fwhm: 0.9
+  type: wldeblend
   fwhm_frac_std: 0.1
   shear_std: 0.01
   shear: [0, 0]
@@ -105,3 +104,5 @@ metadetect:
     min_box_size: 48
     rad_fac: 2
     rad_min: 4
+  color_dep_psf:
+    skip: true

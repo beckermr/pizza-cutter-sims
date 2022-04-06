@@ -9,6 +9,7 @@ parser.default_flow_style = False
 edits = {
     "gal": {"muiltiband": False, "color_range": [1, 1]},
     "psf": {"color_range": [0, 3], "dilation_range": [1, 1]},
+    "metadetect": {"color_dep_psf": {"skip": True}},
 }
 
 fnames = glob.glob("run*/config.yaml", recursive=True)

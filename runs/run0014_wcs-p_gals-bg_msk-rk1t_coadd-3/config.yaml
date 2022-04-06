@@ -146,3 +146,5 @@ metadetect:
   spline_interp_flags: 3
   noise_interp_flags: 0
   imperfect_flags: 0
+  color_dep_psf:
+    skip: true

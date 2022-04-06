@@ -140,3 +140,5 @@ metadetect:
     rad_min: 4
   # check for an edge hit
   bmask_flags: 1610612736  # 2**29 | 2**30
+  color_dep_psf:
+    skip: true

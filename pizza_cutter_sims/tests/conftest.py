@@ -135,6 +135,9 @@ pizza_cutter:
       - 0
 
 metadetect:
+  color_dep_psf:
+    skip: True
+
   metacal:
     psf: fitgauss
     types: [noshear, 1p, 1m, 2p, 2m]

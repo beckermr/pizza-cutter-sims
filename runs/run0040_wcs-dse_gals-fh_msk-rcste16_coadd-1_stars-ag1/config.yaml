@@ -105,3 +105,5 @@ metadetect:
     min_box_size: 48
     rad_fac: 2
     rad_min: 4
+  color_dep_psf:
+    skip: true
