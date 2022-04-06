@@ -7,7 +7,7 @@ parser.width = 320
 parser.default_flow_style = False
 
 edits = {
-    "gal": {"muiltiband": False, "color_range": [1, 1]},
+    "gal": {"multiband": False, "color_range": [0, 0]},
     "psf": {"color_range": [0, 3], "dilation_range": [1, 1]},
     "metadetect": {"color_dep_psf": {"skip": True}},
 }

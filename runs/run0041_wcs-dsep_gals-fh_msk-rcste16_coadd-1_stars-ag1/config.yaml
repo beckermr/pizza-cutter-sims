@@ -49,8 +49,9 @@ gal:
   type: exp-dim
   muiltiband: false
   color_range:
-    - 1
-    - 1
+    - 0
+    - 0
+  multiband: false
 
 star:
   dens_factor: 1
