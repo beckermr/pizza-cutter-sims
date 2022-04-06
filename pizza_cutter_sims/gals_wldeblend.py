@@ -3,6 +3,7 @@ import os
 import functools
 import collections
 import numpy as np
+import scipy.optimize
 
 import galsim
 import fitsio
@@ -13,7 +14,14 @@ WLDeblendData = collections.namedtuple(
     [
         'cat', 'survey_name', 'bands', 'surveys',
         'builders', 'total_sky', 'noise', 'ngal_per_arcmin2',
-        'psf_fwhm', 'pixel_scale',
+        'psf_fwhm', 'pixel_scale', 'flux_zeropoints',
+    ],
+)
+
+WLDeblendGal = collections.namedtuple(
+    'WLDeblendGal',
+    [
+        'band_galaxies', 'color'
     ],
 )
 
@@ -72,6 +80,7 @@ def init_wldeblend(*, survey_bands):
     surveys = []
     builders = []
     total_sky = 0.0
+    flux_zeropoints = []
     for iband, band in enumerate(bands):
         # make the survey and code to build galaxies from it
         pars = descwl.survey.Survey.get_defaults(
@@ -108,6 +117,12 @@ def init_wldeblend(*, survey_bands):
             verbose_model=False))
 
         total_sky += surveys[iband].mean_sky_level
+        zp = scipy.optimize.brentq(
+            lambda x: 1.0 - surveys[iband].get_flux(x),
+            -100,
+            100,
+        )
+        flux_zeropoints.append(zp)
 
     noise = np.sqrt(total_sky)
 
@@ -128,7 +143,7 @@ def init_wldeblend(*, survey_bands):
     return WLDeblendData(
         wldeblend_cat, survey_name, bands, surveys,
         builders, total_sky, noise, ngal_per_arcmin2,
-        psf_fwhm, scale,
+        psf_fwhm, scale, flux_zeropoints,
     )
 
 
@@ -155,13 +170,29 @@ def get_gal_wldeblend(*, rng, data):
     data.cat['pa_disk'][rind] = pa_angle
     data.cat['pa_bulge'][rind] = pa_angle
 
-    return galsim.Sum([
+    band_objects = [
         data.builders[band].from_catalog(
-            data.cat[rind], 0, 0,
-            data.surveys[band].filter_band).model.rotate(
-                angle * galsim.degrees)
+            data.cat[rind],
+            0,
+            0,
+            data.surveys[band].filter_band
+        ).model.rotate(
+            angle * galsim.degrees
+        )
         for band in range(len(data.builders))
-    ])
+    ]
+    if len(band_objects) > 1:
+        color = (
+            data.cat[f"{data.bands[0]}_ab"][rind]
+            - data.cat[f"{data.bands[1]}_ab"][rind]
+        )
+    else:
+        color = 0
+
+    return WLDeblendGal(
+        band_objects,
+        color,
+    )
 
 
 def get_psf_config_wldeblend(*, data):

@@ -26,8 +26,9 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
 
     Returns
     -------
-    gals : list of galsim.GSObject
-        The set of galaxies to render in the image.
+    gals : list of list of galsim.GSObject
+        The set of galaxies to render in the image. Each element of the inner list is
+        the object in a given band.
     upos : array of floats
         The u position in world coordinates.
     vpos : array of floats
@@ -37,6 +38,10 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
     noise_scale : float
         The pixel scale associated with the noise level. This can be used to
         adjust the noise for varying pixel sizes. Can be None.
+    colors : list of floats or list of Nones
+        The color of each object.
+    flux_zeropoints : list of floats
+        The flux zero points for each bands.
     """
     # possibly get the number density
     if gal_config["type"] in ["exp-bright", "exp-dim", "exp-super-bright"]:
@@ -151,29 +156,57 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
 
         LOGGER.debug("using '%s' gal type w/ mag %s", gal_config["type"], mag)
 
+        if gal_config["multiband"]:
+            nbands = gal_config["multiband"]
+        else:
+            nbands = 1
+
+        colors = [
+            rng.uniform(
+                low=gal_config["color_range"][0],
+                high=gal_config["color_range"][1],
+            )
+            for _ in range(len(upos))
+        ]
+
         gals = []
-        for u, v in zip(upos, vpos):
-            gals.append(
+        for u, v, color in zip(upos, vpos, colors):
+            if nbands == 1:
+                flux_ratios = [1.0]
+            else:
+                flux_ratio = 10.0**(0.4 * color)
+                flux_ratios = [1.0, flux_ratio]
+                if nbands > 2:
+                    flux_ratios += [1.0 for _ in range(nbands-2)]
+                flux_ratios = np.array(flux_ratios)/np.sum(flux_ratios)
+
+            gals.append([
                 galsim.Sersic(
                     half_light_radius=0.5,
                     n=1,
-                ).withFlux(flux)
-            )
+                ).withFlux(flux * fr)
+                for fr in flux_ratios
+            ])
+
+        flux_zeropoints = [MAGZP_REF] * nbands
     elif (
         gal_config["type"].startswith("des-")
         or gal_config["type"].startswith("lsst-")
     ):
         data = gals_wldeblend.init_wldeblend(survey_bands=gal_config["type"])
-        gals = [
-            gals_wldeblend.get_gal_wldeblend(
+        gals = []
+        colors = []
+        for _ in range(n_gals):
+            res = gals_wldeblend.get_gal_wldeblend(
                 rng=rng,
                 data=data,
             )
-            for _ in range(n_gals)
-        ]
+            gals.append(res.band_galaxies)
+            colors.append(res.color)
         noise = copy.copy(data.noise)
         noise_scale = copy.copy(data.pixel_scale)
+        flux_zeropoints = data.flux_zeropoints
     else:
         raise ValueError("galaxy type '%s' not supported!" % gal_config["type"])
 
-    return gals, upos, vpos, noise, noise_scale
+    return gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints

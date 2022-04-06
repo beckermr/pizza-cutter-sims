@@ -37,6 +37,7 @@ def _run_to_pizza_cutter(
         stars = sdata.pop("stars")
         psfs = sdata.pop("psfs")
         coadd_wcs = sdata.pop("coadd_wcs")
+        sdata.pop("flux_zeropoints")
         cdata = run_des_pizza_cutter_coadding_on_sim(
             rng=coadd_rng,
             tmpdir=tmpdir,

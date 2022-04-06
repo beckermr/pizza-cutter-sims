@@ -79,6 +79,8 @@ psf:
   fwhm_frac_std: 0.1
   shear_std: 0
   shear: [0, 0]
+  color_range: [0, 3]
+  dilation_range: [0.8, 1.1]
 
 layout:
   type: grid
@@ -88,6 +90,8 @@ layout:
 
 gal:
   type: exp-bright
+  multiband: False
+  color_range: [1, 1]
 
 star:
   dens_factor: 1

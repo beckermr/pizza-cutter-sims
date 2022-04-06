@@ -155,10 +155,11 @@ def mask_stars(*, rng, mbobs, stars, interp_cfg, apodize_cfg, mask_expand_rad):
                 rng=rng,
             )
 
-            msk = (
-                ((mbobs[0][0].bmask & BMASK_GAIA_STAR) != 0)
-                |
-                ((mbobs[0][0].bmask & BMASK_EXPAND_GAIA_STAR) != 0)
-            )
-            if np.all(msk):
-                raise RuntimeError("All pixels are masked by the star!")
+            for i in range(len(mbobs)):
+                msk = (
+                    ((mbobs[i][0].bmask & BMASK_GAIA_STAR) != 0)
+                    |
+                    ((mbobs[i][0].bmask & BMASK_EXPAND_GAIA_STAR) != 0)
+                )
+                if np.all(msk):
+                    raise RuntimeError("All pixels are masked by the star!")

@@ -85,7 +85,7 @@ def main(config, seed, output):
 
     mbobs = make_mbobs_from_coadd_data(
         wcs=data["coadd_wcs"],
-        cdata=cdata,
+        cdata_list=[cdata],
     )
 
     mask_stars(
