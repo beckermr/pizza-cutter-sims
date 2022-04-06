@@ -210,7 +210,7 @@ def run_end2end_with_shear(
 
     mdet_rng = np.random.RandomState(seed=mdet_rng_seed)
 
-    if not cfg["metadata"]["color_dep_psf"]["skip"]:
+    if not cfg["metadetect"]["color_dep_psf"]["skip"]:
         coadd_cen = (sdata["img"][0].shape[0]-1)/2
         coadd_cen_pos = galsim.PositionD(x=coadd_cen, y=coadd_cen)
         color_key_func, color_dep_mbobs = gen_metadetect_color_dep(
@@ -218,8 +218,8 @@ def run_end2end_with_shear(
             coadd_wcs=sdata["coadd_wcs"],
             mbobs=mbobs,
             coadd_cen_pos=coadd_cen_pos,
-            color_range=cfg["metadata"]["color_dep_psf"]["color_range"],
-            ncolors=cfg["metadata"]["color_dep_psf"]["ncolors"],
+            color_range=cfg["metadetect"]["color_dep_psf"]["color_range"],
+            ncolors=cfg["metadetect"]["color_dep_psf"]["ncolors"],
             flux_zeropoints=sdata["flux_zeropoints"],
         )
     else:
