@@ -125,7 +125,60 @@ def gen_metadetect_color_dep(
         A dictionary of color-dependently rendered observations of the mbobs for use
         in color-dependent metadetect.
     """
-    pass
+    colors = np.linspace(color_range[0], color_range[1], ncolors)
+
+    def color_key_func(fluxes):
+        if fluxes[0] < 0 or fluxes[1] < 0:
+            if fluxes[0] < fluxes[1]:
+                return ncolors - 1
+            else:
+                return 0
+        else:
+            mag0 = flux_zeropoints[0] - np.log10(fluxes[0])/0.4
+            mag1 = flux_zeropoints[0] - np.log10(fluxes[1])/0.4
+            color = mag0 - mag1
+
+            if color <= color_range[0]:
+                return 0
+            elif color >= color_range[1]:
+                return ncolors - 1
+            else:
+                dcolors = colors[1] - colors[0]
+                return int((color - color_range[0])/dcolors)
+
+    wcs = coadd_wcs.jacobian(image_pos=coadd_cen_pos)
+    psf_dim = 53
+    psf_cen = (psf_dim-1)/2
+    psf_jac = ngmix.jacobian.Jacobian(
+        x=psf_cen,
+        y=psf_cen,
+        dudx=wcs.dudx,
+        dudy=wcs.dudy,
+        dvdx=wcs.dvdx,
+        dvdy=wcs.dvdy,
+    )
+    target_s2n = 500.0
+
+    color_dep_mbobs = {}
+    for cind, color in enumerate(colors):
+        _mbobs = mbobs.copy()
+        for pind, psf in enumerate(psfs):
+            psf_im = psf.getPSF(coadd_cen_pos, color=color).drawImage(
+                nx=psf_dim, ny=psf_dim,
+                wcs=wcs,
+            ).array
+
+            target_noise = np.sqrt(np.sum(psf_im ** 2)) / target_s2n
+            psf_obs = ngmix.Observation(
+                psf_im,
+                weight=np.ones_like(psf_im)/target_noise**2,
+                jacobian=psf_jac,
+            )
+            _mbobs[pind][0].psf = psf_obs
+
+        color_dep_mbobs[cind] = _mbobs
+
+    return color_key_func, color_dep_mbobs
 
 
 def run_metadetect(

@@ -171,13 +171,10 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
 
         gals = []
         for u, v, color in zip(upos, vpos, colors):
-            if nbands == 1:
-                flux_ratios = [1.0]
-            else:
+            flux_ratios = [1.0] * nbands
+            if nbands > 1:
                 flux_ratio = 10.0**(0.4 * color)
-                flux_ratios = [1.0, flux_ratio]
-                if nbands > 2:
-                    flux_ratios += [1.0 for _ in range(nbands-2)]
+                flux_ratios[1] = flux_ratio
                 flux_ratios = np.array(flux_ratios)/np.sum(flux_ratios)
 
             gals.append([

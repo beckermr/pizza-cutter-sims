@@ -13,16 +13,16 @@ msk:
   streaks: true
 
 coadd:
-  central_size: 225
+  central_size: 300
   buffer_size: 25
-  scale: 0.263
+  scale: 0.2
 
 se:
   n_images: 1
   wcs_config:
     position_angle_range: [0, 0]
     dither_scale: 3
-    scale: 0.263
+    scale: 0.2
     scale_frac_std: 0.05
     shear_std: 0.001
 
@@ -42,7 +42,7 @@ layout:
   type: random
   ngal_per_side: 10
   ngal_per_arcmin2: 60
-  dither_scale: 0.263
+  dither_scale: 0.2
 
 gal:
   type: lsst-riz
@@ -61,7 +61,7 @@ star:
     fill_isolated_with_noise: true
   apodize:
     skip: false
-    ap_rad: 1
+    ap_rad: 1.5
   mask_expand_rad: 16
 
 pizza_cutter:
