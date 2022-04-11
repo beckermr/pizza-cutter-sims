@@ -191,7 +191,7 @@ def test_gals_gen_gals_random():
         "multiband": False,
         "color_range": [1, 2],
         "color_mean": 1.5,
-        "color_std": 0.25,
+        "color_std": 1.0,
     }
     gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
         rng=rng,
