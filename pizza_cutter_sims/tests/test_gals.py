@@ -192,7 +192,6 @@ def test_gals_gen_gals_random():
         "color_range": [1, 2],
         "color_mean": 1.5,
         "color_std": 0.25,
-
     }
     gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
         rng=rng,
@@ -213,7 +212,7 @@ def test_gals_gen_gals_random():
     assert noise_scale is None
     assert np.mean(colors) > 1
     assert np.mean(colors) < 2
-    assert all(c > 1 and c < 2 for c in colors)
+    assert all(c >= 1 and c <= 2 for c in colors)
 
 
 def test_gals_gen_gals_raises():
