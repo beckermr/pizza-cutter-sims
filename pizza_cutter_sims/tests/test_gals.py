@@ -18,6 +18,8 @@ def test_gals_gen_gals_grid():
         "noise": 10,
         "multiband": False,
         "color_range": [1, 1],
+        "color_mean": 1,
+        "color_std": 0,
     }
     gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
         rng=rng,
@@ -53,6 +55,8 @@ def test_gals_gen_gals_grid_multiband():
         "noise": 10,
         "multiband": 5,
         "color_range": [0, 0],
+        "color_mean": 1,
+        "color_std": 0,
     }
     gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints = gen_gals(
         rng=rng,
@@ -94,6 +98,8 @@ def test_gals_gen_gals_grid_multiband_color():
         "noise": 10,
         "multiband": 5,
         "color_range": [1, 1],
+        "color_mean": 1,
+        "color_std": 0,
     }
     gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints = gen_gals(
         rng=rng,
@@ -139,6 +145,8 @@ def test_gals_gen_gals_grid_multiband_color_range():
         "noise": 10,
         "multiband": 5,
         "color_range": [1, 4],
+        "color_mean": 3,
+        "color_std": 1,
     }
     gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints = gen_gals(
         rng=rng,
@@ -182,6 +190,9 @@ def test_gals_gen_gals_random():
         "noise": 10,
         "multiband": False,
         "color_range": [1, 2],
+        "color_mean": 1.5,
+        "color_std": 0.25,
+
     }
     gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
         rng=rng,
