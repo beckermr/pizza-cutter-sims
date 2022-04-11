@@ -32,6 +32,8 @@ for fname in fnames:
         del cfg["metadetect"]["mfrac_fwhm"]
     if "model" not in cfg["metadetect"]:
         cfg["metadetect"]["model"] = "wmom"
+    if "sx" not in cfg["metadetect"]:
+        cfg["metadetect"]["sx"] = None
 
     with open(fname, "w") as fp:
         parser.dump(cfg, fp)

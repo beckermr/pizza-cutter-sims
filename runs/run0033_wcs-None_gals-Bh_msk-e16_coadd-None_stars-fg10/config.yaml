@@ -127,3 +127,4 @@ metadetect:
   color_dep_psf:
     skip: true
   model: wmom
+  sx:

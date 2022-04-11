@@ -106,3 +106,4 @@ metadetect:
     rad_min: 4
   color_dep_psf:
     skip: true
+  sx:
