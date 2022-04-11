@@ -30,6 +30,8 @@ for fname in fnames:
         del cfg["metadetect"]["mfrac_weight"]
     if "mfrac_fwhm" in cfg["metadetect"]:
         del cfg["metadetect"]["mfrac_fwhm"]
+    if "model" not in cfg["metadetect"]:
+        cfg["metadetect"]["model"] = "wmom"
 
     with open(fname, "w") as fp:
         parser.dump(cfg, fp)

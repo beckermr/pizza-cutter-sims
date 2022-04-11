@@ -119,3 +119,4 @@ metadetect:
   bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS of pizza cutter
   color_dep_psf:
     skip: true
+  model: wmom
