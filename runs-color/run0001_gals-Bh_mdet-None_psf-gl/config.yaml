@@ -18,42 +18,42 @@ coadd:
   scale: 0.263
 
 se:
-  n_images: 1
+  n_images: 2
   wcs_config:
     position_angle_range: [0, 0]
-    dither_scale: 3
+    dither_scale: 0
     scale: 0.263
-    scale_frac_std: 0.05
-    shear_std: 0.001
+    scale_frac_std: 0
+    shear_std: 0
 
 psf:
   type: galsim.Gaussian
   fwhm: 0.9
-  fwhm_frac_std: 0.1
-  shear_std: 0.01
+  fwhm_frac_std: 0
+  shear_std: 0
   shear: [0, 0]
   color_range:
     - 0
     - 3
   dilation_range:
     - 1
-    - 1
+    - 1.2
 
 layout:
   type: hex
-  ngal_per_side: 10
+  ngal_per_side: 7
   ngal_per_arcmin2: 60
   dither_scale: 0.263
 
 gal:
-  type: exp-dim
-  muiltiband: false
+  type: exp-super-bright
+  muiltiband: true
   color_range:
     - 0
-    - 0
-  multiband: false
-  color_mean: 0
-  color_std: 0
+    - 3
+  color_mean: 1.3
+  color_std: 0.5
+  multiband: 2
 
 star:
   dens_factor: 0
@@ -65,36 +65,16 @@ star:
   mask_expand_rad: 0
 
 pizza_cutter:
-  skip: false
-  single_epoch_config:
-    # pixel spacing for building various WCS interpolants
-    se_wcs_interp_delta: 10
-    coadd_wcs_interp_delta: 25
-    frac_buffer: 1.42
-    reject_outliers: false
-    symmetrize_masking: true
-    copy_masked_edges: true
-    max_masked_fraction: 0.1
-    max_unmasked_trail_fraction: 0.02
-    edge_buffer: 8
-    mask_tape_bumps: false
-    spline_interp_flags:
-      - 7
-    noise_interp_flags:
-      - 0
-    # always zero
-    bad_image_flags:
-      - 0
+  skip: true
 
 metadetect:
   model: wmom
+  color_dep_psf:
+    skip: true
   metacal:
     psf: fitgauss
     types: [noshear, 1p, 1m, 2p, 2m]
     use_noise_image: true
-  nodet_flags: 33554432  # 2**25 is GAIA stars
-  bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS of pizza cutter
-  mask_region: 1
   weight:
     fwhm: 1.2  # arcsec
   meds:
@@ -104,5 +84,6 @@ metadetect:
     min_box_size: 48
     rad_fac: 2
     rad_min: 4
-  color_dep_psf:
-    skip: true
+  # check for an edge hit
+  bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS or pizza cutter
+  nodet_flags: 33554432  # 2**25 is GAIA stars

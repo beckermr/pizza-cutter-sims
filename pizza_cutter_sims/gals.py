@@ -162,9 +162,13 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
             nbands = 1
 
         colors = [
-            rng.uniform(
-                low=gal_config["color_range"][0],
-                high=gal_config["color_range"][1],
+            np.clip(
+                rng.normal(
+                    loc=gal_config["color_mean"],
+                    scale=gal_config["color_std"],
+                ),
+                gal_config["color_range"][0],
+                gal_config["color_range"][1],
             )
             for _ in range(len(upos))
         ]
@@ -175,7 +179,11 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
             if nbands > 1:
                 flux_ratio = 10.0**(0.4 * color)
                 flux_ratios[1] = flux_ratio
-                flux_ratios = np.array(flux_ratios)/np.sum(flux_ratios)
+                flux_ratios = (
+                    np.array(flux_ratios)
+                    / np.sum(flux_ratios)
+                    * len(flux_ratios)
+                )
 
             gals.append([
                 galsim.Sersic(

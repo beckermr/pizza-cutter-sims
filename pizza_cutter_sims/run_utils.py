@@ -349,7 +349,9 @@ def estimate_m_and_c(
             return _run_boostrap(x1, y1, x2, y2, wgts, silent)
 
 
-def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut):
+def measure_shear_metadetect(
+    res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut, model
+):
     """Measure the shear parameters for metadetect.
 
     NOTE: Returns None if nothing can be measured.
@@ -367,6 +369,8 @@ def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut
     mfrac_cut : float or None
         If not None, cut objects with a masked fraction higher than this
         value.
+    model : str
+        The model kind (e.g. wmom).
 
     Returns
     -------
@@ -386,8 +390,8 @@ def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut
     def _mask(data):
         _cut_msk = (
             (data['flags'] == 0)
-            & (data['wmom_s2n'] > s2n_cut)
-            & (data['wmom_T_ratio'] > t_ratio_cut)
+            & (data[model + '_s2n'] > s2n_cut)
+            & (data[model + '_T_ratio'] > t_ratio_cut)
         )
         if ormask_cut:
             _cut_msk = _cut_msk & (data['ormask'] == 0)
@@ -399,32 +403,32 @@ def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut
     q = _mask(op)
     if not np.any(q):
         return None
-    g1p = op['wmom_g'][q, 0]
+    g1p = op[model + '_g'][q, 0]
 
     om = res['1m']
     q = _mask(om)
     if not np.any(q):
         return None
-    g1m = om['wmom_g'][q, 0]
+    g1m = om[model + '_g'][q, 0]
 
     o = res['noshear']
     q = _mask(o)
     if not np.any(q):
         return None
-    g1 = o['wmom_g'][q, 0]
-    g2 = o['wmom_g'][q, 1]
+    g1 = o[model + '_g'][q, 0]
+    g2 = o[model + '_g'][q, 1]
 
     op = res['2p']
     q = _mask(op)
     if not np.any(q):
         return None
-    g2p = op['wmom_g'][q, 1]
+    g2p = op[model + '_g'][q, 1]
 
     om = res['2m']
     q = _mask(om)
     if not np.any(q):
         return None
-    g2m = om['wmom_g'][q, 1]
+    g2m = om[model + '_g'][q, 1]
 
     return (
         np.mean(g1p), np.mean(g1m), np.mean(g1),

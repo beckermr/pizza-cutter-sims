@@ -9,22 +9,8 @@ shear:
 
 msk:
   cosmic_rays: false
-    # mean_cosmic_rays: 1
-    # min_length: 10
-    # max_length: 30
   bad_columns: false
-    # mean_bad_cols: 1
-    # widths: [1, 2, 5, 10]
-    # p: [0.8, 0.1, 0.075, 0.025]
-    # min_length_frac: [1, 1, 0.25, 0.25]
-    # max_length_frac: [1, 1, 0.75, 0.75]
-    # gap_prob: [0.30, 0.30, 0, 0]
-    # min_gap_frac: [0.1, 0.1, 0, 0]
-    # max_gap_frac: [0.3, 0.3, 0, 0]
   streaks: false
-    # mean_steaks: 1
-    # min_width: 2
-    # max_width: 10
 
 coadd:
   central_size: 225
@@ -43,7 +29,7 @@ se:
 psf:
   type: galsim.Gaussian
   fwhm: 0.9
-  fwhm_frac_std: 0.1
+  fwhm_frac_std: 0
   shear_std: 0
   shear: [0, 0]
   color_range:
@@ -51,23 +37,22 @@ psf:
     - 3
   dilation_range:
     - 1
-    - 1
+    - 1.2
 
 layout:
-  type: grid
+  type: hex
   ngal_per_side: 7
   ngal_per_arcmin2: 60
   dither_scale: 0.263
 
 gal:
-  type: exp-bright
-  muiltiband: false
+  type: exp-super-bright
   color_range:
     - 0
-    - 0
-  multiband: false
-  color_mean: 0
-  color_std: 0
+    - 3
+  color_mean: 1.3
+  color_std: 0.5
+  multiband: 2
 
 star:
   dens_factor: 0
@@ -79,7 +64,7 @@ star:
   mask_expand_rad: 0
 
 pizza_cutter:
-  skip: false
+  skip: true
   single_epoch_config:
     # pixel spacing for building various WCS interpolants
     se_wcs_interp_delta: 10
@@ -102,20 +87,24 @@ pizza_cutter:
       - 0
 
 metadetect:
+  color_dep_psf:
+    skip: false
+    color_range: [0, 3]
+    ncolors: 4
   metacal:
     psf: fitgauss
     types: [noshear, 1p, 1m, 2p, 2m]
     use_noise_image: true
   weight:
     fwhm: 1.2  # arcsec
+  model: wmom
   meds:
     box_padding: 2
     box_type: iso_radius
-    max_box_size: 64
-    min_box_size: 32
+    max_box_size: 48
+    min_box_size: 48
     rad_fac: 2
     rad_min: 4
+  # check for an edge hit
+  bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS or pizza cutter
   nodet_flags: 33554432  # 2**25 is GAIA stars
-  bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS of pizza cutter
-  color_dep_psf:
-    skip: true

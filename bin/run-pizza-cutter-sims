@@ -85,6 +85,12 @@ def _run_pair(args):
 
 
 def _run_sets_of_pairs(all_args):
+    model = all_args[0][0]["cfg"]["metadetect"]["model"]
+    if model == "wmom":
+        tcut = 1.2
+    else:
+        tcut = 0.5
+
     all_res = [_run_pair(arg) for arg in all_args]
     all_res = [r for r in all_res if r[0] is not None and r[1] is not None]
     if len(all_res) > 0:
@@ -102,12 +108,12 @@ def _run_sets_of_pairs(all_args):
         for ormask_cut in ORMASK_CUTS:
             for s2n_cut in S2N_CUTS:
                 pgm = measure_shear_metadetect(
-                    pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                    ormask_cut=ormask_cut, mfrac_cut=None,
+                    pres, s2n_cut=s2n_cut, t_ratio_cut=tcut,
+                    ormask_cut=ormask_cut, mfrac_cut=None, model=model,
                 )
                 mgm = measure_shear_metadetect(
-                    mres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                    ormask_cut=ormask_cut, mfrac_cut=None,
+                    mres, s2n_cut=s2n_cut, t_ratio_cut=tcut,
+                    ormask_cut=ormask_cut, mfrac_cut=None, model=model,
                 )
                 if pgm is None or mgm is None:
                     continue
@@ -120,12 +126,12 @@ def _run_sets_of_pairs(all_args):
         for mfrac_cut in MFRAC_CUTS:
             for s2n_cut in S2N_CUTS:
                 pgm = measure_shear_metadetect(
-                    pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                    ormask_cut=False, mfrac_cut=mfrac_cut/100,
+                    pres, s2n_cut=s2n_cut, t_ratio_cut=tcut,
+                    ormask_cut=False, mfrac_cut=mfrac_cut/100, model=model,
                 )
                 mgm = measure_shear_metadetect(
-                    mres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                    ormask_cut=False, mfrac_cut=mfrac_cut/100,
+                    mres, s2n_cut=s2n_cut, t_ratio_cut=tcut,
+                    ormask_cut=False, mfrac_cut=mfrac_cut/100, model=model,
                 )
                 if pgm is None or mgm is None:
                     continue

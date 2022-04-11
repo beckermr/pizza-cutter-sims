@@ -128,6 +128,9 @@ def gen_metadetect_color_dep(
     colors = np.linspace(color_range[0], color_range[1], ncolors)
 
     def color_key_func(fluxes):
+        if np.any(~np.isfinite(fluxes)):
+            return None
+
         if fluxes[0] < 0 or fluxes[1] < 0:
             if fluxes[0] < fluxes[1]:
                 return ncolors - 1
@@ -135,7 +138,7 @@ def gen_metadetect_color_dep(
                 return 0
         else:
             mag0 = flux_zeropoints[0] - np.log10(fluxes[0])/0.4
-            mag1 = flux_zeropoints[0] - np.log10(fluxes[1])/0.4
+            mag1 = flux_zeropoints[1] - np.log10(fluxes[1])/0.4
             color = mag0 - mag1
 
             if color <= color_range[0]:
@@ -144,7 +147,7 @@ def gen_metadetect_color_dep(
                 return ncolors - 1
             else:
                 dcolors = colors[1] - colors[0]
-                return int((color - color_range[0])/dcolors)
+                return int((color - color_range[0])/dcolors + 0.5)
 
     wcs = coadd_wcs.jacobian(image_pos=coadd_cen_pos)
     psf_dim = 53

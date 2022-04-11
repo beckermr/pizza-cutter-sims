@@ -7,7 +7,7 @@ parser.width = 320
 parser.default_flow_style = False
 
 edits = {
-    "gal": {"multiband": False, "color_range": [0, 0]},
+    "gal": {"multiband": False, "color_range": [0, 0], "color_mean": 0, "color_std": 0},
     "psf": {"color_range": [0, 3], "dilation_range": [1, 1]},
     "metadetect": {"color_dep_psf": {"skip": True}},
 }
@@ -25,6 +25,11 @@ for fname in fnames:
     for sec, vals in edits.items():
         for k, v in vals.items():
             cfg[sec][k] = v
+
+    if "mfrac_weight" in cfg["metadetect"]:
+        del cfg["metadetect"]["mfrac_weight"]
+    if "mfrac_fwhm" in cfg["metadetect"]:
+        del cfg["metadetect"]["mfrac_fwhm"]
 
     with open(fname, "w") as fp:
         parser.dump(cfg, fp)

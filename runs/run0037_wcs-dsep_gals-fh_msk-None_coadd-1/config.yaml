@@ -52,6 +52,8 @@ gal:
     - 0
     - 0
   multiband: false
+  color_mean: 0
+  color_std: 0
 
 star:
   dens_factor: 0
@@ -90,10 +92,8 @@ metadetect:
     psf: fitgauss
     types: [noshear, 1p, 1m, 2p, 2m]
     use_noise_image: true
-  sx:
   nodet_flags: 33554432  # 2**25 is GAIA stars
   bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS of pizza cutter
-  mfrac_fwhm: 1.2  # arcsec
   mask_region: 1
   weight:
     fwhm: 1.2  # arcsec
