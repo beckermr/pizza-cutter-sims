@@ -10,7 +10,7 @@ edits = {
     "gal": {
         "multiband": False,
         "color_range": [0, 0],
-        "color_mean": 1e-12,
+        "color_mean": 1,
         "color_std": 0,
     },
     "psf": {"color_range": [0, 3], "dilation_range": [1, 1]},
