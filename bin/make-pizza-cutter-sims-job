@@ -153,6 +153,8 @@ def main(config, seed, n_sims, system, hours, n_jobs):
     with open("./run_" + job_name + "_" + system + ext, "w") as fp:
         fp.write(cmd)
 
+    os.system("chmod u+x " + "./run_" + job_name + "_" + system + ext)
+
     print("run_" + job_name + "_" + system + ext)
 
 
