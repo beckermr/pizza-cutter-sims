@@ -52,7 +52,7 @@ gal:
     - 0
     - 0
   multiband: false
-  color_mean: 0
+  color_mean: 1e-12
   color_std: 0
 
 star:

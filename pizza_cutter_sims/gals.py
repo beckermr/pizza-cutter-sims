@@ -163,10 +163,10 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
 
         colors = [
             np.clip(
-                rng.normal(
-                    loc=gal_config["color_mean"],
+                np.exp(rng.normal(
+                    loc=np.log(gal_config["color_mean"]),
                     scale=gal_config["color_std"],
-                ),
+                )),
                 gal_config["color_range"][0],
                 gal_config["color_range"][1],
             )
