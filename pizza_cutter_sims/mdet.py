@@ -146,8 +146,11 @@ def gen_metadetect_color_dep(
             elif color >= color_range[1]:
                 return ncolors - 1
             else:
-                dcolors = colors[1] - colors[0]
-                return int((color - color_range[0])/dcolors + 0.5)
+                if ncolors > 1:
+                    dcolors = colors[1] - colors[0]
+                    return int((color - color_range[0])/dcolors + 0.5)
+                else:
+                    return 0
 
     wcs = coadd_wcs.jacobian(image_pos=coadd_cen_pos)
     psf_dim = 53
