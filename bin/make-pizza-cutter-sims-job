@@ -95,7 +95,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
     elif system == "bash":
         n_sims = n_sims or 1
         ext = ".sh"
-        n_pack = min(n_sims, 100)
+        n_pack = 1
     elif system == "bnl":
         n_sims = n_sims or 100_000
         ext = ".sh"
