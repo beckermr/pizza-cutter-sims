@@ -51,8 +51,8 @@ gal:
   color_range:
     - 0
     - 3
-  color_mean: 2.1
-  color_std: 0.5
+  color_mean: 1.3
+  color_std: 0.25
   multiband: 2
 
 star:
