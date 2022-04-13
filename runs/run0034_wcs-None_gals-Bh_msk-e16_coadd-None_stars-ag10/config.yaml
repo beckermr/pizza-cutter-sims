@@ -69,6 +69,7 @@ gal:
   multiband: false
   color_mean: 1
   color_std: 0
+  color_type: uniform
 
 star:
   dens_factor: 5
