@@ -125,7 +125,8 @@ def gen_metadetect_color_dep(
         A dictionary of color-dependently rendered observations of the mbobs for use
         in color-dependent metadetect.
     """
-    colors = np.linspace(color_range[0], color_range[1], ncolors)
+    dcolors = (color_range[1] - color_range[0])/ncolors
+    colors = np.arange(ncolors) * dcolors + dcolors/2 + color_range[0]
 
     def color_key_func(fluxes):
         if np.any(~np.isfinite(fluxes)):
@@ -146,11 +147,7 @@ def gen_metadetect_color_dep(
             elif color >= color_range[1]:
                 return ncolors - 1
             else:
-                if ncolors > 1:
-                    dcolors = colors[1] - colors[0]
-                    return int((color - color_range[0])/dcolors + 0.5)
-                else:
-                    return 0
+                return int((color - color_range[0])/dcolors)
 
     wcs = coadd_wcs.jacobian(image_pos=coadd_cen_pos)
     psf_dim = 53
