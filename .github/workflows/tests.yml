@@ -63,6 +63,14 @@ jobs:
       - name: try all runs
         shell: bash -l {0}
         run: |
+          pushd runs-color
+          for dname in $(ls -d */); do
+            echo "'${dname}'"
+            pushd ${dname}
+            run-pizza-cutter-sims --seed=42 --n-sims=1 --backend=local
+            popd
+          done
+          popd
           pushd runs
           for dname in $(ls -d */); do
             echo "'${dname}'"
