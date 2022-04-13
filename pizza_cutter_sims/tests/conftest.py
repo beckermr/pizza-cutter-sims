@@ -94,6 +94,7 @@ gal:
   color_range: [1, 1]
   color_mean: 1
   color_std: 1
+  color_type: uniform
 
 star:
   dens_factor: 1

@@ -240,7 +240,7 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
         elif gal_config["color_type"] == "uniform":
             LOGGER.info("using uniform galaxy color distribution")
             colors = [
-                c for c in rng.unifrom(
+                c for c in rng.uniform(
                     low=gal_config["color_range"][0],
                     high=gal_config["color_range"][1],
                     size=len(upos)

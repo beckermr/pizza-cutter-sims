@@ -20,6 +20,7 @@ def test_gals_gen_gals_grid():
         "color_range": [1, 1],
         "color_mean": 1,
         "color_std": 0,
+        "color_type": "lognormal",
     }
     gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
         rng=rng,
@@ -39,7 +40,7 @@ def test_gals_gen_gals_grid():
         (upos <= 10)
     )
     assert noise_scale is None
-    assert np.all(c == 1 for c in colors)
+    assert all(c == 1 for c in colors)
 
 
 def test_gals_gen_gals_grid_multiband():
@@ -57,6 +58,7 @@ def test_gals_gen_gals_grid_multiband():
         "color_range": [0, 0],
         "color_mean": 1,
         "color_std": 0,
+        "color_type": "lognormal",
     }
     gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints = gen_gals(
         rng=rng,
@@ -76,7 +78,7 @@ def test_gals_gen_gals_grid_multiband():
         (upos <= 10)
     )
     assert noise_scale is None
-    assert np.all(c == 0 for c in colors)
+    assert all(c == 0 for c in colors)
     flux = gals[0][0].flux
     assert all([all([g.flux == flux for g in gal]) for gal in gals])
     for gal in gals:
@@ -100,6 +102,7 @@ def test_gals_gen_gals_grid_multiband_color():
         "color_range": [1, 1],
         "color_mean": 1,
         "color_std": 0,
+        "color_type": "lognormal",
     }
     gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints = gen_gals(
         rng=rng,
@@ -119,7 +122,7 @@ def test_gals_gen_gals_grid_multiband_color():
         (upos <= 10)
     )
     assert noise_scale is None
-    assert np.all(c == 0 for c in colors)
+    assert all(c == 1 for c in colors)
     flux0 = gals[0][0].flux
     flux1 = gals[0][1].flux
     assert flux0 != flux1
@@ -132,7 +135,8 @@ def test_gals_gen_gals_grid_multiband_color():
         assert color == 1
 
 
-def test_gals_gen_gals_grid_multiband_color_range():
+@pytest.mark.parametrize("color_type", ["lognormal", "uniform", "des"])
+def test_gals_gen_gals_grid_multiband_color_range(color_type):
     rng = np.random.RandomState(seed=42)
     layout_config = {
         "type": "grid",
@@ -144,9 +148,10 @@ def test_gals_gen_gals_grid_multiband_color_range():
         "type": "exp-bright",
         "noise": 10,
         "multiband": 5,
-        "color_range": [1, 4],
-        "color_mean": 3,
+        "color_range": [1, 2.5],
+        "color_mean": 2,
         "color_std": 1,
+        "color_type": color_type,
     }
     gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints = gen_gals(
         rng=rng,
@@ -166,7 +171,14 @@ def test_gals_gen_gals_grid_multiband_color_range():
         (upos <= 10)
     )
     assert noise_scale is None
-    assert np.all(c == 0 for c in colors)
+    assert all(c != 0 for c in colors)
+    if color_type != "des":
+        assert all(c >= 1 for c in colors), min(colors)
+        assert all(c <= 2.5 for c in colors), max(colors)
+    else:
+        assert any(c < 1 for c in colors), min(colors)
+        assert any(c > 2.5 for c in colors), max(colors)
+
     for gal, true_color in zip(gals, colors):
         flux0 = gal[0].flux
         flux1 = gal[1].flux
@@ -192,6 +204,7 @@ def test_gals_gen_gals_random():
         "color_range": [1, 2],
         "color_mean": 1.5,
         "color_std": 1.0,
+        "color_type": "lognormal",
     }
     gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
         rng=rng,
