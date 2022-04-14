@@ -111,8 +111,9 @@ def gen_metadetect_color_dep(
         The position of the center of the coadd image.
     color_range : list of floats
         the range of colors over which to make the models.
-    ncolors : int
-        The number of different models to make.
+    ncolors : int or list
+        If int, the number of different models to make. If a list, the colors at which
+        to make the models.
     flux_zeropoints : list of float
         The flux zeropoints to compute magnitudes in each band.
 
@@ -125,31 +126,51 @@ def gen_metadetect_color_dep(
         A dictionary of color-dependently rendered observations of the mbobs for use
         in color-dependent metadetect.
     """
-    dcolors = (color_range[1] - color_range[0])/ncolors
-    colors = np.arange(ncolors) * dcolors + dcolors/2 + color_range[0]
+    if isinstance(ncolors, list):
+        colors = np.array(ncolors)
 
-    def color_key_func(fluxes):
-        if np.any(~np.isfinite(fluxes)):
-            return None
+        def color_key_func(fluxes):
+            if np.any(~np.isfinite(fluxes)):
+                return None
 
-        if fluxes[0] < 0 or fluxes[1] < 0:
-            if fluxes[0] < fluxes[1]:
-                return ncolors - 1
+            if fluxes[0] < 0 or fluxes[1] < 0:
+                if fluxes[0] < fluxes[1]:
+                    return ncolors - 1
+                else:
+                    return 0
             else:
-                return 0
-        else:
-            mag0 = flux_zeropoints[0] - np.log10(fluxes[0])/0.4
-            mag1 = flux_zeropoints[1] - np.log10(fluxes[1])/0.4
-            color = mag0 - mag1
+                mag0 = flux_zeropoints[0] - np.log10(fluxes[0])/0.4
+                mag1 = flux_zeropoints[1] - np.log10(fluxes[1])/0.4
+                color = mag0 - mag1
 
-            if color <= color_range[0]:
-                return 0
-            elif color >= color_range[1]:
-                return ncolors - 1
-            elif color_range[0] == color_range[1]:
-                return 0
+                return int(np.argmin(np.abs(color - colors)))
+
+    else:
+        dcolors = (color_range[1] - color_range[0])/ncolors
+        colors = np.arange(ncolors) * dcolors + dcolors/2 + color_range[0]
+
+        def color_key_func(fluxes):
+            if np.any(~np.isfinite(fluxes)):
+                return None
+
+            if fluxes[0] < 0 or fluxes[1] < 0:
+                if fluxes[0] < fluxes[1]:
+                    return ncolors - 1
+                else:
+                    return 0
             else:
-                return int((color - color_range[0])/dcolors)
+                mag0 = flux_zeropoints[0] - np.log10(fluxes[0])/0.4
+                mag1 = flux_zeropoints[1] - np.log10(fluxes[1])/0.4
+                color = mag0 - mag1
+
+                if color <= color_range[0]:
+                    return 0
+                elif color >= color_range[1]:
+                    return ncolors - 1
+                elif color_range[0] == color_range[1]:
+                    return 0
+                else:
+                    return int((color - color_range[0])/dcolors)
 
     wcs = coadd_wcs.jacobian(image_pos=coadd_cen_pos)
     psf_dim = 53
