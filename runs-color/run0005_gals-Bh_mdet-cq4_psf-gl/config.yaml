@@ -1,0 +1,112 @@
+shear:
+  scene: true
+  # these keys are used to build paired sims w/ noise cancellation
+  g: 0.02
+  swap12: false
+  # set these to run a sim directly
+  g1: 0.02
+  g2: 0.00
+
+msk:
+  cosmic_rays: false
+  bad_columns: false
+  streaks: false
+
+coadd:
+  central_size: 225
+  buffer_size: 25
+  scale: 0.263
+
+se:
+  n_images: 2
+  wcs_config:
+    position_angle_range: [0, 0]
+    dither_scale: 0
+    scale: 0.263
+    scale_frac_std: 0
+    shear_std: 0
+
+psf:
+  type: galsim.Gaussian
+  fwhm: 0.9
+  fwhm_frac_std: 0
+  shear_std: 0
+  shear: [0, 0]
+  color_range:
+    - 0
+    - 3
+  dilation_range:
+    - 1
+    - 1.2
+
+layout:
+  type: hex
+  ngal_per_side: 7
+  ngal_per_arcmin2: 60
+  dither_scale: 0.263
+
+gal:
+  type: exp-super-bright
+  multiband: 2
+  color_type: des
+  # these are ignored for DES colors
+  # color_range:
+  #   - 0
+  #   - 3
+  # color_mean: 1.3
+  # color_std: 0.25
+
+star:
+  dens_factor: 0
+  rad_dist: uniform
+  interp:
+    skip: true
+  apodize:
+    skip: true
+  mask_expand_rad: 0
+
+pizza_cutter:
+  skip: true
+  single_epoch_config:
+    # pixel spacing for building various WCS interpolants
+    se_wcs_interp_delta: 10
+    coadd_wcs_interp_delta: 25
+    frac_buffer: 1.42
+    reject_outliers: false
+    symmetrize_masking: true
+    copy_masked_edges: true
+    max_masked_fraction: 0.1
+    max_unmasked_trail_fraction: 0.02
+    edge_buffer: 8
+    mask_tape_bumps: false
+    # set the interp flags to 0 or 3 to interp stuff in the mask
+    spline_interp_flags:
+      - 0
+    noise_interp_flags:
+      - 0
+    # always zero
+    bad_image_flags:
+      - 0
+
+metadetect:
+  color_dep_psf:
+    skip: false
+    color_range: [0, 3]
+    ncolors: [0.75754348 0.99408925 1.21975318 1.50845878]
+  metacal:
+    psf: fitgauss
+    types: [noshear, 1p, 1m, 2p, 2m]
+    use_noise_image: true
+  weight:
+    fwhm: 1.2  # arcsec
+  model: wmom
+  meds:
+    box_padding: 2
+    box_type: iso_radius
+    max_box_size: 48
+    min_box_size: 48
+    rad_fac: 2
+    rad_min: 4
+  # check for an edge hit
+  bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS or pizza cutter
+  nodet_flags: 33554432  # 2**25 is GAIA stars
