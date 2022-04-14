@@ -92,7 +92,7 @@ metadetect:
   color_dep_psf:
     skip: false
     color_range: [0, 3]
-    ncolors: [0.75754348 0.99408925 1.21975318 1.50845878]
+    ncolors: [0.75754348, 0.99408925, 1.21975318, 1.50845878]
   metacal:
     psf: fitgauss
     types: [noshear, 1p, 1m, 2p, 2m]
