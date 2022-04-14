@@ -184,7 +184,7 @@ def _measure_m_c(pdata, mdata, n_curr, outputs, cfg):
             _mdata,
             cfg["shear"]["g"],
             swap12=cfg["shear"]["swap12"],
-            jackknife=200 if len(_pdata) >= 200 else None,
+            jackknife=min(200, len(_pdata)//2) if len(_pdata) >= 200 else None,
             weights=_pdata["weight"],
         )
 
