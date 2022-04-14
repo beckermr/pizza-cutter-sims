@@ -146,6 +146,8 @@ def gen_metadetect_color_dep(
                 return 0
             elif color >= color_range[1]:
                 return ncolors - 1
+            elif color_range[0] == color_range[1]:
+                return 0
             else:
                 return int((color - color_range[0])/dcolors)
 
