@@ -135,7 +135,7 @@ def gen_metadetect_color_dep(
 
             if fluxes[0] < 0 or fluxes[1] < 0:
                 if fluxes[0] < fluxes[1]:
-                    return ncolors - 1
+                    return len(ncolors) - 1
                 else:
                     return 0
             else:
