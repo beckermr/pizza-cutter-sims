@@ -384,10 +384,16 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                             fits.write(pdata[:n_curr], extname='plus')
                             fits.write(mdata[:n_curr], extname='minus')
     else:
+        if backend == "lsf" and not cfg["metadetect"]["color_dep_psf"]["skip"]:
+            pkwargs = {"mem": 6}
+        else:
+            pkwargs = {}
+
         with backend_pool(
             backend,
             n_workers=n_workers,
             verbose=100,
+            **pkwargs,
         ) as pool:
             if pool is not None and rank == 0:
                 _gen = _gen_chunks(
