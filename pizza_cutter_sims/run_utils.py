@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import tqdm
 
-from mattspy import SLACLSFParallel, LokyParallel
+from mattspy import SLACLSFParallel, LokyParallel, BNLCondorParallel
 
 GLOBAL_START_TIME = time.time()
 
@@ -68,7 +68,7 @@ def get_n_workers(backend, n_workers=None):
 
 
 @contextlib.contextmanager
-def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
+def backend_pool(backend, n_workers=None, verbose=0, **kwargs):
     """Context manager to build a schwimmbad `pool` object with the `map` method.
 
     Parameters
@@ -79,6 +79,8 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
         The number of workers to use. Defaults to 1 for the 'sequential' backend,
         the cpu count for the 'loky' backend, and the size of the default global
         communicator for the 'mpi' backend.
+    verbose : int
+        Higher values print/save more output.
     **kwargs : extra keyword arguments
         Passed to the backend.
     """
@@ -93,6 +95,11 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
 
     if backend == "lsf":
         with SLACLSFParallel(
+            verbose=verbose, n_jobs=n_workers, **kwargs
+        ) as pool:
+            yield pool
+    elif backend == "condor":
+        with BNLCondorParallel(
             verbose=verbose, n_jobs=n_workers, **kwargs
         ) as pool:
             yield pool
