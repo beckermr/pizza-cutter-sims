@@ -137,7 +137,7 @@ class PowerSpectrumPSF(object):
 
         return psf, gs_config
 
-    def getPSF(self, pos):
+    def getPSF(self, pos, color=None):
         """Get a PSF model at a given position.
 
         Parameters
@@ -145,6 +145,8 @@ class PowerSpectrumPSF(object):
         pos : galsim.PositionD
             The position at which to compute the PSF. In zero-indexed
             pixel coordinates.
+        color : float or None, optional
+            Ignored.
 
         Returns
         -------
@@ -155,7 +157,7 @@ class PowerSpectrumPSF(object):
 
         return psf
 
-    def getPSFConfig(self, pos):
+    def getPSFConfig(self, pos, color=None):
         """Get a PSF config for a model at a given position.
 
         Parameters
@@ -163,6 +165,8 @@ class PowerSpectrumPSF(object):
         pos : galsim.PositionD
             The position at which to compute the PSF. In zero-indexed
             pixel coordinates.
+        color : float or None, optional
+            Ignored.
 
         Returns
         -------

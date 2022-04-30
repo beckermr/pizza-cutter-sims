@@ -2,6 +2,7 @@
 import tempfile
 import logging
 import sys
+import galsim
 
 import proplot as pplt
 
@@ -55,37 +56,64 @@ def main(config, seed, output):
         msk_config=cfg["msk"],
         shear_config=cfg["shear"],
         star_rng=star_rng,
-        skip_coadding=False
+        skip_coadding=cfg["pizza_cutter"]["skip"],
     )
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cdata = run_des_pizza_cutter_coadding_on_sim(
-            rng=coadd_rng,
-            tmpdir=tmpdir,
-            single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
-            img=data["img"],
-            wgt=data["wgt"],
-            msk=data["msk"],
-            bkg=data["bkg"],
-            info=data["info"],
-            n_extra_noise_images=0,
-        )
+    if not cfg["pizza_cutter"]["skip"]:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cdata = run_des_pizza_cutter_coadding_on_sim(
+                rng=coadd_rng,
+                tmpdir=tmpdir,
+                single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
+                img=data["img"],
+                wgt=data["wgt"],
+                msk=data["msk"],
+                bkg=data["bkg"],
+                info=data["info"],
+                n_extra_noise_images=0,
+            )
+            cdata_list = [cdata]
 
-        resampled_data, _ = make_remapped_se_images_des_pizza_cutter_coadding_on_sim(
-            rng=coadd_rng,
-            tmpdir=tmpdir,
-            single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
-            img=data["img"],
-            wgt=data["wgt"],
-            msk=data["msk"],
-            bkg=data["bkg"],
-            info=data["info"],
-            n_extra_noise_images=0,
-        )
+            resampled_data, _ \
+                = make_remapped_se_images_des_pizza_cutter_coadding_on_sim(
+                    rng=coadd_rng,
+                    tmpdir=tmpdir,
+                    single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
+                    img=data["img"],
+                    wgt=data["wgt"],
+                    msk=data["msk"],
+                    bkg=data["bkg"],
+                    info=data["info"],
+                    n_extra_noise_images=0,
+                )
+    else:
+        coadd_cen = (data["img"][0].shape[0]-1)/2
+        coadd_cen_pos = galsim.PositionD(x=coadd_cen, y=coadd_cen)
+        cdata_list = []
+        for i in range(len(data["img"])):
+            psf = data["psfs"][i].getPSF(coadd_cen_pos).drawImage(
+                nx=53, ny=53,
+                wcs=data["coadd_wcs"].jacobian(coadd_cen_pos),
+            ).array
+            cdata_list.append(dict(
+                image=data["img"][i].copy(),
+                bmask=data["msk"][i].copy(),
+                ormask=data["msk"][i].copy(),
+                weight=data["wgt"][i].copy(),
+                mfrac=np.zeros_like(data["img"][i]),
+                noise=coadd_rng.normal(
+                    size=data["img"][i].shape,
+                    scale=np.sqrt(1.0/data["wgt"][i]),
+                ),
+                psf=psf,
+            ))
+
+        cdata = None
+        resampled_data = None
 
     mbobs = make_mbobs_from_coadd_data(
         wcs=data["coadd_wcs"],
-        cdata=cdata,
+        cdata_list=cdata_list,
     )
 
     mask_stars(
@@ -113,24 +141,61 @@ def main(config, seed, output):
         )
         axs[i, 0].set_aspect(1)
 
+        if resampled_data is not None:
+            axs[i, 1].pcolormesh(
+                np.arcsinh(
+                    resampled_data[i]["image"]/np.std(resampled_data[i]["noises"][0])
+                ),
+                cmap="rocket",
+            )
+            axs[i, 1].set_aspect(1)
+
+            axs[i, 2].pcolormesh(
+                np.arcsinh(
+                    resampled_data[i]["noises"][0]
+                    / np.std(resampled_data[i]["noises"][0])
+                ),
+                cmap="rocket",
+            )
+            axs[i, 2].set_aspect(1)
+
+            axs[i, 3].pcolormesh(
+                resampled_data[i]["interp_frac"],
+                cmap="rocket_r",
+                vmin=0,
+                vmax=1,
+            )
+            axs[i, 3].set_aspect(1)
+
+            axs[i, 4].pcolormesh(
+                resampled_data[i]["psf"][psf_buff:-psf_buff, psf_buff:-psf_buff],
+                cmap="rocket",
+            )
+            axs[i, 4].set_aspect(1)
+
+    # coadd with star masking
+    if cdata is not None:
+        i = len(data["img"])
+        axs[i, 0].set_frame_on(False)
         axs[i, 1].pcolormesh(
-            np.arcsinh(
-                resampled_data[i]["image"]/np.std(resampled_data[i]["noises"][0])
-            ),
-            cmap="rocket",
-        )
+                np.arcsinh(
+                    mbobs[0][0].image/np.std(mbobs[0][0].noise)
+                ),
+                cmap="rocket",
+            )
         axs[i, 1].set_aspect(1)
+        axs[i, 1].set_xlim(0, mbobs[0][0].image.shape[0])
 
         axs[i, 2].pcolormesh(
-            np.arcsinh(
-                resampled_data[i]["noises"][0]/np.std(resampled_data[i]["noises"][0])
-            ),
-            cmap="rocket",
-        )
+                np.arcsinh(
+                    mbobs[0][0].noise/np.std(mbobs[0][0].noise)
+                ),
+                cmap="rocket",
+            )
         axs[i, 2].set_aspect(1)
 
         axs[i, 3].pcolormesh(
-            resampled_data[i]["interp_frac"],
+            mbobs[0][0].mfrac,
             cmap="rocket_r",
             vmin=0,
             vmax=1,
@@ -138,44 +203,10 @@ def main(config, seed, output):
         axs[i, 3].set_aspect(1)
 
         axs[i, 4].pcolormesh(
-            resampled_data[i]["psf"][psf_buff:-psf_buff, psf_buff:-psf_buff],
+            cdata["psf"][psf_buff:-psf_buff, psf_buff:-psf_buff],
             cmap="rocket",
         )
         axs[i, 4].set_aspect(1)
-
-    # coadd with star masking
-    i = len(data["img"])
-    axs[i, 0].set_frame_on(False)
-    axs[i, 1].pcolormesh(
-            np.arcsinh(
-                mbobs[0][0].image/np.std(mbobs[0][0].noise)
-            ),
-            cmap="rocket",
-        )
-    axs[i, 1].set_aspect(1)
-    axs[i, 1].set_xlim(0, mbobs[0][0].image.shape[0])
-
-    axs[i, 2].pcolormesh(
-            np.arcsinh(
-                mbobs[0][0].noise/np.std(mbobs[0][0].noise)
-            ),
-            cmap="rocket",
-        )
-    axs[i, 2].set_aspect(1)
-
-    axs[i, 3].pcolormesh(
-        mbobs[0][0].mfrac,
-        cmap="rocket_r",
-        vmin=0,
-        vmax=1,
-    )
-    axs[i, 3].set_aspect(1)
-
-    axs[i, 4].pcolormesh(
-        cdata["psf"][psf_buff:-psf_buff, psf_buff:-psf_buff],
-        cmap="rocket",
-    )
-    axs[i, 4].set_aspect(1)
 
     # set axes
     for ax in np.ravel(axs):

@@ -56,7 +56,7 @@ def test_mask_and_interp_stars():
 
     mbobs = make_mbobs_from_coadd_data(
         wcs=galsim.PixelScale(0.263).jacobian(),
-        cdata=cdata,
+        cdata_list=[cdata],
     )
 
     mbobs_old = copy.deepcopy(mbobs)
@@ -114,7 +114,7 @@ def test_mask_and_apodize_stars():
 
     mbobs = make_mbobs_from_coadd_data(
         wcs=galsim.PixelScale(0.263).jacobian(),
-        cdata=cdata,
+        cdata_list=[cdata],
     )
 
     mbobs_old = copy.deepcopy(mbobs)
@@ -172,7 +172,7 @@ def test_mask_stars_raises():
 
     mbobs = make_mbobs_from_coadd_data(
         wcs=galsim.PixelScale(0.263).jacobian(),
-        cdata=cdata,
+        cdata_list=[cdata],
     )
 
     rng = np.random.RandomState(seed=10)

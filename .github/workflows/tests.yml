@@ -35,6 +35,8 @@ jobs:
           python -m pip install -e .
           wget -q https://www.cosmo.bnl.gov/www/beckermr/OneDegSq.fits
           echo "CATSIM_DIR=$(pwd)" >> $GITHUB_ENV
+          conda uninstall metadetect --force --yes
+          pip install git+https://github.com/esheldon/metadetect.git@all-meas
 
       - name: lint
         shell: bash -l {0}
@@ -63,6 +65,14 @@ jobs:
       - name: try all runs
         shell: bash -l {0}
         run: |
+          pushd runs-color
+          for dname in $(ls -d */); do
+            echo "'${dname}'"
+            pushd ${dname}
+            run-pizza-cutter-sims --seed=42 --n-sims=1 --backend=local
+            popd
+          done
+          popd
           pushd runs
           for dname in $(ls -d */); do
             echo "'${dname}'"
