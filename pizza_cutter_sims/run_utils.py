@@ -395,8 +395,13 @@ def measure_shear_metadetect(
         The mean 2-component shape for the zero-shear metadetect measurement.
     """
     def _mask(data):
+        if 'flags' in data.dtype.names:
+            flag_col = "flags"
+        else:
+            flag_col = model + "_flags"
+
         _cut_msk = (
-            (data['flags'] == 0)
+            (data[flag_col] == 0)
             & (data[model + '_s2n'] > s2n_cut)
             & (data[model + '_T_ratio'] > t_ratio_cut)
         )
