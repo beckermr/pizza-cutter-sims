@@ -62,7 +62,7 @@ def get_n_workers(backend, n_workers=None):
     elif backend == "condor":
         return 10000
     elif backend == "lsf":
-        return 1500
+        return 1000
     else:
         raise RuntimeError("backend '%s' not recognized!" % backend)
 
