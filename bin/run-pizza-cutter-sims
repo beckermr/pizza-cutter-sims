@@ -332,7 +332,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
             n_workers = min(10000, n_chunks)
         elif backend == "lsf":
             if not cfg["metadetect"]["color_dep_psf"]["skip"]:
-                n_workers = min(750, n_chunks)
+                n_workers = min(500, n_chunks)
             else:
                 n_workers = min(1000, n_chunks)
         else:
