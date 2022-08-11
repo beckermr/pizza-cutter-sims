@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 */dask-worker-space
+*.png
+runs/**/lsf-yield
+runs/**/condor-yield

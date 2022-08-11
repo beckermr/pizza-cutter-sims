@@ -95,8 +95,8 @@ def gen_stars(
     area = (pos_bounds[1] - pos_bounds[0])/60
     area = area**2
     num = rng.poisson(lam=area*GAIA_STAR_DENS_PER_ARCMIN2 * dens_factor)
+    LOGGER.debug("generating %d stars", num)
     if num > 0:
-        LOGGER.debug("generating %d stars", num)
         _, rad = gen_gaia_mag_rad(rng=rng, num=num, rad_dist=rad_dist)
         upos = rng.uniform(low=pos_bounds[0], high=pos_bounds[1], size=num)
         vpos = rng.uniform(low=pos_bounds[0], high=pos_bounds[1], size=num)
@@ -155,10 +155,11 @@ def mask_stars(*, rng, mbobs, stars, interp_cfg, apodize_cfg, mask_expand_rad):
                 rng=rng,
             )
 
-            msk = (
-                ((mbobs[0][0].bmask & BMASK_GAIA_STAR) != 0)
-                |
-                ((mbobs[0][0].bmask & BMASK_EXPAND_GAIA_STAR) != 0)
-            )
-            if np.all(msk):
-                raise RuntimeError("All pixels are masked by the star!")
+            for i in range(len(mbobs)):
+                msk = (
+                    ((mbobs[i][0].bmask & BMASK_GAIA_STAR) != 0)
+                    |
+                    ((mbobs[i][0].bmask & BMASK_EXPAND_GAIA_STAR) != 0)
+                )
+                if np.all(msk):
+                    raise RuntimeError("All pixels are masked by the star!")

@@ -1,23 +1,19 @@
 # command: run-pizza-cutter-sims --config ref_config.yaml --seed=42 --n-sims=10000 --backend=loky
-
 shear:
-  scene: True
-
+  scene: true
   # these keys are used to build paired sims w/ noise cancellation
   g: 0.02
-  swap12: False
-
+  swap12: false
   # set these to run a sim directly
   g1: 0.02
   g2: 0.00
 
 msk:
-  cosmic_rays: False
+  cosmic_rays: false
     # mean_cosmic_rays: 1
     # min_length: 10
     # max_length: 30
-
-  bad_columns: False
+  bad_columns: false
     # mean_bad_cols: 1
     # widths: [1, 2, 5, 10]
     # p: [0.8, 0.1, 0.075, 0.025]
@@ -26,8 +22,7 @@ msk:
     # gap_prob: [0.30, 0.30, 0, 0]
     # min_gap_frac: [0.1, 0.1, 0, 0]
     # max_gap_frac: [0.3, 0.3, 0, 0]
-
-  streaks: False
+  streaks: false
     # mean_steaks: 1
     # min_width: 2
     # max_width: 10
@@ -52,6 +47,12 @@ psf:
   fwhm_frac_std: 0.0
   shear_std: 0
   shear: [0, 0]
+  color_range:
+    - 0
+    - 3
+  dilation_range:
+    - 1
+    - 1
 
 layout:
   type: hex
@@ -61,44 +62,49 @@ layout:
 
 gal:
   type: exp-super-bright
+  muiltiband: false
+  color_range:
+    - 0
+    - 0
+  multiband: false
+  color_mean: 1
+  color_std: 0
+  color_type: uniform
 
 star:
   dens_factor: 1
-  rad_dist: "uniform"
+  rad_dist: uniform
   interp:
-    skip: True
+    skip: true
     # these control how the interpolation is applied for star holes
     # if fill_isolated_with_noise is True, then any missing pixel with no non-missing
     # pixels within iso_buff will be filled with noise and then used to interpolate
     # the rest of the pixels.
     iso_buff: 1
-    fill_isolated_with_noise: False
+    fill_isolated_with_noise: false
   apodize:
-    skip: True
+    skip: true
     ap_rad: 1
   mask_expand_rad: 16
 
 pizza_cutter:
-  skip: True
+  skip: true
   single_epoch_config:
     # pixel spacing for building various WCS interpolants
     se_wcs_interp_delta: 10
     coadd_wcs_interp_delta: 25
     frac_buffer: 1.42  # buffer around SE image to account for position angle rotations
-
-    reject_outliers: False
-    symmetrize_masking: True
-    copy_masked_edges: False
+    reject_outliers: false
+    symmetrize_masking: true
+    copy_masked_edges: false
     max_masked_fraction: 0.1
     edge_buffer: 8
-    mask_tape_bumps: False
-
+    mask_tape_bumps: false
     # set the interp flags to 0 or 3 or 7 to interp stuff in the mask
     spline_interp_flags:
       - 7
     noise_interp_flags:
       - 0
-
     # always zero
     bad_image_flags:
       - 0
@@ -107,24 +113,9 @@ metadetect:
   metacal:
     psf: fitgauss
     types: [noshear, 1p, 1m, 2p, 2m]
-    use_noise_image: True
-
-  psf:
-    lm_pars:
-      maxfev: 2000
-      ftol: 1.0e-05
-      xtol: 1.0e-05
-    model: gauss
-
-    # we try many times because if this fails we get no psf info
-    # for the entire patch
-    ntry: 10
-
-  sx:
-
+    use_noise_image: true
   weight:
     fwhm: 1.2  # arcsec
-
   meds:
     box_padding: 2
     box_type: iso_radius
@@ -132,8 +123,9 @@ metadetect:
     min_box_size: 32
     rad_fac: 2
     rad_min: 4
-
-  maskflags: 33554432  # 2**25 = BMASK_GAIA_STAR from pizza cutter
-
-  # check for an edge hit
-  bmask_flags: 1610612736  # 2**29 || 2**30
+  nodet_flags: 33554432  # 2**25 is GAIA stars
+  bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS of pizza cutter
+  color_dep_psf:
+    skip: true
+  model: wmom
+  sx:

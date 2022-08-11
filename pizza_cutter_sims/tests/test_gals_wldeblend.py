@@ -38,6 +38,7 @@ def test_init_wldeblend():
     assert data3.ngal_per_arcmin2 > 0
     assert len(data3.cat) > 0
     assert data3.pixel_scale == 0.263
+    assert all(zp > 20 for zp in data1.flux_zeropoints)
 
 
 def test_get_gal_wldeblend():
@@ -62,10 +63,12 @@ def test_get_gal_wldeblend():
         data=data,
     )
 
-    assert repr(gal1) == repr(gal2)
-    assert repr(gal1) != repr(gal3)
+    assert all(isinstance(g, galsim.GSObject) for g in gal1.band_galaxies)
+    assert repr(galsim.Sum(gal1.band_galaxies)) == repr(galsim.Sum(gal2.band_galaxies))
+    assert repr(galsim.Sum(gal1.band_galaxies)) != repr(galsim.Sum(gal3.band_galaxies))
 
-    assert isinstance(gal1, galsim.GSObject)
+    assert gal1.color == gal2.color
+    assert gal1.color != gal3.color
 
 
 def test_get_psf_config_wldeblend():

@@ -1,0 +1,230 @@
+#!/usr/bin/env python
+import tempfile
+import logging
+import sys
+import galsim
+
+import proplot as pplt
+
+import click
+import yaml
+import numpy as np
+
+# used to get the DEBUG_PLOT logging level
+import pizza_cutter  # noqa
+
+from pizza_cutter_sims.pizza_cutter import (
+    run_des_pizza_cutter_coadding_on_sim,
+    make_remapped_se_images_des_pizza_cutter_coadding_on_sim,
+)
+from pizza_cutter_sims.sim import generate_sim
+from pizza_cutter_sims.mdet import make_mbobs_from_coadd_data
+from pizza_cutter_sims.stars import mask_stars
+
+
+@click.command()
+@click.option('--config', type=str, default="config.yaml", help='config file')
+@click.option('--seed', type=int, default=None, help='seed for the RNG', required=True)
+@click.option('--output', type=str, default="viz.png", help='output file')
+def main(config, seed, output):
+    """Vizualize a pizza-cutter sim."""
+
+    logging.basicConfig(stream=sys.stdout)
+    for code in ["ngmix", "metadetect", "pizza_cutter", "pizza_cutter_sims"]:
+        logging.getLogger(code).setLevel(
+            getattr(logging, "INFO"))
+
+    with open(config, "r") as fp:
+        cfg = yaml.safe_load(fp.read())
+
+    rng = np.random.RandomState(seed=seed)
+    seeds = np.random.randint(low=1, high=2**29, size=4)
+    rng = np.random.RandomState(seed=seeds[0])
+    gal_rng = np.random.RandomState(seed=seeds[1])
+    coadd_rng = np.random.RandomState(seed=seeds[2])
+    star_rng = np.random.RandomState(seed=seeds[3])
+
+    data = generate_sim(
+        rng=rng,
+        gal_rng=gal_rng,
+        coadd_config=cfg["coadd"],
+        se_config=cfg["se"],
+        psf_config=cfg["psf"],
+        gal_config=cfg["gal"],
+        star_config=cfg["star"],
+        layout_config=cfg["layout"],
+        msk_config=cfg["msk"],
+        shear_config=cfg["shear"],
+        star_rng=star_rng,
+        skip_coadding=cfg["pizza_cutter"]["skip"],
+    )
+
+    if not cfg["pizza_cutter"]["skip"]:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cdata = run_des_pizza_cutter_coadding_on_sim(
+                rng=coadd_rng,
+                tmpdir=tmpdir,
+                single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
+                img=data["img"],
+                wgt=data["wgt"],
+                msk=data["msk"],
+                bkg=data["bkg"],
+                info=data["info"],
+                n_extra_noise_images=0,
+            )
+            cdata_list = [cdata]
+
+            resampled_data, _ \
+                = make_remapped_se_images_des_pizza_cutter_coadding_on_sim(
+                    rng=coadd_rng,
+                    tmpdir=tmpdir,
+                    single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
+                    img=data["img"],
+                    wgt=data["wgt"],
+                    msk=data["msk"],
+                    bkg=data["bkg"],
+                    info=data["info"],
+                    n_extra_noise_images=0,
+                )
+    else:
+        coadd_cen = (data["img"][0].shape[0]-1)/2
+        coadd_cen_pos = galsim.PositionD(x=coadd_cen, y=coadd_cen)
+        cdata_list = []
+        for i in range(len(data["img"])):
+            psf = data["psfs"][i].getPSF(coadd_cen_pos).drawImage(
+                nx=53, ny=53,
+                wcs=data["coadd_wcs"].jacobian(coadd_cen_pos),
+            ).array
+            cdata_list.append(dict(
+                image=data["img"][i].copy(),
+                bmask=data["msk"][i].copy(),
+                ormask=data["msk"][i].copy(),
+                weight=data["wgt"][i].copy(),
+                mfrac=np.zeros_like(data["img"][i]),
+                noise=coadd_rng.normal(
+                    size=data["img"][i].shape,
+                    scale=np.sqrt(1.0/data["wgt"][i]),
+                ),
+                psf=psf,
+            ))
+
+        cdata = None
+        resampled_data = None
+
+    mbobs = make_mbobs_from_coadd_data(
+        wcs=data["coadd_wcs"],
+        cdata_list=cdata_list,
+    )
+
+    mask_stars(
+        rng=star_rng,
+        mbobs=mbobs,
+        stars=data["stars"],
+        interp_cfg=cfg["star"]["interp"],
+        apodize_cfg=cfg["star"]["apodize"],
+        mask_expand_rad=cfg["star"]["mask_expand_rad"],
+    )
+
+    fig, axs = pplt.subplots(
+        nrows=len(data["img"])+1,
+        ncols=5,
+        share=0,
+    )
+
+    psf_buff = 15
+
+    # se images
+    for i in range(len(data["img"])):
+        axs[i, 0].pcolormesh(
+            np.arcsinh(data["img"][i]*np.sqrt(data["wgt"][i])),
+            cmap="rocket",
+        )
+        axs[i, 0].set_aspect(1)
+
+        if resampled_data is not None:
+            axs[i, 1].pcolormesh(
+                np.arcsinh(
+                    resampled_data[i]["image"]/np.std(resampled_data[i]["noises"][0])
+                ),
+                cmap="rocket",
+            )
+            axs[i, 1].set_aspect(1)
+
+            axs[i, 2].pcolormesh(
+                np.arcsinh(
+                    resampled_data[i]["noises"][0]
+                    / np.std(resampled_data[i]["noises"][0])
+                ),
+                cmap="rocket",
+            )
+            axs[i, 2].set_aspect(1)
+
+            axs[i, 3].pcolormesh(
+                resampled_data[i]["interp_frac"],
+                cmap="rocket_r",
+                vmin=0,
+                vmax=1,
+            )
+            axs[i, 3].set_aspect(1)
+
+            axs[i, 4].pcolormesh(
+                resampled_data[i]["psf"][psf_buff:-psf_buff, psf_buff:-psf_buff],
+                cmap="rocket",
+            )
+            axs[i, 4].set_aspect(1)
+
+    # coadd with star masking
+    if cdata is not None:
+        i = len(data["img"])
+        axs[i, 0].set_frame_on(False)
+        axs[i, 1].pcolormesh(
+                np.arcsinh(
+                    mbobs[0][0].image/np.std(mbobs[0][0].noise)
+                ),
+                cmap="rocket",
+            )
+        axs[i, 1].set_aspect(1)
+        axs[i, 1].set_xlim(0, mbobs[0][0].image.shape[0])
+
+        axs[i, 2].pcolormesh(
+                np.arcsinh(
+                    mbobs[0][0].noise/np.std(mbobs[0][0].noise)
+                ),
+                cmap="rocket",
+            )
+        axs[i, 2].set_aspect(1)
+
+        axs[i, 3].pcolormesh(
+            mbobs[0][0].mfrac,
+            cmap="rocket_r",
+            vmin=0,
+            vmax=1,
+        )
+        axs[i, 3].set_aspect(1)
+
+        axs[i, 4].pcolormesh(
+            cdata["psf"][psf_buff:-psf_buff, psf_buff:-psf_buff],
+            cmap="rocket",
+        )
+        axs[i, 4].set_aspect(1)
+
+    # set axes
+    for ax in np.ravel(axs):
+        ax.format(xlocator='null', ylocator='null')
+
+    fs = 'xx-large'
+    axs[0, 0].set_title("single-epoch img.", fontsize=fs)
+    axs[0, 1].set_title("remapped img.", fontsize=fs)
+    axs[0, 2].set_title("remapped noise img.", fontsize=fs)
+    axs[0, 3].set_title("masked fraction img.", fontsize=fs)
+    axs[0, 4].set_title("remapped PSF img.", fontsize=fs)
+
+    for i in range(len(data["img"])):
+        axs[i, 0].set_ylabel("epoch %d" % (i+1), fontsize=fs)
+    axs[i+1, 0].set_ylabel("coadded data", fontsize=fs)
+
+    fig.savefig(output, dpi=200)
+
+
+if __name__ == '__main__':
+    main()

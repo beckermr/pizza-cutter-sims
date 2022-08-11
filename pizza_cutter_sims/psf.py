@@ -16,11 +16,14 @@ class GalsimPSF(object):
     ----------
     gs_object : galsim.GSObject
         The PSF object to return.
+    color_dep_fun : function or None
+        A function used to change the size of the PSF with color.
     """
-    def __init__(self, gs_object):
+    def __init__(self, gs_object, color_dep_fun=None):
         self.gs_object = gs_object
+        self.color_dep_fun = color_dep_fun
 
-    def getPSF(self, pos):
+    def getPSF(self, pos, color=None):
         """Get a PSF model at a given position.
 
         Parameters
@@ -28,13 +31,19 @@ class GalsimPSF(object):
         pos : galsim.PositionD
             The position at which to compute the PSF. In zero-indexed
             pixel coordinates.
+        color : float or None, optional
+            Used to change the PSF size with color.
 
         Returns
         -------
         psf : galsim.GSObject
             A representation of the PSF as a galism object.
         """
-        return self.gs_object
+        if color is not None and self.color_dep_fun is not None:
+            pdf = self.color_dep_fun(color)
+            return self.gs_object.dilate(pdf)
+        else:
+            return self.gs_object
 
     def __eq__(self, other):
         return self.gs_object == other.gs_object
@@ -85,6 +94,8 @@ def gen_psf(*, rng, psf_config, gal_config, se_image_shape, se_wcs):
 
         gs_config = {}
         gs_config.update(kwargs)
+        gs_config.pop("color_range", None)
+        gs_config.pop("dilation_range", None)
         gs_config["type"] = psf_config["type"].replace("galsim.", "")
         gs_config["fwhm"] = width
         gs_config["shear"] = {
@@ -93,8 +104,24 @@ def gen_psf(*, rng, psf_config, gal_config, se_image_shape, se_wcs):
             "g2": g2,
         }
 
+        def _color_dep_fun(color):
+            if color < psf_config["color_range"][0]:
+                color = psf_config["color_range"][0]
+            if color > psf_config["color_range"][1]:
+                color = psf_config["color_range"][1]
+
+            w = (
+                (color - psf_config["color_range"][0])
+                / (psf_config["color_range"][1] - psf_config["color_range"][0])
+            )
+            return (
+                psf_config["dilation_range"][0] * (1-w)
+                + psf_config["dilation_range"][1] * w
+            )
+
         res = gs_config, GalsimPSF(
-            build_gsobject(config=gs_config, kind='psf')
+            build_gsobject(config=gs_config, kind='psf'),
+            color_dep_fun=_color_dep_fun,
         )
         LOGGER.debug("psf config: %s", res[0])
         LOGGER.debug("galsim psf: %s", res[1].gs_object)
@@ -136,8 +163,25 @@ def gen_psf(*, rng, psf_config, gal_config, se_image_shape, se_wcs):
             "g1": g1,
             "g2": g2,
         }
+
+        def _color_dep_fun(color):
+            if color < psf_config["color_range"][0]:
+                color = psf_config["color_range"][0]
+            if color > psf_config["color_range"][1]:
+                color = psf_config["color_range"][1]
+
+            w = (
+                (color - psf_config["color_range"][0])
+                / (psf_config["color_range"][1] - psf_config["color_range"][0])
+            )
+            return (
+                psf_config["dilation_range"][0] * (1-w)
+                + psf_config["dilation_range"][1] * w
+            )
+
         res = gs_config, GalsimPSF(
-            build_gsobject(config=gs_config, kind='psf')
+            build_gsobject(config=gs_config, kind='psf'),
+            color_dep_fun=_color_dep_fun,
         )
         LOGGER.debug("wldeblend psf config: %s", res[0])
         LOGGER.debug("wldeblend galsim psf: %s", res[1].gs_object)

@@ -79,6 +79,8 @@ psf:
   fwhm_frac_std: 0.1
   shear_std: 0
   shear: [0, 0]
+  color_range: [0, 3]
+  dilation_range: [0.8, 1.1]
 
 layout:
   type: grid
@@ -88,6 +90,11 @@ layout:
 
 gal:
   type: exp-bright
+  multiband: False
+  color_range: [1, 1]
+  color_mean: 1
+  color_std: 1
+  color_type: uniform
 
 star:
   dens_factor: 1
@@ -131,6 +138,9 @@ pizza_cutter:
       - 0
 
 metadetect:
+  color_dep_psf:
+    skip: True
+
   metacal:
     psf: fitgauss
     types: [noshear, 1p, 1m, 2p, 2m]

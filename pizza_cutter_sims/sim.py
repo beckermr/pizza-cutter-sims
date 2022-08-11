@@ -65,7 +65,8 @@ def generate_sim(
         A dictionary with info about the true shear applied.
     skip_coadding : bool
         If True, skip coadding. Requires the SE image to have
-        the same WCS as the coadd image and that there be only 1 SE image.
+        the same WCS as the coadd image and that there be only 1 SE image or you
+        are doing a multiband simulation.
 
     Returns
     -------
@@ -93,8 +94,9 @@ def generate_sim(
             The coadd WCS transform.
     """
     if skip_coadding:
-        assert se_config["n_images"] == 1, (
-            "You must use only one image when skipping coadding!"
+        assert se_config["n_images"] == 1 or gal_config["multiband"], (
+            "You must use only one image or do a multiband galaxy sim "
+            "when skipping coadding!"
         )
 
     info = {}
@@ -202,12 +204,24 @@ def generate_sim(
         -0.5 * coadd_config["central_size"] * coadd_config["scale"],
         0.5 * coadd_config["central_size"] * coadd_config["scale"],
     )
-    gals, upos, vpos, img_noise, img_noise_scale = gen_gals(
+    (
+        gals, upos, vpos,
+        img_noise, img_noise_scale,
+        colors, flux_zeropoints
+    ) = gen_gals(
         rng=gal_rng,
         layout_config=layout_config,
         gal_config=gal_config,
         pos_bounds=pos_bounds,
     )
+    if gal_config["multiband"]:
+        assert all(len(g) == len(src_info) for g in gals), (
+            "If using color dependent PSFs, you need to have as many SE bands as bands "
+            "with colors for the object."
+        )
+        assert skip_coadding, (
+            "If using color dependent PSFs, you must also skip coadding."
+        )
 
     stars = gen_stars(
         rng=star_rng,
@@ -237,14 +251,23 @@ def generate_sim(
 
         image = galsim.ImageD(bnds, dtype=np.float32, init_value=0)
 
-        for gal, u, v in zip(gals, upos, vpos):
+        for gal, u, v, color in zip(
+            gals, upos, vpos, colors
+        ):
+            if gal_config["multiband"]:
+                gal = gal[se_ind]
+            else:
+                gal = galsim.Sum(gal)
+
             if shear_config["scene"]:
                 gal = gal.shift(u, v).shear(g1=g1true, g2=g2true)
             else:
                 gal = gal.shear(g1=g1true, g2=g2true).shift(u, v)
+
             x, y = _wcs.uvToxy(u, v)
+
             galsim.Convolve(
-                gal, _psf.getPSF(galsim.PositionD(x=x, y=y))
+                gal, _psf.getPSF(galsim.PositionD(x=x, y=y), color=color)
             ).drawImage(
                 image=image,
                 add_to_image=True,
@@ -256,7 +279,7 @@ def generate_sim(
         bkg = np.zeros_like(image)
         weight = np.zeros_like(image)
         weight[:, :] = 1.0 / _img_noise / _img_noise
-        image += (rng.normal(size=image.shape) * _img_noise)
+        image += rng.normal(size=image.shape, scale=_img_noise)
         image += bkg
 
         msk = np.zeros(image.shape, dtype=np.int32)
@@ -335,4 +358,5 @@ def generate_sim(
         "stars": stars,
         "psfs": psfs,
         "coadd_wcs": coadd_wcs,
+        "flux_zeropoints": flux_zeropoints,
     }

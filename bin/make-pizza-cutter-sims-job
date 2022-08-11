@@ -23,7 +23,8 @@ srun run-pizza-cutter-sims \\
     --seed={seed} \\
     --n-sims={n_sims} \\
     --backend=loky \\
-    --output=data_{job_name}.fits
+    --output=data_{job_name}.fits \\
+    --n-pack={n_pack}
 """
 
 
@@ -36,6 +37,7 @@ run-pizza-cutter-sims \\
     --n-sims={n_sims} \\
     --backend=loky \\
     --output=data_{job_name}.fits \\
+    --n-pack={n_pack} \\
     &> log_{job_name}.oe
 """
 
@@ -67,54 +69,6 @@ run-pizza-cutter-sims \\
 """
 
 
-PHOENIX_TEMPLATE = """\
-#!/bin/bash
-#SBATCH --job-name={job_name}
-#SBATCH -N 1
-#SBATCH -n 1
-#SBATCH -t {hours}:00:00
-#SBATCH --exclusive
-#SBATCH --output=log_{job_name}_phoenix%j.oe
-
-source ~/.bashrc
-conda activate pizza-cutter-sims
-
-cd {workdir}
-
-run-pizza-cutter-sims \\
-    --config={config} \\
-    --seed={seed} \\
-    --n-sims={n_sims} \\
-    --backend=loky \\
-    --output=data_{job_name}.fits
-"""
-
-
-PHOENIX_ARRAY_TEMPLATE = """\
-#!/bin/bash
-#SBATCH --job-name={job_name}_array{seed}_seed%a
-#SBATCH -N 1
-#SBATCH -n 1
-#SBATCH -t 7-00:00:00
-#SBATCH --exclusive
-#SBATCH --output=log_{job_name}_array{seed}_seed%a_phoenix%j.oe
-#SBATCH --array=1-{n_jobs}%45
-
-source ~/.bashrc
-conda activate pizza-cutter-sims
-seed=$((SLURM_ARRAY_TASK_ID + {seed}))
-
-cd {workdir}
-
-run-pizza-cutter-sims \\
-    --config={config} \\
-    --seed=${{seed}} \\
-    --n-sims={n_sims} \\
-    --backend=loky \\
-    --output=data_{job_name}_seed${{seed}}.fits
-"""
-
-
 @click.command()
 @click.option('--config', type=str, default="config.yaml", help='config file')
 @click.option('--seed', type=int, default=None, help='seed for the RNG')
@@ -137,36 +91,19 @@ def main(config, seed, n_sims, system, hours, n_jobs):
         hours = hours or "12"
         n_sims = n_sims or 100_000
         ext = ".sh"
+        n_pack = min(n_sims, 100)
     elif system == "bash":
         n_sims = n_sims or 1
         ext = ".sh"
-    elif system == "phoenix":
-        hours = hours or "24"
-        n_sims = n_sims or 10_000
-        ext = ".sh"
-    elif system == "phoenix-array":
-        hours = hours or "24"
-        n_sims = n_sims or 10_000
-        ext = ".sh"
-        n_jobs = n_jobs or 100
+        n_pack = 1
     elif system == "bnl":
         n_sims = n_sims or 100_000
         ext = ".sh"
-        if n_sims < 100_000:
-            n_pack = 10
-        elif n_sims < 1_000_000:
-            n_pack = 100
-        else:
-            n_pack = 1000
+        n_pack = min(n_sims, 100)
     elif system == "slac":
         n_sims = n_sims or 100_000
         ext = ".sh"
-        if n_sims < 100_000:
-            n_pack = 10
-        elif n_sims < 1_000_000:
-            n_pack = 100
-        else:
-            n_pack = 100
+        n_pack = min(n_sims, 100)
     else:
         raise RuntimeError("system '%s' not recognized" % system)
 
@@ -175,10 +112,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
     else:
         job_name = os.path.basename(config).replace(".yaml", "")
 
-    if system == "phoenix-array":
-        job_name += "_nsims%d" % n_sims
-    else:
-        job_name += "_nsims%d_seed%d" % (n_sims, seed)
+    job_name += "_nsims%d_seed%d" % (n_sims, seed)
 
     if system == "lcrc":
         cmd = LCRC_TEMPLATE.format(
@@ -187,6 +121,7 @@ def main(config, seed, n_sims, system, hours, n_jobs):
             seed=seed,
             n_sims=n_sims,
             hours=hours,
+            n_pack=n_pack,
         )
     elif system == "bash":
         cmd = BASH_TEMPLATE.format(
@@ -194,27 +129,8 @@ def main(config, seed, n_sims, system, hours, n_jobs):
             config=config,
             seed=seed,
             n_sims=n_sims,
+            n_pack=n_pack,
         )
-    elif system == "phoenix":
-        cmd = PHOENIX_TEMPLATE.format(
-            job_name=job_name,
-            config=config,
-            seed=seed,
-            n_sims=n_sims,
-            hours=hours,
-            workdir=os.path.abspath(os.path.dirname(config)),
-        )
-    elif system == "phoenix-array":
-        cmd = PHOENIX_ARRAY_TEMPLATE.format(
-            job_name=job_name,
-            config=config,
-            seed=seed,
-            n_sims=n_sims,
-            hours=hours,
-            n_jobs=n_jobs,
-            workdir=os.path.abspath(os.path.dirname(config)),
-        )
-        job_name += "_array%d" % seed
     elif system == "bnl":
         cmd = BNL_TEMPLATE.format(
             job_name=job_name,
@@ -236,6 +152,8 @@ def main(config, seed, n_sims, system, hours, n_jobs):
 
     with open("./run_" + job_name + "_" + system + ext, "w") as fp:
         fp.write(cmd)
+
+    os.system("chmod u+x " + "./run_" + job_name + "_" + system + ext)
 
     print("run_" + job_name + "_" + system + ext)
 

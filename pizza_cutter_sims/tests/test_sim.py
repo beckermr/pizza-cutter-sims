@@ -27,7 +27,7 @@ def _run_sim(cfg, rng_seed, gal_rng_seed, star_rng_seed):
         shear_config=cfg["shear"],
         star_config=cfg["star"],
         star_rng=star_rng,
-        skip_coadding=False,
+        skip_coadding=cfg["pizza_cutter"]["skip"],
     )
 
 
@@ -53,5 +53,36 @@ def test_generate_sim_wcs_changes(sim_config, key, val):
     sconfig = copy.deepcopy(sim_config)
     sconfig["se"]["wcs_config"][key] = val
     sdata2 = _run_sim(sconfig, 42, 43, 45)
+
+    assert not recursive_equal(sdata1, sdata2)
+
+
+def test_generate_sim_wldeblend(sim_config):
+    cfg = copy.deepcopy(sim_config)
+    cfg["gal"] = {
+        "type": "lsst-riz",
+        "multiband": False,
+    }
+    sdata1 = _run_sim(cfg, 42, 43, 45)
+    sdata2 = _run_sim(cfg, 42, 43, 45)
+    assert recursive_equal(sdata1, sdata2)
+
+
+def test_generate_sim_wldeblend_multiband(sim_config):
+    cfg = copy.deepcopy(sim_config)
+    cfg["gal"] = {
+        "type": "lsst-riz",
+        "multiband": True,
+    }
+    cfg["se"]["n_images"] = 3
+    cfg["pizza_cutter"]["skip"] = True
+    cfg["psf"]["color_range"] = [0, 3]
+    cfg["psf"]["dilation_range"] = [0.8, 1.1]
+    sdata1 = _run_sim(cfg, 42, 43, 45)
+    sdata2 = _run_sim(cfg, 42, 43, 45)
+    assert recursive_equal(sdata1, sdata2)
+
+    cfg["psf"]["dilation_range"] = [1, 1]
+    sdata2 = _run_sim(cfg, 42, 43, 45)
 
     assert not recursive_equal(sdata1, sdata2)

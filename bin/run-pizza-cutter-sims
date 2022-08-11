@@ -14,6 +14,8 @@ from esutil.pbar import PBar
 # used to get the DEBUG_PLOT logging level
 import pizza_cutter  # noqa
 
+from pizza_cutter_sims.main import run_end2end_pair_with_shear
+from pizza_cutter_sims.run_utils import measure_shear_metadetect
 from pizza_cutter_sims.run_utils import (
     estimate_m_and_c,
     backend_pool,
@@ -36,6 +38,8 @@ def _get_dtype():
     for key in ikeys:
         dtype += [(key, "i4")]
 
+    dtype += [("weight", "f8")]
+
     return dtype
 
 
@@ -49,78 +53,95 @@ def _make_res_arrays(n_sims):
     return np.zeros(n, dtype=dt), np.zeros(n, dtype=dt)
 
 
-def _run_sets_of_pairs(all_args):
-    def _run_pair(args):
-        import numpy as np
-        from pizza_cutter_sims.main import run_end2end_pair_with_shear
-        from pizza_cutter_sims.run_utils import measure_shear_metadetect
+def _is_none(res):
+    if res is None:
+        return True
 
-        def _is_none(res):
-            if res is None:
-                return True
+    if any(res[k] is None for k in res):
+        return True
 
-            if any(res[k] is None for k in res):
-                return True
+    return False
 
-            return False
 
-        try:
-            kwargs, num = args
+def _run_pair(args):
+    try:
+        kwargs, num = args
 
-            pres, mres = run_end2end_pair_with_shear(**kwargs)
+        pres, mres = run_end2end_pair_with_shear(**kwargs)
 
-            if _is_none(pres) or _is_none(mres):
-                return None, None
-
-            dtype = _get_dtype()
-
-            datap = []
-            datam = []
-            for ormask_cut in ORMASK_CUTS:
-                for s2n_cut in S2N_CUTS:
-                    pgm = measure_shear_metadetect(
-                        pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                        ormask_cut=ormask_cut, mfrac_cut=None,
-                    )
-                    mgm = measure_shear_metadetect(
-                        mres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                        ormask_cut=ormask_cut, mfrac_cut=None,
-                    )
-                    if pgm is None or mgm is None:
-                        continue
-
-                    datap.append(
-                        tuple(list(pgm) + [s2n_cut, 0 if ormask_cut else 1, -1]))
-                    datam.append(
-                        tuple(list(mgm) + [s2n_cut, 0 if ormask_cut else 1, -1]))
-
-            for mfrac_cut in MFRAC_CUTS:
-                for s2n_cut in S2N_CUTS:
-                    pgm = measure_shear_metadetect(
-                        pres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                        ormask_cut=False, mfrac_cut=mfrac_cut/100,
-                    )
-                    mgm = measure_shear_metadetect(
-                        mres, s2n_cut=s2n_cut, t_ratio_cut=1.2,
-                        ormask_cut=False, mfrac_cut=mfrac_cut/100,
-                    )
-                    if pgm is None or mgm is None:
-                        continue
-
-                    datap.append(tuple(list(pgm) + [s2n_cut, -1, mfrac_cut]))
-                    datam.append(tuple(list(mgm) + [s2n_cut, -1, mfrac_cut]))
-
-            return np.array(datap, dtype=dtype), np.array(datam, dtype=dtype)
-        except KeyError:
-            raise
-        except TypeError:
-            raise
-        except Exception as e:
-            import traceback
-            print("sim failed: %s\n%s" % (repr(e), traceback.format_exc()), flush=True)
+        if _is_none(pres) or _is_none(mres):
             return None, None
 
-    return [_run_pair(arg) for arg in all_args]
+    except KeyError:
+        raise
+    except TypeError:
+        raise
+    except Exception as e:
+        import traceback
+        print("sim failed: %s\n%s" % (repr(e), traceback.format_exc()), flush=True)
+        return None, None
+
+    return pres, mres
+
+
+def _run_sets_of_pairs(all_args):
+    model = all_args[0][0]["cfg"]["metadetect"]["model"]
+    if model == "wmom":
+        tcut = 1.2
+    else:
+        tcut = 0.5
+
+    all_res = [_run_pair(arg) for arg in all_args]
+    all_res = [r for r in all_res if r[0] is not None and r[1] is not None]
+    if len(all_res) > 0:
+        wgt = len(all_res)
+
+        pres = {}
+        mres = {}
+        for key in ["1p", "1m", "2p", "2m", "noshear"]:
+            pres[key] = np.hstack([r[0][key] for r in all_res])
+            mres[key] = np.hstack([r[1][key] for r in all_res])
+
+        dtype = _get_dtype()
+        datap = []
+        datam = []
+        for ormask_cut in ORMASK_CUTS:
+            for s2n_cut in S2N_CUTS:
+                pgm = measure_shear_metadetect(
+                    pres, s2n_cut=s2n_cut, t_ratio_cut=tcut,
+                    ormask_cut=ormask_cut, mfrac_cut=None, model=model,
+                )
+                mgm = measure_shear_metadetect(
+                    mres, s2n_cut=s2n_cut, t_ratio_cut=tcut,
+                    ormask_cut=ormask_cut, mfrac_cut=None, model=model,
+                )
+                if pgm is None or mgm is None:
+                    continue
+
+                datap.append(
+                    tuple(list(pgm) + [s2n_cut, 0 if ormask_cut else 1, -1, wgt]))
+                datam.append(
+                    tuple(list(mgm) + [s2n_cut, 0 if ormask_cut else 1, -1, wgt]))
+
+        for mfrac_cut in MFRAC_CUTS:
+            for s2n_cut in S2N_CUTS:
+                pgm = measure_shear_metadetect(
+                    pres, s2n_cut=s2n_cut, t_ratio_cut=tcut,
+                    ormask_cut=False, mfrac_cut=mfrac_cut/100, model=model,
+                )
+                mgm = measure_shear_metadetect(
+                    mres, s2n_cut=s2n_cut, t_ratio_cut=tcut,
+                    ormask_cut=False, mfrac_cut=mfrac_cut/100, model=model,
+                )
+                if pgm is None or mgm is None:
+                    continue
+
+                datap.append(tuple(list(pgm) + [s2n_cut, -1, mfrac_cut, wgt]))
+                datam.append(tuple(list(mgm) + [s2n_cut, -1, mfrac_cut, wgt]))
+
+        return [(np.array(datap, dtype=dtype), np.array(datam, dtype=dtype))]
+    else:
+        return [(None, None)]
 
 
 def _measure_m_c(pdata, mdata, n_curr, outputs, cfg):
@@ -163,14 +184,15 @@ def _measure_m_c(pdata, mdata, n_curr, outputs, cfg):
             _mdata,
             cfg["shear"]["g"],
             swap12=cfg["shear"]["swap12"],
-            jackknife=200 if len(_pdata) >= 200 else None,
+            jackknife=min(200, len(_pdata)//2) if len(_pdata) >= 200 else None,
+            weights=_pdata["weight"],
         )
 
         msg = """\
 # of sims: {n_sims}
 noise cancel m   : {m: f} +/- {msd: f} [1e-3, 3-sigma]
 noise cancel c   : {c: f} +/- {csd: f} [1e-5, 3-sigma]""".format(
-                n_sims=len(_pdata),
+                n_sims=np.sum(_pdata["weight"]),
                 m=m/1e-3,
                 msd=msd/1e-3 * 3,
                 c=c/1e-5,
@@ -309,7 +331,10 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         if backend == "condor":
             n_workers = min(10000, n_chunks)
         elif backend == "lsf":
-            n_workers = min(3000, n_chunks)
+            if not cfg["metadetect"]["color_dep_psf"]["skip"]:
+                n_workers = min(750, n_chunks)
+            else:
+                n_workers = min(1000, n_chunks)
         else:
             n_workers = min(n_report_chunks, get_n_workers(backend))
 
@@ -323,7 +348,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         flush=True,
     )
 
-    pdata, mdata = _make_res_arrays(n_sims)
+    pdata, mdata = _make_res_arrays(n_chunks)
     n_curr = 0
 
     if backend == "local":
@@ -362,10 +387,16 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                             fits.write(pdata[:n_curr], extname='plus')
                             fits.write(mdata[:n_curr], extname='minus')
     else:
+        if backend == "lsf" and not cfg["metadetect"]["color_dep_psf"]["skip"]:
+            pkwargs = {"mem": 6}
+        else:
+            pkwargs = {}
+
         with backend_pool(
             backend,
             n_workers=n_workers,
-            verbose=100,
+            verbose=10,
+            **pkwargs,
         ) as pool:
             if pool is not None and rank == 0:
                 _gen = _gen_chunks(
@@ -382,13 +413,15 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
 
                 outputs = []
                 chunk = 0
-                for res in PBar(
+                for pr in PBar(
                     pool(_gen()),
                     total=n_chunks,
                     desc="running jobs",
                 ):
-                    if isinstance(res, Exception):
-                        print(f"failure: {repr(res)}", flush=True)
+                    try:
+                        res = pr.result()
+                    except Exception as e:
+                        print(f"failure: {repr(e)}", flush=True)
                     else:
                         outputs += res
 

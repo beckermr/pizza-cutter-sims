@@ -83,7 +83,7 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cuts):
                 else:
                     pmsk = pmsk & (pdata["mfrac_cut"] == -1)
 
-                n_sims_msk = np.sum(pmsk)
+                n_sims_msk = np.sum(pdata["weight"][pmsk])
                 if n_sims_msk <= 0:
                     raise RuntimeError("Cuts did not keep any sims!")
 
@@ -93,6 +93,7 @@ def main(config, files, s2n_cuts, jackknife, ormask_cut, mfrac_cuts):
                 cfg["shear"]["g"],
                 swap12=cfg["shear"]["swap12"],
                 jackknife=jackknife,
+                weights=pdata["weight"][pmsk],
             )
 
             print("""\

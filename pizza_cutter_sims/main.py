@@ -4,7 +4,11 @@ import tempfile
 import numpy as np
 import galsim
 
-from pizza_cutter_sims.mdet import run_metadetect, make_mbobs_from_coadd_data
+from pizza_cutter_sims.mdet import (
+    run_metadetect,
+    make_mbobs_from_coadd_data,
+    gen_metadetect_color_dep,
+)
 from pizza_cutter_sims.pizza_cutter import run_des_pizza_cutter_coadding_on_sim
 from pizza_cutter_sims.sim import generate_sim
 from pizza_cutter_sims.stars import mask_stars
@@ -156,7 +160,7 @@ def run_end2end_with_shear(
     coadd_rng = np.random.RandomState(seed=coadd_rng_seed)
     if not cfg["pizza_cutter"]["skip"]:
         with tempfile.TemporaryDirectory() as tmpdir:
-            cdata = run_des_pizza_cutter_coadding_on_sim(
+            cdata_list = [run_des_pizza_cutter_coadding_on_sim(
                 rng=coadd_rng,
                 tmpdir=tmpdir,
                 single_epoch_config=cfg["pizza_cutter"]["single_epoch_config"],
@@ -166,31 +170,33 @@ def run_end2end_with_shear(
                 bkg=sdata["bkg"],
                 info=sdata["info"],
                 n_extra_noise_images=0,
-            )
+            )]
     else:
         LOGGER.info("skipping coadding w/ pizza-cutter")
         coadd_cen = (sdata["img"][0].shape[0]-1)/2
         coadd_cen_pos = galsim.PositionD(x=coadd_cen, y=coadd_cen)
-        psf = sdata["psfs"][0].getPSF(coadd_cen_pos).drawImage(
-            nx=53, ny=53,
-            wcs=sdata["coadd_wcs"].jacobian(coadd_cen_pos),
-        ).array
-        cdata = dict(
-            image=sdata["img"][0].copy(),
-            bmask=sdata["msk"][0].copy(),
-            ormask=sdata["msk"][0].copy(),
-            weight=sdata["wgt"][0].copy(),
-            mfrac=np.zeros_like(sdata["img"][0]),
-            noise=coadd_rng.normal(
-                size=sdata["img"][0].shape,
-                scale=np.sqrt(1.0/sdata["wgt"][0]),
-            ),
-            psf=psf,
-        )
+        cdata_list = []
+        for i in range(len(sdata["img"])):
+            psf = sdata["psfs"][i].getPSF(coadd_cen_pos).drawImage(
+                nx=53, ny=53,
+                wcs=sdata["coadd_wcs"].jacobian(coadd_cen_pos),
+            ).array
+            cdata_list.append(dict(
+                image=sdata["img"][i].copy(),
+                bmask=sdata["msk"][i].copy(),
+                ormask=sdata["msk"][i].copy(),
+                weight=sdata["wgt"][i].copy(),
+                mfrac=np.zeros_like(sdata["img"][i]),
+                noise=coadd_rng.normal(
+                    size=sdata["img"][i].shape,
+                    scale=np.sqrt(1.0/sdata["wgt"][i]),
+                ),
+                psf=psf,
+            ))
 
     mbobs = make_mbobs_from_coadd_data(
         wcs=sdata["coadd_wcs"],
-        cdata=cdata,
+        cdata_list=cdata_list,
     )
 
     mask_stars(
@@ -203,8 +209,27 @@ def run_end2end_with_shear(
     )
 
     mdet_rng = np.random.RandomState(seed=mdet_rng_seed)
+
+    if not cfg["metadetect"]["color_dep_psf"]["skip"]:
+        coadd_cen = (sdata["img"][0].shape[0]-1)/2
+        coadd_cen_pos = galsim.PositionD(x=coadd_cen, y=coadd_cen)
+        color_key_func, color_dep_mbobs = gen_metadetect_color_dep(
+            psfs=sdata["psfs"],
+            coadd_wcs=sdata["coadd_wcs"],
+            mbobs=mbobs,
+            coadd_cen_pos=coadd_cen_pos,
+            color_range=cfg["metadetect"]["color_dep_psf"]["color_range"],
+            ncolors=cfg["metadetect"]["color_dep_psf"]["ncolors"],
+            flux_zeropoints=sdata["flux_zeropoints"],
+        )
+    else:
+        color_key_func = None
+        color_dep_mbobs = None
+
     return run_metadetect(
         rng=mdet_rng,
         config=cfg["metadetect"],
         mbobs=mbobs,
+        color_key_func=color_key_func,
+        color_dep_mbobs=color_dep_mbobs,
     )

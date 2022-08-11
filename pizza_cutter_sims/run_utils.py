@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import tqdm
 
-from mattspy import SLACLSFParallel, LokyParallel
+from mattspy import SLACLSFParallel, LokyParallel, BNLCondorParallel
 
 GLOBAL_START_TIME = time.time()
 
@@ -62,13 +62,13 @@ def get_n_workers(backend, n_workers=None):
     elif backend == "condor":
         return 10000
     elif backend == "lsf":
-        return 3000
+        return 1000
     else:
         raise RuntimeError("backend '%s' not recognized!" % backend)
 
 
 @contextlib.contextmanager
-def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
+def backend_pool(backend, n_workers=None, verbose=0, **kwargs):
     """Context manager to build a schwimmbad `pool` object with the `map` method.
 
     Parameters
@@ -79,6 +79,8 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
         The number of workers to use. Defaults to 1 for the 'sequential' backend,
         the cpu count for the 'loky' backend, and the size of the default global
         communicator for the 'mpi' backend.
+    verbose : int
+        Higher values print/save more output.
     **kwargs : extra keyword arguments
         Passed to the backend.
     """
@@ -93,6 +95,11 @@ def backend_pool(backend, n_workers=None, verbose=100, **kwargs):
 
     if backend == "lsf":
         with SLACLSFParallel(
+            verbose=verbose, n_jobs=n_workers, **kwargs
+        ) as pool:
+            yield pool
+    elif backend == "condor":
+        with BNLCondorParallel(
             verbose=verbose, n_jobs=n_workers, **kwargs
         ) as pool:
             yield pool
@@ -180,25 +187,37 @@ def _run_jackknife(x1, y1, x2, y2, wgts, jackknife):
 
         loc += n_per
 
-    mbar = np.mean(y1[:n] * wgts[:n]) / np.mean(x1[:n] * wgts[:n]) - 1
-    cbar = np.mean(y2[:n] * wgts[:n]) / np.mean(x2[:n] * wgts[:n])
-    mvals = np.zeros(jackknife)
-    cvals = np.zeros(jackknife)
+    # weighted jackknife from Busing et al. 1999, Statistics and Computing, 9, 3-8
+    mhat = np.mean(y1[:n] * wgts[:n]) / np.mean(x1[:n] * wgts[:n]) - 1
+    chat = np.mean(y2[:n] * wgts[:n]) / np.mean(x2[:n] * wgts[:n])
+    mhatj = np.zeros(jackknife)
+    chatj = np.zeros(jackknife)
     for i in range(jackknife):
         _wgts = np.delete(wgtsj, i)
-        mvals[i] = (
+        mhatj[i] = (
             np.sum(np.delete(y1j, i) * _wgts) / np.sum(np.delete(x1j, i) * _wgts)
             - 1
         )
-        cvals[i] = (
+        chatj[i] = (
             np.sum(np.delete(y2j, i) * _wgts) / np.sum(np.delete(x2j, i) * _wgts)
         )
 
+    tot_wgt = np.sum(wgtsj)
+    mbar = jackknife * mhat - np.sum((1.0 - wgtsj/tot_wgt) * mhatj)
+    cbar = jackknife * chat - np.sum((1.0 - wgtsj/tot_wgt) * chatj)
+
+    hj = tot_wgt / wgtsj
+    mtildej = hj * mhat - (hj - 1) * mhatj
+    ctildej = hj * chat - (hj - 1) * chatj
+
+    mvarj = np.sum((mtildej - mbar)**2 / (hj-1)) / jackknife
+    cvarj = np.sum((ctildej - cbar)**2 / (hj-1)) / jackknife
+
     return (
         mbar,
-        np.sqrt((n - n_per) / n * np.sum((mvals-mbar)**2)),
+        np.sqrt(mvarj),
         cbar,
-        np.sqrt((n - n_per) / n * np.sum((cvals-cbar)**2)),
+        np.sqrt(cvarj),
     )
 
 
@@ -337,7 +356,9 @@ def estimate_m_and_c(
             return _run_boostrap(x1, y1, x2, y2, wgts, silent)
 
 
-def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut):
+def measure_shear_metadetect(
+    res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut, model
+):
     """Measure the shear parameters for metadetect.
 
     NOTE: Returns None if nothing can be measured.
@@ -355,6 +376,8 @@ def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut
     mfrac_cut : float or None
         If not None, cut objects with a masked fraction higher than this
         value.
+    model : str
+        The model kind (e.g. wmom).
 
     Returns
     -------
@@ -374,8 +397,8 @@ def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut
     def _mask(data):
         _cut_msk = (
             (data['flags'] == 0)
-            & (data['wmom_s2n'] > s2n_cut)
-            & (data['wmom_T_ratio'] > t_ratio_cut)
+            & (data[model + '_s2n'] > s2n_cut)
+            & (data[model + '_T_ratio'] > t_ratio_cut)
         )
         if ormask_cut:
             _cut_msk = _cut_msk & (data['ormask'] == 0)
@@ -387,32 +410,32 @@ def measure_shear_metadetect(res, *, s2n_cut, t_ratio_cut, ormask_cut, mfrac_cut
     q = _mask(op)
     if not np.any(q):
         return None
-    g1p = op['wmom_g'][q, 0]
+    g1p = op[model + '_g'][q, 0]
 
     om = res['1m']
     q = _mask(om)
     if not np.any(q):
         return None
-    g1m = om['wmom_g'][q, 0]
+    g1m = om[model + '_g'][q, 0]
 
     o = res['noshear']
     q = _mask(o)
     if not np.any(q):
         return None
-    g1 = o['wmom_g'][q, 0]
-    g2 = o['wmom_g'][q, 1]
+    g1 = o[model + '_g'][q, 0]
+    g2 = o[model + '_g'][q, 1]
 
     op = res['2p']
     q = _mask(op)
     if not np.any(q):
         return None
-    g2p = op['wmom_g'][q, 1]
+    g2p = op[model + '_g'][q, 1]
 
     om = res['2m']
     q = _mask(om)
     if not np.any(q):
         return None
-    g2m = om['wmom_g'][q, 1]
+    g2m = om[model + '_g'][q, 1]
 
     return (
         np.mean(g1p), np.mean(g1m), np.mean(g1),
