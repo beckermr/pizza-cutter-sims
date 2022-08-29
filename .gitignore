@@ -132,3 +132,7 @@ dmypy.json
 *.png
 runs/**/lsf-yield
 runs/**/condor-yield
+runs/**/old_data
+*.fits
+runs/**/*.sh
+runs/**/*.oe
