@@ -1,4 +1,5 @@
 import copy
+import logging
 import numpy as np
 
 import ngmix
@@ -7,6 +8,8 @@ from pizza_cutter_sims.stars import (
     BMASK_GAIA_STAR,
     BMASK_EXPAND_GAIA_STAR,
 )
+
+LOGGER = logging.getLogger(__name__)
 
 
 def make_mbobs_from_coadd_data(
@@ -246,6 +249,7 @@ def run_metadetect(
         new_mdet_res = {}
         for k, v in mdet_res.items():
             if v is not None:
+                LOGGER.debug("detected %d objects for shear %s", len(v), k)
                 msk = (
                     ((v['bmask'] & BMASK_EXPAND_GAIA_STAR) == 0)
                     & ((v['bmask'] & BMASK_GAIA_STAR) == 0)

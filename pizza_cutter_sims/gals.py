@@ -292,4 +292,6 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
     else:
         raise ValueError("galaxy type '%s' not supported!" % gal_config["type"])
 
+    LOGGER.debug("simulated %d galaxies for galaxy type %s", n_gals, gal_config["type"])
+
     return gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints
