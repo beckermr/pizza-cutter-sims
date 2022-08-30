@@ -95,7 +95,7 @@ def backend_pool(backend, n_workers=None, verbose=0, **kwargs):
 
     if backend == "lsf":
         with SLACLSFParallel(
-            verbose=100, n_jobs=n_workers, **kwargs
+            verbose=verbose, n_jobs=n_workers, **kwargs
         ) as pool:
             yield pool
     elif backend == "condor":
