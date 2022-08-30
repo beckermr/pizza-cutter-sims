@@ -46,7 +46,6 @@ layout:
 
 gal:
   type: lsst-riz
-  muiltiband: false
   color_range:
     - 0
     - 0
