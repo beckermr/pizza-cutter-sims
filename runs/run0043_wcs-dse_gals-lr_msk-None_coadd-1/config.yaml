@@ -13,7 +13,7 @@ msk:
   streaks: false
 
 coadd:
-  central_size: 300
+  central_size: 299
   buffer_size: 25
   scale: 0.2
 
