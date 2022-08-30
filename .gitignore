@@ -136,3 +136,9 @@ runs/**/old_data
 *.fits
 runs/**/*.sh
 runs/**/*.oe
+
+runs-color/**/lsf-yield
+runs-color/**/condor-yield
+runs-color/**/old_data
+runs-color/**/*.sh
+runs-color/**/*.oe
