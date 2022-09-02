@@ -315,7 +315,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         star_rng_seeds = rng.randint(low=1, high=2**29, size=n_sims)
 
     if n_report is None:
-        n_report = max(n_sims // 100, 100)
+        n_report = max(n_sims // 200, 200)
 
     n_chunks = n_sims // n_pack
     if n_chunks * n_pack < n_sims:
