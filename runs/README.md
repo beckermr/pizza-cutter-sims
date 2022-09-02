@@ -82,3 +82,14 @@ psf key:
 
 ### run0027
   - when done with mfrac and ormak/bmask at the sheared locations had 1.5 +/ 0.5 10^-3 bias
+
+### LSST pixel scale runs
+
+  run0042_wcs-dse_gals-lr_msk-rcste16_coadd-1_stars-ag1
+  run0043_wcs-dse_gals-lr_msk-None_coadd-1
+  run0045_wcs-None_gals-lr_msk-None_coadd-None
+  run0046_wcs-None_gals-Bh_msk-None_coadd-None
+  run0047_wcs-None_gals-Br_msk-None_coadd-None
+  run0048_wcs-None_gals-fr_msk-None_coadd-None
+  run0049_wcs-None_gals-Br_msk-None_coadd-None_psf-k
+  run0050_wcs-None_gals-fr_msk-None_coadd-None_psf-k
