@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 import copy
-import os
+import subprocess
 import logging
 import joblib
 
@@ -384,7 +384,10 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                     )
                     outputs = []
                     if output is not None and n_curr > 0:
-                        os.system(f"mv {output} {output}.bak", shell=True)
+                        subprocess.run(
+                            f"mv {output} {output}.bak",
+                            shell=True,
+                        )
                         with fitsio.FITS(output, 'rw', clobber=True) as fits:
                             fits.write(pdata[:n_curr], extname='plus')
                             fits.write(mdata[:n_curr], extname='minus')
@@ -441,7 +444,10 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
                         )
                         outputs = []
                         if output is not None and n_curr > 0:
-                            os.system(f"mv {output} {output}.bak", shell=True)
+                            subprocess.run(
+                                f"mv {output} {output}.bak",
+                                shell=True,
+                            )
                             with fitsio.FITS(output, 'rw', clobber=True) as fits:
                                 fits.write(pdata[:n_curr], extname='plus')
                                 fits.write(mdata[:n_curr], extname='minus')
@@ -453,7 +459,10 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
             pdata, mdata, n_curr, outputs, cfg
         )
         if output is not None and n_curr > 0:
-            os.system(f"mv {output} {output}.bak", shell=True)
+            subprocess.run(
+                f"mv {output} {output}.bak",
+                shell=True,
+            )
             with fitsio.FITS(output, 'rw', clobber=True) as fits:
                 fits.write(pdata[:n_curr], extname='plus')
                 fits.write(mdata[:n_curr], extname='minus')
