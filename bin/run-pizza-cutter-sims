@@ -89,6 +89,8 @@ def _run_sets_of_pairs(all_args):
     model = all_args[0][0]["cfg"]["metadetect"]["model"]
     if model == "wmom":
         tcut = 1.2
+    elif model in ["am", "admom"]:
+        tcut = 1.5
     else:
         tcut = 0.5
 
