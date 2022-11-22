@@ -91,6 +91,7 @@ def _run_sets_of_pairs(all_args):
         tcut = 1.2
     elif model in ["am", "admom"]:
         tcut = 1.5
+        model = "am"
     else:
         tcut = 0.5
 
