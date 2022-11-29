@@ -1,5 +1,6 @@
 import logging
 import os
+import copy
 import functools
 import collections
 import numpy as np
@@ -15,6 +16,7 @@ WLDeblendData = collections.namedtuple(
         'cat', 'survey_name', 'bands', 'surveys',
         'builders', 'total_sky', 'noise', 'ngal_per_arcmin2',
         'psf_fwhm', 'pixel_scale', 'flux_zeropoints',
+        'flux_factor', 'round',
     ],
 )
 
@@ -50,10 +52,21 @@ def init_wldeblend(*, survey_bands):
         Namedtuple with data for making galaxies via the weak lesning
         deblending package.
     """
-    survey_name, bands = survey_bands.split("-")
+    survey_name, bands = survey_bands.split("-")[0:2]
     bands = [b for b in bands]
+    flux_factor = 1.0
+    round_gal = False
+    if len(survey_bands.split("-")) > 2:
+        rest = survey_bands.split("-")[2:]
+        for v in rest:
+            if v.startswith("flux"):
+                flux_factor = float(v[4:])
+            elif v.startswith("round"):
+                round_gal = True
     LOGGER.info('simulating survey: %s', survey_name)
     LOGGER.info('simulating bands: %s', bands)
+    LOGGER.info('simulating flux factor: %f', flux_factor)
+    LOGGER.info('simulating round: %s', str(round_gal))
 
     if survey_name not in ["des", "lsst"]:
         raise RuntimeError(
@@ -143,7 +156,7 @@ def init_wldeblend(*, survey_bands):
     return WLDeblendData(
         wldeblend_cat, survey_name, bands, surveys,
         builders, total_sky, noise, ngal_per_arcmin2,
-        psf_fwhm, scale, flux_zeropoints,
+        psf_fwhm, scale, flux_zeropoints, flux_factor, round_gal,
     )
 
 
@@ -170,15 +183,28 @@ def get_gal_wldeblend(*, rng, data):
     data.cat['pa_disk'][rind] = pa_angle
     data.cat['pa_bulge'][rind] = pa_angle
 
+    entry = {
+        k:  copy.deepcopy(data.cat[k][rind])
+        for k in data.cat.dtype.names
+    }
+
+    if data.round:
+        hlr_d = np.sqrt(entry['a_d'] * entry['b_d'])
+        entry["a_d"] = hlr_d
+        entry["b_d"] = hlr_d
+        hlr_b = np.sqrt(entry['a_b'] * entry['b_b'])
+        entry["a_b"] = hlr_b
+        entry["b_b"] = hlr_b
+
     band_objects = [
         data.builders[band].from_catalog(
-            data.cat[rind],
+            entry,
             0,
             0,
             data.surveys[band].filter_band
         ).model.rotate(
             angle * galsim.degrees
-        )
+        ) * data.flux_factor
         for band in range(len(data.builders))
     ]
     if len(band_objects) > 1:
