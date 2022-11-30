@@ -140,9 +140,9 @@ def init_wldeblend(*, survey_bands):
     noise = np.sqrt(total_sky)
 
     if survey_name == "lsst":
-        psf_fwhm = 0.85
+        psf_fwhm = 0.7
     elif survey_name == "des":
-        psf_fwhm = 1.1
+        psf_fwhm = 0.9
 
     # when we sample from the catalog, we need to pull the right number
     # of objects. Since the default catalog is one square degree
