@@ -67,7 +67,7 @@ def run_des_pizza_cutter_coadding_on_sim(
         "ra": 0.0,
         "dec": 0.0,
         "position_offset": info["position_offset"],
-        "psf_box_size": 51,
+        "psf_box_size": 101,
         "box_size": info["image_shape"][0],
         "orig_start_col": 0,
         "orig_start_row": 0,

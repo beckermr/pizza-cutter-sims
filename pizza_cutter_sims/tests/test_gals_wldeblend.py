@@ -75,9 +75,11 @@ def test_get_psf_config_wldeblend():
     data = init_wldeblend(
         survey_bands="lsst-riz",
     )
-    assert get_psf_config_wldeblend(data=data) == {"type": "Kolmogorov", "fwhm": 0.85}
+    assert get_psf_config_wldeblend(data=data) == {
+        "type": "Moffat", "fwhm": 0.7, "beta": 2.5}
 
     data = init_wldeblend(
         survey_bands="des-ri",
     )
-    assert get_psf_config_wldeblend(data=data) == {"type": "Kolmogorov", "fwhm": 1.1}
+    assert get_psf_config_wldeblend(data=data) == {
+        "type": "Moffat", "fwhm": 0.9, "beta": 2.5}

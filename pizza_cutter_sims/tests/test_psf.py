@@ -113,11 +113,12 @@ def test_psf_gen_psf_wldeblend_rng():
     fwhm = 0.85 * (1 + 0.1 * rng.normal())
 
     assert gs_config == {
-        "type": "Kolmogorov",
+        "type": "Moffat",
         "fwhm": fwhm,
+        "beta": 2.5,
         "shear": {"type": "G1G2", "g1": g1, "g2": g2},
     }
-    assert "Kolmogorov" in repr(psf.gs_object), repr(psf.gs_object)
+    assert "Moffat" in repr(psf.gs_object), repr(psf.gs_object)
 
     rng = np.random.RandomState(seed=42)
     psf_config = {

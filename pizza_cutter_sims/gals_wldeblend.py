@@ -237,6 +237,7 @@ def get_psf_config_wldeblend(*, data):
         A dictionary with the PSF info.
     """
     gs_config = {}
-    gs_config["type"] = "Kolmogorov"
+    gs_config["type"] = "Moffat"
+    gs_config["beta"] = 2.5
     gs_config["fwhm"] = data.psf_fwhm
     return gs_config
