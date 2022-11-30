@@ -98,10 +98,9 @@ metadetect:
     min_box_size: 32
     rad_fac: 2
     rad_min: 4
-    weight_type: uberseg
   nodet_flags: 33554432  # 2**25 is GAIA stars
   bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS of pizza cutter
   color_dep_psf:
     skip: true
-  model: gauss
+  model: wmom
   sx:
