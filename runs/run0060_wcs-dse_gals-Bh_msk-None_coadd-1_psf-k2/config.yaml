@@ -28,7 +28,7 @@ se:
 
 psf:
   type: galsim.Kolmogorov
-  fwhm: 1.3
+  fwhm: 1.2
   fwhm_frac_std: 0
   shear_std: 0
   shear: [0, 0]
