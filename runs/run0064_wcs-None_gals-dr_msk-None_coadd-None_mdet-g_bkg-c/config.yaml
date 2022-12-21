@@ -8,23 +8,9 @@ shear:
   g2: 0.00
 
 msk:
-  cosmic_rays: true
-    # mean_cosmic_rays: 10
-    # min_length: 10
-    # max_length: 30
-  bad_columns: true
-    # mean_bad_cols: 10
-    # widths: [1, 2, 5, 10]
-    # p: [0.8, 0.1, 0.075, 0.025]
-    # min_length_frac: [1, 1, 0.25, 0.25]
-    # max_length_frac: [1, 1, 0.75, 0.75]
-    # gap_prob: [0.30, 0.30, 0, 0]
-    # min_gap_frac: [0.1, 0.1, 0, 0]
-    # max_gap_frac: [0.3, 0.3, 0, 0]
+  cosmic_rays: false
+  bad_columns: false
   streaks: false
-    # mean_steaks: 1
-    # min_width: 2
-    # max_width: 10
 
 coadd:
   central_size: 225
@@ -37,16 +23,16 @@ se:
     position_angle_range: [0, 0]
     dither_scale: 0
     scale: 0.263
-    scale_frac_std: 0
-    shear_std: 0
-  residual_bkg: 0.0
+    scale_frac_std: 0.0
+    shear_std: 0.0
+  residual_bkg: -0.25
   residual_bkg_std: 0.0
 
 psf:
   type: galsim.Gaussian
   fwhm: 0.9
   fwhm_frac_std: 0.1
-  shear_std: 0
+  shear_std: 0.01
   shear: [0, 0]
   color_range:
     - 0
@@ -56,14 +42,13 @@ psf:
     - 1
 
 layout:
-  type: grid
-  ngal_per_side: 7
+  type: random
+  ngal_per_side: 10
   ngal_per_arcmin2: 60
   dither_scale: 0.263
 
 gal:
-  type: exp-bright
-  muiltiband: false
+  type: des-riz
   color_range:
     - 0
     - 0
@@ -82,22 +67,19 @@ star:
   mask_expand_rad: 0
 
 pizza_cutter:
-  skip: false
+  skip: true
   single_epoch_config:
-    # pixel spacing for building various WCS interpolants
     se_wcs_interp_delta: 10
     coadd_wcs_interp_delta: 25
     frac_buffer: 1.42
     reject_outliers: false
     symmetrize_masking: true
-    copy_masked_edges: true
-    max_masked_fraction: 1
-    max_unmasked_trail_fraction: 0.02
+    copy_masked_edges: false
+    max_masked_fraction: 0.9
     edge_buffer: 8
     mask_tape_bumps: false
-    # set the interp flags to 0 or 3 to interp stuff in the mask
     spline_interp_flags:
-      - 3
+      - 7
     noise_interp_flags:
       - 0
     # always zero
@@ -118,10 +100,10 @@ metadetect:
     min_box_size: 32
     rad_fac: 2
     rad_min: 4
+    weight_type: uberseg
   nodet_flags: 33554432  # 2**25 is GAIA stars
   bmask_flags: 1610612736  # 2**29 | 2**30 edge in either MEDS of pizza cutter
-  mask_region: 8
   color_dep_psf:
     skip: true
-  model: wmom
+  model: gauss
   sx:

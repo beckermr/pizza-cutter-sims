@@ -39,6 +39,8 @@ se:
     scale: 0.263
     scale_frac_std: 0
     shear_std: 0
+  residual_bkg: 0.0
+  residual_bkg_std: 0.0
 
 psf:
   type: galsim.Gaussian
