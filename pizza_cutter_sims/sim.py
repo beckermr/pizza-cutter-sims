@@ -280,7 +280,6 @@ def generate_sim(
         weight = np.zeros_like(image)
         weight[:, :] = 1.0 / _img_noise / _img_noise
         image += rng.normal(size=image.shape, scale=_img_noise)
-        image += bkg
 
         msk = np.zeros(image.shape, dtype=np.int32)
         # do not move these calls, keeps the options doing the same thing
@@ -324,6 +323,13 @@ def generate_sim(
             )
             msk[_msk] |= SIM_BMASK_STREAKS
             image[_msk] = np.nan
+
+        residual_bkg = rng.normal(
+            size=image.shape,
+            scale=se_config["residual_bkg_std"],
+            loc=se_config["residual_bkg"],
+        ) * _img_noise
+        image += residual_bkg
 
         images.append(image)
         weights.append(weight)
