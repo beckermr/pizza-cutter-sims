@@ -110,7 +110,7 @@ def test_psf_gen_psf_wldeblend_rng():
     rng = np.random.RandomState(seed=42)
     g1 = 0.1 + 0.01 * rng.normal()
     g2 = 0.1 + 0.01 * rng.normal()
-    fwhm = 0.85 * (1 + 0.1 * rng.normal())
+    fwhm = 0.7 * (1 + 0.1 * rng.normal())
 
     assert gs_config == {
         "type": "Moffat",
@@ -165,4 +165,4 @@ def test_psf_gen_psf_wldeblend_ps_rng():
     assert gs_config["beta"] == 2.5
     assert gs_config["type"] == "Moffat"
     assert psf._variation_factor == 8
-    assert psf._median_seeing == 0.85
+    assert psf._median_seeing == 0.7
