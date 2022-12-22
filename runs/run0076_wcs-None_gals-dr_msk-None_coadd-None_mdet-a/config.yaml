@@ -91,7 +91,7 @@ metadetect:
     types: [noshear, 1p, 1m, 2p, 2m]
     use_noise_image: true
   weight:
-    fwhm: 1.2  # arcsec
+    fwhm: 2  # arcsec
   meds:
     box_padding: 2
     box_type: iso_radius
