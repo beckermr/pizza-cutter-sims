@@ -25,6 +25,8 @@ se:
     scale: 0.263
     scale_frac_std: 0
     shear_std: 0
+  residual_bkg: 0.0
+  residual_bkg_std: 0.0
 
 psf:
   type: galsim.Gaussian
@@ -92,7 +94,7 @@ metadetect:
   color_dep_psf:
     skip: false
     color_range: [0, 3]
-    ncolors: [0.28855904, 0.9670014,  1.60677918, 2.58344922]
+    ncolors: [0.28855904, 0.9670014, 1.60677918, 2.58344922]
   metacal:
     psf: fitgauss
     types: [noshear, 1p, 1m, 2p, 2m]

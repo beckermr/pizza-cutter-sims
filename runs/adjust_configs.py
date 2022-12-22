@@ -6,18 +6,6 @@ parser.indent(mapping=2, sequence=4, offset=2)
 parser.width = 320
 parser.default_flow_style = False
 
-edits = {
-    "gal": {
-        "multiband": False,
-        "color_range": [0, 0],
-        "color_mean": 1,
-        "color_std": 0,
-        "color_type": "uniform",
-    },
-    "psf": {"color_range": [0, 3], "dilation_range": [1, 1]},
-    "metadetect": {"color_dep_psf": {"skip": True}},
-}
-
 fnames = glob.glob("run*/config.yaml", recursive=True)
 
 for fname in fnames:
@@ -28,18 +16,10 @@ for fname in fnames:
     ]
     cfg = parser.load("".join(new_lines))
 
-    for sec, vals in edits.items():
-        for k, v in vals.items():
-            cfg[sec][k] = v
-
-    if "mfrac_weight" in cfg["metadetect"]:
-        del cfg["metadetect"]["mfrac_weight"]
-    if "mfrac_fwhm" in cfg["metadetect"]:
-        del cfg["metadetect"]["mfrac_fwhm"]
-    if "model" not in cfg["metadetect"]:
-        cfg["metadetect"]["model"] = "wmom"
-    if "sx" not in cfg["metadetect"]:
-        cfg["metadetect"]["sx"] = None
+    if "residual_bkg" not in cfg["se"]:
+        cfg["se"]["residual_bkg"] = 0.0
+    if "residual_bkg_std" not in cfg["se"]:
+        cfg["se"]["residual_bkg_std"] = 0.0
 
     with open(fname, "w") as fp:
         parser.dump(cfg, fp)
