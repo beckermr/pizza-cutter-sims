@@ -62,6 +62,8 @@ star:
   rad_dist: uniform
   interp:
     skip: true
+    iso_buff: 1
+    fill_isolated_with_noise: true
   apodize:
     skip: false
     ap_rad: 1
