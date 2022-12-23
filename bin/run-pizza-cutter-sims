@@ -400,7 +400,7 @@ def main(config, seed, output, n_sims, log_level, backend, n_workers, n_report, 
         if backend == "lsf" and not cfg["metadetect"]["color_dep_psf"]["skip"]:
             pkwargs = {"mem": 6}
         elif backend == "condor":
-            pkwargs = {"mem": 4}
+            pkwargs = {"mem": 2}
         else:
             pkwargs = {}
 
