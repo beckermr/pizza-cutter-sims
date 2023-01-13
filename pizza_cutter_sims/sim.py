@@ -207,7 +207,7 @@ def generate_sim(
     (
         gals, upos, vpos,
         img_noise, img_noise_scale,
-        colors, flux_zeropoints
+        colors, flux_zeropoints, bkg_scales,
     ) = gen_gals(
         rng=gal_rng,
         layout_config=layout_config,
@@ -324,11 +324,17 @@ def generate_sim(
             msk[_msk] |= SIM_BMASK_STREAKS
             image[_msk] = np.nan
 
+        # background is given in zp30 units of DES so covert back
+        # by dividing
+        if gal_config["multiband"]:
+            bkg_scale = 1.0 / bkg_scales[se_ind]
+        else:
+            bkg_scale = np.sum([1.0 / bkgs for bkgs in bkg_scales])
         residual_bkg = rng.normal(
             size=image.shape,
             scale=se_config["residual_bkg_std"],
             loc=se_config["residual_bkg"],
-        ) * _img_noise
+        ) * bkg_scale
         image += residual_bkg
 
         images.append(image)
