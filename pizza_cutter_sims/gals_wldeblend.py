@@ -146,7 +146,7 @@ def init_wldeblend(*, survey_bands):
             100,
         )
         flux_zeropoints.append(zp)
-        scales_to_zp30.aoppend(_get_zp30_rescale_fac(surveys[iband]))
+        scales_to_zp30.append(_get_zp30_rescale_fac(surveys[iband]))
 
     noise = np.sqrt(total_sky)
 
