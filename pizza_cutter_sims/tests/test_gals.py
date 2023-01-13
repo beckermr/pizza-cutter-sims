@@ -22,7 +22,7 @@ def test_gals_gen_gals_grid():
         "color_std": 0,
         "color_type": "lognormal",
     }
-    gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
+    gals, upos, vpos, noise, noise_scale, colors, _, _ = gen_gals(
         rng=rng,
         layout_config=layout_config,
         pos_bounds=pos_bounds,
@@ -60,7 +60,7 @@ def test_gals_gen_gals_grid_multiband():
         "color_std": 0,
         "color_type": "lognormal",
     }
-    gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints = gen_gals(
+    gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints, _ = gen_gals(
         rng=rng,
         layout_config=layout_config,
         pos_bounds=pos_bounds,
@@ -104,7 +104,7 @@ def test_gals_gen_gals_grid_multiband_color():
         "color_std": 0,
         "color_type": "lognormal",
     }
-    gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints = gen_gals(
+    gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints, _ = gen_gals(
         rng=rng,
         layout_config=layout_config,
         pos_bounds=pos_bounds,
@@ -153,7 +153,7 @@ def test_gals_gen_gals_grid_multiband_color_range(color_type):
         "color_std": 1,
         "color_type": color_type,
     }
-    gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints = gen_gals(
+    gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints, _ = gen_gals(
         rng=rng,
         layout_config=layout_config,
         pos_bounds=pos_bounds,
@@ -206,7 +206,7 @@ def test_gals_gen_gals_random():
         "color_std": 1.0,
         "color_type": "lognormal",
     }
-    gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
+    gals, upos, vpos, noise, noise_scale, colors, _, _ = gen_gals(
         rng=rng,
         layout_config=layout_config,
         pos_bounds=pos_bounds,
@@ -251,7 +251,7 @@ def test_gals_gen_gals_wldeblend_des():
         "type": "des-riz",
         "noise": 10,
     }
-    gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
+    gals, upos, vpos, noise, noise_scale, colors, _, _ = gen_gals(
         rng=rng,
         layout_config=layout_config,
         pos_bounds=pos_bounds,
@@ -284,7 +284,7 @@ def test_gals_gen_gals_wldeblend_lsst():
         "type": "lsst-riz",
         "noise": 10,
     }
-    gals, upos, vpos, noise, noise_scale, colors, _ = gen_gals(
+    gals, upos, vpos, noise, noise_scale, colors, _, _ = gen_gals(
         rng=rng,
         layout_config=layout_config,
         pos_bounds=pos_bounds,

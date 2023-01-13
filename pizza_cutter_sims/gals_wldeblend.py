@@ -16,7 +16,7 @@ WLDeblendData = collections.namedtuple(
         'cat', 'survey_name', 'bands', 'surveys',
         'builders', 'total_sky', 'noise', 'ngal_per_arcmin2',
         'psf_fwhm', 'pixel_scale', 'flux_zeropoints',
-        'flux_factor', 'round',
+        'flux_factor', 'round', 'scales_to_zp30',
     ],
 )
 
@@ -35,6 +35,15 @@ def _cached_catalog_read():
         'OneDegSq.fits',
     )
     return fitsio.read(fname)
+
+
+def _get_zp30_rescale_fac(survey):
+    # from descwl-shear-sims
+    s_zp = survey.zero_point
+    s_et = survey.exposure_time
+    # following
+    # https://github.com/LSSTDESC/WeakLensingDeblending/blob/228c6655d63de9edd9bf2c8530f99199ee47fc5e/descwl/survey.py#L143
+    return 10.0**(0.4*(30 - 24.0))/s_zp/s_et
 
 
 @functools.lru_cache(maxsize=8)
@@ -94,6 +103,7 @@ def init_wldeblend(*, survey_bands):
     builders = []
     total_sky = 0.0
     flux_zeropoints = []
+    scales_to_zp30 = []
     for iband, band in enumerate(bands):
         # make the survey and code to build galaxies from it
         pars = descwl.survey.Survey.get_defaults(
@@ -136,6 +146,7 @@ def init_wldeblend(*, survey_bands):
             100,
         )
         flux_zeropoints.append(zp)
+        scales_to_zp30.append(_get_zp30_rescale_fac(surveys[iband]))
 
     noise = np.sqrt(total_sky)
 
@@ -157,6 +168,7 @@ def init_wldeblend(*, survey_bands):
         wldeblend_cat, survey_name, bands, surveys,
         builders, total_sky, noise, ngal_per_arcmin2,
         psf_fwhm, scale, flux_zeropoints, flux_factor, round_gal,
+        scales_to_zp30,
     )
 
 

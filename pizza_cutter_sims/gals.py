@@ -272,6 +272,7 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
             ])
 
         flux_zeropoints = [MAGZP_REF] * nbands
+        bkg_scales = [1.0] * nbands
     elif (
         gal_config["type"].startswith("des-")
         or gal_config["type"].startswith("lsst-")
@@ -288,10 +289,11 @@ def gen_gals(*, rng, layout_config, gal_config, pos_bounds):
             colors.append(res.color)
         noise = copy.copy(data.noise)
         noise_scale = copy.copy(data.pixel_scale)
-        flux_zeropoints = data.flux_zeropoints
+        flux_zeropoints = copy.copy(data.flux_zeropoints)
+        bkg_scales = copy.copy(data.scales_to_zp30)
     else:
         raise ValueError("galaxy type '%s' not supported!" % gal_config["type"])
 
     LOGGER.debug("simulated %d galaxies for galaxy type %s", n_gals, gal_config["type"])
 
-    return gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints
+    return gals, upos, vpos, noise, noise_scale, colors, flux_zeropoints, bkg_scales
